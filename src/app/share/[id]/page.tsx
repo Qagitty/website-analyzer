@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { PerformanceSection } from '@/components/reports/PerformanceSection';
+import { EAAComplianceSection } from '@/components/reports/EAAComplianceSection';
 import { AccessibilitySection } from '@/components/reports/AccessibilitySection';
 import { ConsoleErrorsSection } from '@/components/reports/ConsoleErrorsSection';
 import { AIInsightsSection } from '@/components/reports/AIInsightsSection';
@@ -66,7 +67,16 @@ export default async function PublicReportPage({ params }: { params: { id: strin
           <PerformanceSection scores={analysis.lighthouse_scores as any} />
         )}
         {analysis.accessibility_issues && (
-          <AccessibilitySection issues={analysis.accessibility_issues as any} />
+          <EAAComplianceSection
+            issues={(analysis.accessibility_issues as any) ?? []}
+            accessibilityScore={(analysis.lighthouse_scores as any)?.accessibility ?? null}
+          />
+        )}
+        {analysis.accessibility_issues && (
+          <AccessibilitySection
+            issues={analysis.accessibility_issues as any}
+            aiInsights={(analysis.ai_insights as any)?.accessibility?.interpretedIssues ?? null}
+          />
         )}
         {analysis.console_errors && (
           <ConsoleErrorsSection errors={analysis.console_errors as any} />
