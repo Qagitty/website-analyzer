@@ -3,6 +3,7 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 import { analyzeWithAI, compareWithDesign } from '@/lib/ai/claude';
 import { uploadScreenshot } from '@/lib/supabase/storage';
 import { sendScoreDropAlert, sendMonitorSummary } from '@/lib/email/resend';
+import { fireWebhooksForAnalysis } from '@/lib/webhooks/deliver';
 
 export async function POST(req: NextRequest) {
   const authHeader = req.headers.get('Authorization');
@@ -41,10 +42,10 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // Fetch the analysis record to check if design screenshot was uploaded
-    const { data: analysisRecord } = await supabase
+    // Fetch the analysis record to get design screenshot URL, user ID, and URL for webhooks
+    const { data: analysisRecord } = await (supabase as any)
       .from('analyses')
-      .select('design_screenshot_url')
+      .select('design_screenshot_url, user_id, url')
       .eq('id', analysisId)
       .single();
 
@@ -96,6 +97,28 @@ export async function POST(req: NextRequest) {
         completed_at: new Date().toISOString(),
       })
       .eq('id', analysisId);
+
+    // ── Webhook delivery ─────────────────────────────────────────────────
+    if (analysisRecord?.user_id) {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? '';
+      const siteUrl = (analysisRecord as any).url ?? (results.url ?? analysisId);
+      fireWebhooksForAnalysis(supabase, (analysisRecord as any).user_id, {
+        event: 'analysis.completed',
+        analysisId,
+        url: siteUrl,
+        scores: results.lighthouseScores
+          ? {
+              performance: results.lighthouseScores.performance ?? 0,
+              accessibility: results.lighthouseScores.accessibility ?? 0,
+              seo: results.lighthouseScores.seo ?? 0,
+              bestPractices: results.lighthouseScores.bestPractices ?? 0,
+            }
+          : undefined,
+        reportUrl: `${appUrl}/reports/${analysisId}`,
+        timestamp: new Date().toISOString(),
+      }).catch((e) => console.error('[callback] webhook delivery failed:', e));
+    }
+    // ─────────────────────────────────────────────────────────────────────
 
     // ── Monitor post-processing ──────────────────────────────────────────
     if (monitorId && results.lighthouseScores) {
