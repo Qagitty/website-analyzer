@@ -5,7 +5,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { Link2, Link2Off, Check, Activity } from 'lucide-react';
+import { Link2, Link2Off, Check, Activity, Download } from 'lucide-react';
 import type { Analysis } from '@/types/analysis';
 
 export function ReportHeader({ analysis }: { analysis: Analysis }) {
@@ -131,6 +131,14 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
               )}
             </Button>
           )}
+
+          {/* Download PDF */}
+          <a href={`/api/reports/${analysis.id}/pdf`} download>
+            <Button variant="outline" size="sm" className="gap-1.5">
+              <Download className="h-3.5 w-3.5" />
+              PDF
+            </Button>
+          </a>
 
           {/* Monitor this site */}
           {monitoringActive ? (
