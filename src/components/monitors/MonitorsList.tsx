@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { z } from 'zod';
 import type { Monitor } from '@/types/analysis';
+import { TrendChart } from './TrendChart';
 
 const urlSchema = z.string().trim().url('Please enter a valid URL including https://');
 
@@ -222,6 +223,11 @@ function MonitorCard({
               );
             })}
           </div>
+        )}
+
+        {/* Score trend chart — only once at least one run has completed */}
+        {monitor.last_analysis_id && (
+          <TrendChart url={monitor.url} monitorId={monitor.id} />
         )}
 
         {/* Timing */}

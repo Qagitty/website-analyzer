@@ -5,13 +5,15 @@ import { formatDistanceToNow } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { Link2, Link2Off, Check } from 'lucide-react';
+import { Link2, Link2Off, Check, Activity } from 'lucide-react';
 import type { Analysis } from '@/types/analysis';
 
 export function ReportHeader({ analysis }: { analysis: Analysis }) {
   const [isPublic, setIsPublic] = useState(analysis.is_public ?? false);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [monitoring, setMonitoring] = useState(false);
+  const [monitoringActive, setMonitoringActive] = useState(false);
 
   const duration = analysis.completed_at && analysis.started_at
     ? Math.round(
@@ -58,6 +60,32 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
     }
   };
 
+  const createMonitor = async () => {
+    setMonitoring(true);
+    try {
+      const res = await fetch('/api/monitors', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: analysis.url,
+          frequency: 'weekly',
+          notify_on_score_drop: true,
+          score_drop_threshold: 10,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Failed to create monitor');
+      setMonitoringActive(true);
+      toast.success('Monitor created!', {
+        description: `${analysis.url} will be checked weekly.`,
+      });
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setMonitoring(false);
+    }
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -101,6 +129,25 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
               ) : (
                 'Copy link'
               )}
+            </Button>
+          )}
+
+          {/* Monitor this site */}
+          {monitoringActive ? (
+            <Badge variant="default" className="gap-1.5 px-2.5 py-1 text-xs">
+              <Activity className="h-3 w-3" />
+              Monitoring active
+            </Badge>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={createMonitor}
+              disabled={monitoring}
+              className="gap-1.5"
+            >
+              <Activity className="h-3.5 w-3.5" />
+              {monitoring ? 'Setting up…' : 'Monitor this site'}
             </Button>
           )}
         </div>
