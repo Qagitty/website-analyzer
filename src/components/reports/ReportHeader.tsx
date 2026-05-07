@@ -90,15 +90,15 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
     <div className="space-y-3">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="min-w-0">
-          <h1 className="text-2xl font-bold truncate">{analysis.url}</h1>
-          <p className="text-muted-foreground text-sm mt-1">
+          <h1 className="text-2xl font-bold truncate text-white">{analysis.url}</h1>
+          <p className="text-[#94A3B8] text-sm mt-1">
             Analyzed {formatDistanceToNow(new Date(analysis.created_at), { addSuffix: true })}
             {duration && <> · {duration}s</>}
           </p>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <Badge variant="default">Completed</Badge>
+          <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Completed</Badge>
 
           {/* Share toggle */}
           <Button
@@ -106,7 +106,9 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
             size="sm"
             onClick={toggleShare}
             disabled={loading}
-            className="gap-1.5"
+            className={isPublic
+              ? 'gap-1.5 bg-gradient-to-r from-indigo-500 to-violet-500 text-white border-0 hover:from-indigo-400 hover:to-violet-400'
+              : 'gap-1.5 border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/10'}
           >
             {isPublic ? (
               <Link2 className="h-3.5 w-3.5" />
@@ -122,10 +124,10 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
               variant="outline"
               size="sm"
               onClick={copyLink}
-              className="gap-1.5"
+              className="gap-1.5 border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/10"
             >
               {copied ? (
-                <><Check className="h-3.5 w-3.5 text-green-500" /> Copied</>
+                <><Check className="h-3.5 w-3.5 text-emerald-400" /> Copied</>
               ) : (
                 'Copy link'
               )}
@@ -134,7 +136,7 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
 
           {/* Download PDF */}
           <a href={`/api/reports/${analysis.id}/pdf`} download>
-            <Button variant="outline" size="sm" className="gap-1.5">
+            <Button variant="outline" size="sm" className="gap-1.5 border-white/10 text-[#94A3B8] hover:bg-white/5 hover:text-white">
               <Download className="h-3.5 w-3.5" />
               PDF
             </Button>
@@ -142,7 +144,7 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
 
           {/* Monitor this site */}
           {monitoringActive ? (
-            <Badge variant="default" className="gap-1.5 px-2.5 py-1 text-xs">
+            <Badge className="gap-1.5 px-2.5 py-1 text-xs bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
               <Activity className="h-3 w-3" />
               Monitoring active
             </Badge>
@@ -152,7 +154,7 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
               size="sm"
               onClick={createMonitor}
               disabled={monitoring}
-              className="gap-1.5"
+              className="gap-1.5 border-white/10 text-[#94A3B8] hover:bg-white/5 hover:text-white"
             >
               <Activity className="h-3.5 w-3.5" />
               {monitoring ? 'Setting up…' : 'Monitor this site'}
@@ -163,7 +165,7 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
 
       {/* Public badge */}
       {isPublic && (
-        <div className="flex items-center gap-2 rounded-md border border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-900 px-3 py-2 text-sm text-green-700 dark:text-green-400">
+        <div className="flex items-center gap-2 rounded-md border border-indigo-500/20 bg-indigo-500/10 px-3 py-2 text-sm text-indigo-300">
           <Link2 className="h-3.5 w-3.5 shrink-0" />
           <span>This report is public. </span>
           <a
@@ -178,7 +180,7 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
       )}
 
       {typeof analysis.ai_summary === 'string' && analysis.ai_summary.trim().length > 5 && (
-        <p className="text-muted-foreground leading-relaxed">{analysis.ai_summary}</p>
+        <p className="text-[#94A3B8] leading-relaxed">{analysis.ai_summary}</p>
       )}
     </div>
   );

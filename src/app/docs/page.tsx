@@ -22,15 +22,15 @@ function CodeBlock({ code, id }: { code: string; id: string }) {
   }
 
   return (
-    <div className="relative rounded-lg bg-zinc-950 border border-zinc-800">
+    <div className="relative rounded-lg bg-[#0A0A0F] border border-white/10">
       <button
         onClick={handleCopy}
-        className="absolute top-3 right-3 p-1.5 rounded bg-zinc-800 hover:bg-zinc-700 transition-colors text-zinc-400 hover:text-zinc-200"
+        className="absolute top-3 right-3 p-1.5 rounded bg-white/5 hover:bg-white/10 transition-colors text-[#94A3B8] hover:text-white"
         aria-label="Copy code"
       >
-        {copied ? <Check className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4" />}
+        {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
       </button>
-      <pre className="overflow-x-auto p-4 pr-12 text-sm text-zinc-200 font-mono leading-relaxed whitespace-pre-wrap">
+      <pre className="overflow-x-auto p-4 pr-12 text-sm text-[#F8FAFC] font-mono leading-relaxed whitespace-pre-wrap">
         <code>{code}</code>
       </pre>
     </div>
@@ -42,8 +42,8 @@ function MethodBadge({ method }: { method: 'GET' | 'POST' }) {
     <span
       className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-bold font-mono ${
         method === 'POST'
-          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-          : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+          : 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
       }`}
     >
       {method}
@@ -53,15 +53,15 @@ function MethodBadge({ method }: { method: 'GET' | 'POST' }) {
 
 export default function DocsPage() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#0A0A0F]">
       {/* Header */}
-      <div className="border-b bg-muted/30">
+      <div className="border-b border-white/5 bg-[#13131A]/50">
         <div className="max-w-4xl mx-auto px-6 py-10">
           <div className="flex items-center gap-3 mb-3">
-            <h1 className="text-4xl font-bold">WebAnalyzer API</h1>
-            <Badge variant="secondary" className="text-sm">v1</Badge>
+            <h1 className="text-4xl font-bold text-white">WebAnalyzer API</h1>
+            <Badge className="text-sm bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">v1</Badge>
           </div>
-          <p className="text-lg text-muted-foreground">
+          <p className="text-lg text-[#94A3B8]">
             Analyze any website programmatically and retrieve detailed performance, accessibility, and AI reports.
           </p>
         </div>
@@ -70,25 +70,25 @@ export default function DocsPage() {
       <div className="max-w-4xl mx-auto px-6 py-10 space-y-12">
         {/* Base URL */}
         <section className="space-y-3">
-          <h2 className="text-2xl font-semibold">Base URL</h2>
+          <h2 className="text-2xl font-semibold text-white">Base URL</h2>
           <CodeBlock id="base-url" code={BASE_URL} />
         </section>
 
         {/* Authentication */}
         <section className="space-y-4">
-          <h2 className="text-2xl font-semibold">Authentication</h2>
-          <p className="text-muted-foreground">
+          <h2 className="text-2xl font-semibold text-white">Authentication</h2>
+          <p className="text-[#94A3B8]">
             All API requests require an API key passed in the{' '}
-            <code className="rounded bg-muted px-1 py-0.5 text-sm font-mono">Authorization</code>{' '}
+            <code className="rounded bg-white/5 px-1 py-0.5 text-sm font-mono text-indigo-300">Authorization</code>{' '}
             header as a Bearer token.
           </p>
           <CodeBlock
             id="auth-header"
             code={`Authorization: Bearer wa_live_<your_api_key>`}
           />
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-[#94A3B8]">
             You can generate API keys in your{' '}
-            <Link href="/settings" className="underline hover:text-foreground">
+            <Link href="/settings" className="underline text-indigo-400 hover:text-indigo-300 transition-colors">
               account settings
             </Link>
             .
@@ -97,20 +97,20 @@ export default function DocsPage() {
 
         {/* Rate limits */}
         <section className="space-y-4">
-          <h2 className="text-2xl font-semibold">Rate Limits</h2>
-          <p className="text-muted-foreground">
+          <h2 className="text-2xl font-semibold text-white">Rate Limits</h2>
+          <p className="text-[#94A3B8]">
             Requests are rate-limited per API key per calendar day (UTC). The current usage is
             returned in response headers.
           </p>
-          <div className="rounded-lg border overflow-hidden">
+          <div className="rounded-lg border border-white/5 overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-muted/50">
+              <thead className="bg-white/[0.03]">
                 <tr>
-                  <th className="text-left px-4 py-3 font-medium">Plan</th>
-                  <th className="text-left px-4 py-3 font-medium">Requests per day</th>
+                  <th className="text-left px-4 py-3 font-medium text-[#F8FAFC]">Plan</th>
+                  <th className="text-left px-4 py-3 font-medium text-[#F8FAFC]">Requests per day</th>
                 </tr>
               </thead>
-              <tbody className="divide-y">
+              <tbody className="divide-y divide-white/5 text-[#94A3B8]">
                 <tr>
                   <td className="px-4 py-3">Free</td>
                   <td className="px-4 py-3">10</td>
@@ -126,15 +126,15 @@ export default function DocsPage() {
               </tbody>
             </table>
           </div>
-          <div className="rounded-lg border overflow-hidden">
+          <div className="rounded-lg border border-white/5 overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-muted/50">
+              <thead className="bg-white/[0.03]">
                 <tr>
-                  <th className="text-left px-4 py-3 font-medium">Header</th>
-                  <th className="text-left px-4 py-3 font-medium">Description</th>
+                  <th className="text-left px-4 py-3 font-medium text-[#F8FAFC]">Header</th>
+                  <th className="text-left px-4 py-3 font-medium text-[#F8FAFC]">Description</th>
                 </tr>
               </thead>
-              <tbody className="divide-y">
+              <tbody className="divide-y divide-white/5 text-[#94A3B8]">
                 <tr>
                   <td className="px-4 py-3 font-mono text-xs">X-RateLimit-Limit</td>
                   <td className="px-4 py-3">Your daily request limit</td>
@@ -150,7 +150,7 @@ export default function DocsPage() {
 
         {/* Endpoints */}
         <section className="space-y-8">
-          <h2 className="text-2xl font-semibold">Endpoints</h2>
+          <h2 className="text-2xl font-semibold text-white">Endpoints</h2>
 
           {/* POST /api/v1/analyze */}
           <Card>
@@ -159,8 +159,8 @@ export default function DocsPage() {
                 <MethodBadge method="POST" />
                 <code className="font-mono font-normal">/api/v1/analyze</code>
               </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Submit a URL for analysis. Returns immediately with an <code className="rounded bg-muted px-1 py-0.5 text-xs font-mono">analysisId</code> that
+              <p className="text-sm text-[#94A3B8]">
+                Submit a URL for analysis. Returns immediately with an <code className="rounded bg-white/5 px-1 py-0.5 text-xs font-mono text-indigo-300">analysisId</code> that
                 you can use to poll for results. Consumes one credit.
               </p>
             </CardHeader>
@@ -205,10 +205,10 @@ export default function DocsPage() {
                 <MethodBadge method="GET" />
                 <code className="font-mono font-normal">/api/v1/reports/{'{id}'}</code>
               </CardTitle>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-[#94A3B8]">
                 Retrieve a completed analysis report by ID. Poll this endpoint after submitting a
-                URL until <code className="rounded bg-muted px-1 py-0.5 text-xs font-mono">status</code> is{' '}
-                <code className="rounded bg-muted px-1 py-0.5 text-xs font-mono">completed</code>.
+                URL until <code className="rounded bg-white/5 px-1 py-0.5 text-xs font-mono text-indigo-300">status</code> is{' '}
+                <code className="rounded bg-white/5 px-1 py-0.5 text-xs font-mono text-indigo-300">completed</code>.
               </p>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -250,23 +250,23 @@ export default function DocsPage() {
                 <MethodBadge method="GET" />
                 <code className="font-mono font-normal">/api/v1/analyses</code>
               </CardTitle>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-[#94A3B8]">
                 List your recent analyses in reverse-chronological order with pagination.
               </p>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <p className="text-sm font-medium">Query parameters</p>
-                <div className="rounded-lg border overflow-hidden">
+                <div className="rounded-lg border border-white/5 overflow-hidden">
                   <table className="w-full text-sm">
-                    <thead className="bg-muted/50">
+                    <thead className="bg-white/[0.03]">
                       <tr>
-                        <th className="text-left px-4 py-2 font-medium">Parameter</th>
-                        <th className="text-left px-4 py-2 font-medium">Default</th>
-                        <th className="text-left px-4 py-2 font-medium">Description</th>
+                        <th className="text-left px-4 py-2 font-medium text-[#F8FAFC]">Parameter</th>
+                        <th className="text-left px-4 py-2 font-medium text-[#F8FAFC]">Default</th>
+                        <th className="text-left px-4 py-2 font-medium text-[#F8FAFC]">Description</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y">
+                    <tbody className="divide-y divide-white/5 text-[#94A3B8]">
                       <tr>
                         <td className="px-4 py-2 font-mono text-xs">limit</td>
                         <td className="px-4 py-2">10</td>
@@ -317,16 +317,16 @@ export default function DocsPage() {
 
         {/* Error codes */}
         <section className="space-y-4">
-          <h2 className="text-2xl font-semibold">Error Codes</h2>
-          <div className="rounded-lg border overflow-hidden">
+          <h2 className="text-2xl font-semibold text-white">Error Codes</h2>
+          <div className="rounded-lg border border-white/5 overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-muted/50">
+              <thead className="bg-white/[0.03]">
                 <tr>
-                  <th className="text-left px-4 py-3 font-medium">Status</th>
-                  <th className="text-left px-4 py-3 font-medium">Meaning</th>
+                  <th className="text-left px-4 py-3 font-medium text-[#F8FAFC]">Status</th>
+                  <th className="text-left px-4 py-3 font-medium text-[#F8FAFC]">Meaning</th>
                 </tr>
               </thead>
-              <tbody className="divide-y">
+              <tbody className="divide-y divide-white/5 text-[#94A3B8]">
                 <tr>
                   <td className="px-4 py-3 font-mono text-xs">400</td>
                   <td className="px-4 py-3">Bad request — invalid URL or missing parameter</td>
@@ -357,14 +357,14 @@ export default function DocsPage() {
         </section>
 
         {/* CTA */}
-        <div className="rounded-xl border bg-muted/30 p-8 text-center space-y-4">
-          <h3 className="text-xl font-semibold">Ready to get started?</h3>
-          <p className="text-muted-foreground">
+        <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-8 text-center space-y-4">
+          <h3 className="text-xl font-semibold text-white">Ready to get started?</h3>
+          <p className="text-[#94A3B8]">
             Generate your API key in settings and start analyzing websites programmatically.
           </p>
           <Link
             href="/settings"
-            className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+            className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-indigo-500 to-violet-500 px-5 py-2.5 text-sm font-medium text-white hover:from-indigo-400 hover:to-violet-400 transition-all"
           >
             Get your API key in Settings &rarr;
           </Link>
