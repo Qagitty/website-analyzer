@@ -28,6 +28,21 @@ export interface LighthouseScores {
   ttfb: number;
   ttfbSamples?: number[];
   performanceVariance?: number;
+  llmReadiness?: number;
+  llmChecks?: Record<string, boolean>;
+  llmSignals?: string[];
+}
+
+export interface CrawledPage {
+  url: string;
+  statusCode: number;
+  ttfb: number;
+  bytes: number;
+  title: string;
+  performance: number;
+  seo: number;
+  accessibility: number;
+  llmReadiness: number;
 }
 
 export interface ConsoleError {
@@ -110,4 +125,5 @@ export interface Analysis {
   completed_at: string | null;
   created_at: string;
   updated_at: string;
+  crawl_pages?: CrawledPage[] | null;
 }

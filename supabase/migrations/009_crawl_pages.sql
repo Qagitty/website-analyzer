@@ -1,0 +1,2 @@
+ALTER TABLE analyses
+  ADD COLUMN IF NOT EXISTS crawl_pages JSONB;

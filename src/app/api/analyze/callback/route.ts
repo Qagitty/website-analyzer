@@ -15,6 +15,8 @@ export async function POST(req: NextRequest) {
   const {
     analysisId,
     error: workerError,
+    // Multi-page crawl results
+    crawledPages,
     // Monitor context (present only for scheduled runs)
     monitorId,
     monitorUserId,
@@ -78,7 +80,7 @@ export async function POST(req: NextRequest) {
       designComparisonPromise,
     ]);
 
-    await supabase
+    await (supabase as any)
       .from('analyses')
       .update({
         status: 'completed',
@@ -89,6 +91,7 @@ export async function POST(req: NextRequest) {
         network_requests: results.networkSummary,
         ai_insights: aiInsights,
         ai_summary: aiInsights.summary,
+        crawl_pages: crawledPages ?? null,
         ...(designComparison && { design_comparison: designComparison }),
         completed_at: new Date().toISOString(),
       })

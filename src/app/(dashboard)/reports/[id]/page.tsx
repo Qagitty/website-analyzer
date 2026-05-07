@@ -9,6 +9,8 @@ import { ConsoleErrorsSection } from '@/components/reports/ConsoleErrorsSection'
 import { AIInsightsSection } from '@/components/reports/AIInsightsSection';
 import { ScreenshotViewer } from '@/components/reports/ScreenshotViewer';
 import { DesignComparisonSection } from '@/components/reports/DesignComparisonSection';
+import { LLMReadinessSection } from '@/components/reports/LLMReadinessSection';
+import { CrawledPagesSection } from '@/components/reports/CrawledPagesSection';
 import type { Analysis } from '@/types/analysis';
 
 export const metadata: Metadata = { title: 'Report' };
@@ -58,6 +60,12 @@ export default async function ReportPage({ params }: { params: { id: string } })
           designScreenshotUrl={analysis.design_screenshot_url ?? null}
           liveScreenshotUrl={analysis.screenshot_url ?? null}
         />
+      )}
+      {analysis.lighthouse_scores && (
+        <LLMReadinessSection scores={analysis.lighthouse_scores as any} />
+      )}
+      {analysis.crawl_pages && (
+        <CrawledPagesSection pages={analysis.crawl_pages as any} />
       )}
     </div>
   );

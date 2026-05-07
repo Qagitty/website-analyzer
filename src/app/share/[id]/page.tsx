@@ -9,6 +9,8 @@ import { AIInsightsSection } from '@/components/reports/AIInsightsSection';
 import { ScreenshotViewer } from '@/components/reports/ScreenshotViewer';
 import { DesignComparisonSection } from '@/components/reports/DesignComparisonSection';
 import { ShareReportHeader } from '@/components/reports/ShareReportHeader';
+import { LLMReadinessSection } from '@/components/reports/LLMReadinessSection';
+import { CrawledPagesSection } from '@/components/reports/CrawledPagesSection';
 import type { Analysis } from '@/types/analysis';
 
 export async function generateMetadata(
@@ -90,6 +92,12 @@ export default async function PublicReportPage({ params }: { params: { id: strin
             designScreenshotUrl={analysis.design_screenshot_url ?? null}
             liveScreenshotUrl={analysis.screenshot_url ?? null}
           />
+        )}
+        {analysis.lighthouse_scores && (
+          <LLMReadinessSection scores={analysis.lighthouse_scores as any} />
+        )}
+        {analysis.crawl_pages && (
+          <CrawledPagesSection pages={analysis.crawl_pages as any} />
         )}
 
         {/* CTA footer */}

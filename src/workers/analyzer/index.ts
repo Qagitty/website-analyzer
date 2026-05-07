@@ -76,6 +76,32 @@ async function runAnalysis(req: AnalysisRequest): Promise<void> {
     const scores = analyzeHTML(html, response, pageBytes, ttfb);
     const accessibilityIssues = checkAccessibility(html);
     const consoleErrors = checkCommonErrors(html, response);
+    const llmReadiness = checkLLMReadiness(html);
+
+    // Build homepage crawled page entry
+    const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+    const homepageTitle = titleMatch ? titleMatch[1].trim() : req.url;
+
+    const crawledPages: CrawledPage[] = [
+      {
+        url: response.url,
+        statusCode: response.status,
+        ttfb,
+        bytes: pageBytes,
+        title: homepageTitle,
+        performance: scores.performance,
+        seo: scores.seo,
+        accessibility: scores.accessibility,
+        llmReadiness: llmReadiness.score,
+      },
+    ];
+
+    // Crawl up to 4 additional internal links
+    const internalLinks = crawlInternalLinks(html, req.url);
+    for (const link of internalLinks.slice(0, 4)) {
+      const page = await crawlPage(link, fetchHeaders);
+      crawledPages.push(page);
+    }
 
     await sendCallback(req.callbackUrl, req.authToken, {
       analysisId: req.analysisId,
@@ -91,6 +117,9 @@ async function runAnalysis(req: AnalysisRequest): Promise<void> {
         ttfb,
         ttfbSamples,
         performanceVariance: ttfbMax - ttfbMin,
+        llmReadiness: llmReadiness.score,
+        llmChecks: llmReadiness.checks,
+        llmSignals: llmReadiness.signals,
       },
       consoleErrors,
       accessibilityIssues,
@@ -104,6 +133,7 @@ async function runAnalysis(req: AnalysisRequest): Promise<void> {
         redirected: response.redirected,
         analysisTimeMs: Date.now() - startTime,
       },
+      crawledPages,
     });
   } catch (err: unknown) {
     await sendCallback(req.callbackUrl, req.authToken, {
@@ -119,6 +149,33 @@ interface Scores {
   bestPractices: number;
   seo: number;
   estimatedLcp: number;
+}
+
+interface LLMReadiness {
+  score: number;
+  checks: {
+    hasStructuredData: boolean;
+    hasMetaDescription: boolean;
+    hasOpenGraph: boolean;
+    hasSitemap: boolean;
+    allowsAIBots: boolean;
+    hasCleanHeadings: boolean;
+    hasSufficientContent: boolean;
+    hasCanonical: boolean;
+  };
+  signals: string[];
+}
+
+interface CrawledPage {
+  url: string;
+  statusCode: number;
+  ttfb: number;
+  bytes: number;
+  title: string;
+  performance: number;
+  seo: number;
+  accessibility: number;
+  llmReadiness: number;
 }
 
 function analyzeHTML(html: string, response: Response, bytes: number, ttfb: number): Scores {
@@ -307,6 +364,117 @@ function checkCommonErrors(html: string, response: Response): any[] {
   }
 
   return errors;
+}
+
+function checkLLMReadiness(html: string): LLMReadiness {
+  const checks = {
+    hasStructuredData: /"@context"\s*:\s*"https?:\/\/schema\.org/i.test(html) || /itemscope/i.test(html),
+    hasMetaDescription: (() => {
+      const m = html.match(/meta[^>]+name=["']description["'][^>]*content=["']([^"']{50,160})["']/i)
+        || html.match(/meta[^>]+content=["']([^"']{50,160})["'][^>]*name=["']description["']/i);
+      return m !== null;
+    })(),
+    hasOpenGraph: /property=["']og:title["']/i.test(html) && /property=["']og:description["']/i.test(html),
+    hasSitemap: /sitemap/i.test(html),
+    allowsAIBots: !/<meta[^>]+name=["']robots["'][^>]*content=["'][^"']*(noindex|nofollow|none)/i.test(html),
+    hasCleanHeadings: /<h1[\s>]/i.test(html) && (/<h2[\s>]/i.test(html) || /<h3[\s>]/i.test(html)),
+    hasSufficientContent: html.length > 5000,
+    hasCanonical: /rel=["']canonical["']/i.test(html),
+  };
+
+  const passing = Object.values(checks).filter(Boolean).length;
+  const score = Math.round(passing * 12.5);
+
+  const signals: string[] = [];
+  if (!checks.hasStructuredData) signals.push('Add JSON-LD structured data (Schema.org) so AI can understand your content type');
+  if (!checks.hasMetaDescription) signals.push('Add a meta description (50-160 chars) — AI uses this for content summaries');
+  if (!checks.hasOpenGraph) signals.push('Add Open Graph tags so AI bots can preview your content correctly');
+  if (!checks.hasSitemap) signals.push('Link to your sitemap.xml in <head> so crawlers discover all pages');
+  if (!checks.allowsAIBots) signals.push('Your robots meta tag blocks AI crawlers — remove GPTBot/CCBot restrictions if you want AI indexing');
+  if (!checks.hasCleanHeadings) signals.push('Add clear H2/H3 headings to help AI understand your content hierarchy');
+  if (!checks.hasSufficientContent) signals.push('Add more substantive content — thin pages are often skipped by AI crawlers');
+  if (!checks.hasCanonical) signals.push('Add a canonical URL tag to avoid duplicate content confusion for AI');
+
+  return { score, checks, signals };
+}
+
+function crawlInternalLinks(html: string, baseUrl: string): string[] {
+  const base = new URL(baseUrl);
+  const skipPatterns = ['/login', '/signup', '/admin', '/api', '/static', '/assets'];
+  const seen = new Set<string>();
+  const results: string[] = [];
+
+  const hrefRegex = /href=["']([^"'#][^"']*)["']/gi;
+  let match: RegExpExecArray | null;
+
+  while ((match = hrefRegex.exec(html)) !== null) {
+    const raw = match[1].trim();
+    if (!raw || raw.startsWith('#') || raw.startsWith('mailto:') || raw.startsWith('tel:')) continue;
+
+    let absolute: string;
+    try {
+      absolute = new URL(raw, base.origin).href;
+    } catch {
+      continue;
+    }
+
+    const parsed = new URL(absolute);
+    // Same origin only
+    if (parsed.hostname !== base.hostname) continue;
+    // Skip common non-content paths
+    if (skipPatterns.some(p => parsed.pathname.startsWith(p))) continue;
+    // Skip homepage itself
+    if (parsed.pathname === '/' && parsed.search === '') continue;
+    // Deduplicate
+    const key = parsed.origin + parsed.pathname;
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    results.push(absolute);
+    if (results.length >= 4) break;
+  }
+
+  return results;
+}
+
+async function crawlPage(url: string, fetchHeaders: object): Promise<CrawledPage> {
+  try {
+    const t0 = Date.now();
+    const r = await fetch(url, { headers: fetchHeaders, redirect: 'follow' });
+    const ttfb = Date.now() - t0;
+    const html = await r.text();
+    const bytes = new TextEncoder().encode(html).length;
+
+    const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+    const title = titleMatch ? titleMatch[1].trim() : url;
+
+    const scores = analyzeHTML(html, r, bytes, ttfb);
+    const llmReadiness = checkLLMReadiness(html);
+
+    return {
+      url: r.url,
+      statusCode: r.status,
+      ttfb,
+      bytes,
+      title,
+      performance: scores.performance,
+      seo: scores.seo,
+      accessibility: scores.accessibility,
+      llmReadiness: llmReadiness.score,
+    };
+  } catch {
+    return {
+      url,
+      statusCode: 0,
+      ttfb: 0,
+      bytes: 0,
+      title: url,
+      performance: 0,
+      seo: 0,
+      accessibility: 0,
+      llmReadiness: 0,
+    };
+  }
 }
 
 async function sendCallback(url: string, token: string, data: object): Promise<void> {
