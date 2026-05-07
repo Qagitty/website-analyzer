@@ -1,0 +1,4 @@
+ALTER TABLE user_settings
+  ADD COLUMN IF NOT EXISTS agency_name      TEXT,
+  ADD COLUMN IF NOT EXISTS brand_color      TEXT DEFAULT '#6366f1',
+  ADD COLUMN IF NOT EXISTS show_powered_by  BOOLEAN NOT NULL DEFAULT TRUE;

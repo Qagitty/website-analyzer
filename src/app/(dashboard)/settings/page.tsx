@@ -3,6 +3,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import { ProfileForm } from '@/components/settings/ProfileForm';
 import { NotificationPrefs } from '@/components/settings/NotificationPrefs';
 import { SubscriptionCard } from '@/components/settings/SubscriptionCard';
+import { BrandingForm } from '@/components/settings/BrandingForm';
 import type { PlanId } from '@/lib/stripe/plans';
 
 export const metadata: Metadata = { title: 'Settings' };
@@ -19,9 +20,9 @@ export default async function SettingsPage() {
       .single(),
     supabase
       .from('user_settings')
-      .select('credits, notifications')
+      .select('credits, notifications, agency_name, brand_color, show_powered_by')
       .eq('user_id', user!.id)
-      .single(),
+      .single() as unknown as Promise<{ data: Record<string, any> | null }>,
   ]);
 
   const notifications = (settings?.notifications as any) ?? {
@@ -29,6 +30,9 @@ export default async function SettingsPage() {
     email_on_fail: true,
     weekly_digest: false,
   };
+
+  const plan = (subscription?.plan ?? 'free') as PlanId;
+  const isPro = plan === 'pro' || plan === 'agency';
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -41,8 +45,15 @@ export default async function SettingsPage() {
 
       <NotificationPrefs initial={notifications} />
 
+      <BrandingForm
+        initialAgencyName={(settings as any)?.agency_name ?? ''}
+        initialBrandColor={(settings as any)?.brand_color ?? '#6366f1'}
+        initialShowPoweredBy={(settings as any)?.show_powered_by ?? true}
+        isPro={isPro}
+      />
+
       <SubscriptionCard
-        plan={(subscription?.plan ?? 'free') as PlanId}
+        plan={plan}
         status={subscription?.status ?? 'active'}
         periodEnd={subscription?.current_period_end ?? null}
         credits={settings?.credits ?? 0}

@@ -3,6 +3,8 @@ import { createServerClient } from '@/lib/supabase/server';
 import { generateReportPDF } from '@/lib/pdf/generator';
 import type { Analysis } from '@/types/analysis';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createServerClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -22,7 +24,19 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     return NextResponse.json({ error: 'Report not found' }, { status: 404 });
   }
 
-  const pdfBuffer = await generateReportPDF(analysis as unknown as Analysis);
+  const { data: settings } = await supabase
+    .from('user_settings')
+    .select('agency_name, brand_color, show_powered_by')
+    .eq('user_id', user.id)
+    .single();
+
+  const branding = {
+    agencyName:    (settings as any)?.agency_name    ?? undefined,
+    brandColor:    (settings as any)?.brand_color    ?? '#6366f1',
+    showPoweredBy: (settings as any)?.show_powered_by ?? true,
+  };
+
+  const pdfBuffer = await generateReportPDF(analysis as unknown as Analysis, branding);
   const hostname = new URL(analysis.url).hostname;
 
   return new NextResponse(new Uint8Array(pdfBuffer), {
