@@ -76,7 +76,7 @@ export function TrendChart({ url }: TrendChartProps) {
 
   if (data.length === 0) {
     return (
-      <div className="flex h-[200px] items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">
+      <div className="flex h-[200px] items-center justify-center rounded-md border border-dashed border-white/10 text-[#475569] text-sm text-center py-8">
         No history yet — scores will appear after the first automated run.
       </div>
     );
@@ -85,61 +85,66 @@ export function TrendChart({ url }: TrendChartProps) {
   return (
     <ResponsiveContainer width="100%" height={200}>
       <LineChart data={data} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
         <XAxis
           dataKey="label"
-          tick={{ fontSize: 11 }}
+          tick={{ fill: '#475569', fontSize: 11 }}
           tickLine={false}
-          axisLine={false}
+          axisLine={{ stroke: 'rgba(255,255,255,0.05)' }}
         />
         <YAxis
           domain={[0, 100]}
-          tick={{ fontSize: 11 }}
+          tick={{ fill: '#475569', fontSize: 11 }}
           tickLine={false}
-          axisLine={false}
+          axisLine={{ stroke: 'rgba(255,255,255,0.05)' }}
         />
         <Tooltip
-          contentStyle={{ fontSize: 12 }}
+          contentStyle={{ background: '#13131A', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#F8FAFC', fontSize: '12px' }}
+          labelStyle={{ color: '#94A3B8' }}
           formatter={(value: number, name: string) => [
             value != null ? `${value}/100` : '—',
             name,
           ]}
         />
-        <Legend wrapperStyle={{ fontSize: 12 }} />
+        <Legend wrapperStyle={{ color: '#94A3B8', fontSize: '12px' }} />
         <Line
           type="monotone"
           dataKey="performance"
           name="Performance"
-          stroke="#6366f1"
+          stroke="#6366F1"
           strokeWidth={2}
           dot={false}
+          activeDot={{ r: 4, strokeWidth: 0 }}
           connectNulls
         />
         <Line
           type="monotone"
           dataKey="accessibility"
           name="Accessibility"
-          stroke="#10b981"
+          stroke="#10B981"
           strokeWidth={2}
           dot={false}
+          activeDot={{ r: 4, strokeWidth: 0 }}
           connectNulls
         />
         <Line
           type="monotone"
           dataKey="seo"
           name="SEO"
-          stroke="#f59e0b"
+          stroke="#F59E0B"
           strokeWidth={2}
           dot={false}
+          activeDot={{ r: 4, strokeWidth: 0 }}
           connectNulls
         />
         <Line
           type="monotone"
           dataKey="bestPractices"
           name="Best Practices"
-          stroke="#0ea5e9"
+          stroke="#0EA5E9"
           strokeWidth={2}
           dot={false}
+          activeDot={{ r: 4, strokeWidth: 0 }}
           connectNulls
         />
       </LineChart>

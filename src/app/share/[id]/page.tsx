@@ -48,11 +48,11 @@ export default async function PublicReportPage({ params }: { params: { id: strin
   if (!analysis) notFound();
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Public header — branding + no auth controls */}
-      <header className="border-b bg-background/80 backdrop-blur sticky top-0 z-10">
+    <div className="min-h-screen bg-[#0A0A0F]">
+      {/* Public header */}
+      <header className="border-b border-white/5 bg-[#0A0A0F]/80 backdrop-blur sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 md:px-6 h-14 flex items-center justify-between">
-          <span className="font-bold text-lg">WebAnalyzer</span>
+          <span className="font-bold text-lg text-gradient">WebAnalyzer</span>
           <a
             href="/"
             className="text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -101,14 +101,16 @@ export default async function PublicReportPage({ params }: { params: { id: strin
         )}
 
         {/* CTA footer */}
-        <div className="rounded-xl border bg-muted/40 p-6 md:p-8 text-center space-y-3">
-          <p className="text-lg font-semibold">Want a report like this for your site?</p>
+        <div className="bg-[#13131A] border border-white/5 rounded-xl p-6 md:p-8 text-center space-y-4">
+          <p className="text-lg font-semibold text-foreground">
+            Want a report like this for your site?
+          </p>
           <p className="text-muted-foreground text-sm">
             WebAnalyzer gives you performance, accessibility, AI insights, and more — free to start.
           </p>
           <a
             href="/signup"
-            className="inline-block rounded-md bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+            className="inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-indigo-500 to-violet-500 px-6 py-2.5 text-sm font-medium text-white hover:opacity-90 transition-opacity"
           >
             Analyze your site free →
           </a>

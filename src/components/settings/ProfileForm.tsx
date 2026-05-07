@@ -68,7 +68,7 @@ export function ProfileForm({ email, initialName }: Props) {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <label className="text-sm text-muted-foreground">Email</label>
-            <p className="font-medium mt-0.5">{email}</p>
+            <p className="font-medium mt-0.5 text-[#475569]">{email}</p>
           </div>
           <div>
             <label className="text-sm text-muted-foreground" htmlFor="displayName">
@@ -77,14 +77,18 @@ export function ProfileForm({ email, initialName }: Props) {
             <Input
               id="displayName"
               placeholder="Your name"
-              className="mt-1"
+              className="mt-1 bg-[#0A0A0F] border-white/10 text-foreground placeholder:text-[#475569] focus:border-indigo-500/50 focus:ring-indigo-500/20"
               {...register('displayName')}
             />
             {errors.displayName && (
-              <p className="text-sm text-red-500 mt-1">{errors.displayName.message}</p>
+              <p className="text-sm text-red-400 mt-1">{errors.displayName.message}</p>
             )}
           </div>
-          <Button type="submit" disabled={loading || !isDirty}>
+          <Button
+            type="submit"
+            disabled={loading || !isDirty}
+            className="bg-gradient-to-r from-indigo-500 to-violet-500 text-white hover:from-indigo-400 hover:to-violet-400"
+          >
             {loading ? 'Saving…' : 'Save changes'}
           </Button>
         </form>

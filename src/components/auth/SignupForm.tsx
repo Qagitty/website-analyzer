@@ -49,9 +49,9 @@ export function SignupForm() {
 
   if (done) {
     return (
-      <div className="text-center p-4 bg-green-50 rounded-lg">
-        <p className="font-medium text-green-800">Check your email</p>
-        <p className="text-sm text-green-700 mt-1">
+      <div className="text-center p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+        <p className="font-medium text-emerald-400">Check your email</p>
+        <p className="text-sm text-emerald-400/70 mt-1">
           We sent a confirmation link to your email address.
         </p>
       </div>
@@ -62,16 +62,16 @@ export function SignupForm() {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div>
         <Input type="email" placeholder="Email address" {...register('email')} />
-        {errors.email && <p className="mt-1 text-sm text-red-500">{errors.email.message}</p>}
+        {errors.email && <p className="mt-1 text-sm text-red-400">{errors.email.message}</p>}
       </div>
       <div>
         <Input type="password" placeholder="Password (8+ characters)" {...register('password')} />
-        {errors.password && <p className="mt-1 text-sm text-red-500">{errors.password.message}</p>}
+        {errors.password && <p className="mt-1 text-sm text-red-400">{errors.password.message}</p>}
       </div>
       <div>
         <Input type="password" placeholder="Confirm password" {...register('confirmPassword')} />
         {errors.confirmPassword && (
-          <p className="mt-1 text-sm text-red-500">{errors.confirmPassword.message}</p>
+          <p className="mt-1 text-sm text-red-400">{errors.confirmPassword.message}</p>
         )}
       </div>
       <Button type="submit" className="w-full" disabled={loading}>
@@ -83,10 +83,10 @@ export function SignupForm() {
 
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t" />
+          <span className="w-full border-t border-white/10" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-background px-2 text-muted-foreground">Or</span>
+          <span className="bg-background px-2 text-[#475569]">Or</span>
         </div>
       </div>
 

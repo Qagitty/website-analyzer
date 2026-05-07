@@ -1,6 +1,5 @@
+import type React from 'react';
 import { ShieldCheck, ShieldAlert, ShieldX } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import type { AccessibilityIssue } from '@/types/analysis';
 
 interface Props {
@@ -21,31 +20,31 @@ function determineLevel(issues: AccessibilityIssue[], accessibilityScore: number
 
 const LEVEL_CONFIG = {
   compliant: {
-    borderClass: 'border-l-green-500',
-    badgeClass: 'bg-green-100 text-green-800 border-green-300',
+    borderClass: 'border-l-emerald-500',
+    badgeClass: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
     badgeLabel: 'AA Compliant',
     Icon: ShieldCheck,
-    iconClass: 'text-green-600',
+    iconClass: 'text-emerald-400',
     statusMessage: '✓ Your site meets WCAG 2.1 AA requirements. You are likely EAA compliant.',
-    statusClass: 'text-green-700 bg-green-50 border border-green-200',
+    statusClass: 'text-emerald-400 bg-emerald-500/5 border border-emerald-500/20',
   },
   partial: {
     borderClass: 'border-l-amber-500',
-    badgeClass: 'bg-amber-100 text-amber-800 border-amber-300',
+    badgeClass: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
     badgeLabel: 'Review Required',
     Icon: ShieldAlert,
-    iconClass: 'text-amber-600',
+    iconClass: 'text-amber-400',
     statusMessage: '⚠ Your site has minor accessibility issues. Review and fix them to achieve full EAA compliance.',
-    statusClass: 'text-amber-700 bg-amber-50 border border-amber-200',
+    statusClass: 'text-amber-400 bg-amber-500/5 border border-amber-500/20',
   },
   'non-compliant': {
     borderClass: 'border-l-red-500',
-    badgeClass: 'bg-red-100 text-red-800 border-red-300',
+    badgeClass: 'bg-red-500/10 text-red-400 border border-red-500/20',
     badgeLabel: 'Non-Compliant',
     Icon: ShieldX,
-    iconClass: 'text-red-600',
+    iconClass: 'text-red-400',
     statusMessage: '✗ Your site has significant accessibility barriers. Immediate action required for EAA compliance.',
-    statusClass: 'text-red-700 bg-red-50 border border-red-200',
+    statusClass: 'text-red-400 bg-red-500/5 border border-red-500/20',
   },
 } satisfies Record<ComplianceLevel, {
   borderClass: string;
@@ -73,43 +72,43 @@ export function EAAComplianceSection({ issues, accessibilityScore }: Props) {
 
   return (
     <section>
-      <Card className={`border-l-4 ${config.borderClass}`}>
+      <div className={`border-l-4 ${config.borderClass} ${
+        level === 'compliant'
+          ? 'bg-emerald-500/5 rounded-r-xl p-5'
+          : level === 'partial'
+          ? 'bg-amber-500/5 rounded-r-xl p-5'
+          : 'bg-red-500/5 rounded-r-xl p-5'
+      }`}>
         {/* Header */}
-        <CardHeader className="pb-3">
+        <div className="pb-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <Icon className={`h-5 w-5 shrink-0 ${config.iconClass}`} />
-              <CardTitle className="text-base font-semibold">
+              <span className="font-semibold text-foreground">
                 European Accessibility Act (EAA)
-              </CardTitle>
+              </span>
             </div>
             <span
-              className={`inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold ${config.badgeClass}`}
+              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${config.badgeClass}`}
             >
               {config.badgeLabel}
             </span>
           </div>
 
           {/* Deadline callout */}
-          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+          <p className="bg-red-500/5 border border-red-500/10 rounded-lg p-3 text-xs text-red-400/80 mt-3 leading-relaxed">
             The EAA came into force June 2025. Non-compliant businesses selling to EU customers
             face fines up to €100,000 or 4% of annual revenue.
           </p>
-        </CardHeader>
+        </div>
 
-        <CardContent className="space-y-4">
+        <div className="space-y-4">
           {/* Stats row */}
           <div className="grid grid-cols-3 gap-3">
             {/* Critical issues */}
-            <div
-              className={`rounded-lg p-3 text-center ${
-                critical > 0
-                  ? 'bg-red-50 border border-red-200'
-                  : 'bg-muted border border-border'
-              }`}
-            >
+            <div className="bg-[#0A0A0F] rounded-lg p-3 text-center">
               <p
-                className={`text-2xl font-bold ${critical > 0 ? 'text-red-600' : 'text-foreground'}`}
+                className={`text-2xl font-bold ${critical > 0 ? 'text-red-400' : 'text-foreground'}`}
               >
                 {critical}
               </p>
@@ -117,14 +116,14 @@ export function EAAComplianceSection({ issues, accessibilityScore }: Props) {
             </div>
 
             {/* Moderate issues */}
-            <div className="rounded-lg bg-muted border border-border p-3 text-center">
-              <p className="text-2xl font-bold">{moderate}</p>
+            <div className="bg-[#0A0A0F] rounded-lg p-3 text-center">
+              <p className="text-2xl font-bold text-amber-400">{moderate}</p>
               <p className="text-xs text-muted-foreground mt-0.5">Moderate issues</p>
             </div>
 
             {/* Accessibility score */}
-            <div className="rounded-lg bg-muted border border-border p-3 text-center">
-              <p className="text-2xl font-bold">{score}</p>
+            <div className="bg-[#0A0A0F] rounded-lg p-3 text-center">
+              <p className={`text-2xl font-bold ${score >= 90 ? 'text-emerald-400' : score >= 70 ? 'text-amber-400' : 'text-red-400'}`}>{score}</p>
               <p className="text-xs text-muted-foreground mt-0.5">Score / 100</p>
             </div>
           </div>
@@ -142,15 +141,15 @@ export function EAAComplianceSection({ issues, accessibilityScore }: Props) {
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {allWcagTags.map((tag) => (
-                  <Badge key={tag} variant="outline" className="text-xs font-mono">
+                  <span key={tag} className="bg-[#1C1C27] text-[#475569] text-xs px-2 py-0.5 rounded font-mono border border-white/5">
                     {tag}
-                  </Badge>
+                  </span>
                 ))}
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </section>
   );
 }

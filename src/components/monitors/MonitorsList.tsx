@@ -5,7 +5,6 @@ import { formatDistanceToNow, format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import {
   Clock, Globe, Trash2, Play, Pause, Plus, Bell, BellOff, ExternalLink,
@@ -80,7 +79,7 @@ function CreateMonitorForm({ onCreated }: { onCreated: (m: Monitor) => void }) {
 
           <div className="flex flex-wrap gap-3 items-center">
             {/* Frequency */}
-            <div className="flex rounded-md border overflow-hidden text-sm">
+            <div className="flex rounded-md border border-white/10 overflow-hidden text-sm">
               {(['daily', 'weekly'] as const).map((f) => (
                 <button
                   key={f}
@@ -88,8 +87,8 @@ function CreateMonitorForm({ onCreated }: { onCreated: (m: Monitor) => void }) {
                   onClick={() => setFrequency(f)}
                   className={`px-3 py-1.5 capitalize transition-colors ${
                     frequency === f
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-background hover:bg-muted'
+                      ? 'bg-gradient-to-r from-indigo-500 to-violet-500 text-white'
+                      : 'bg-[#13131A] hover:bg-white/5 text-muted-foreground'
                   }`}
                 >
                   {f}
@@ -102,7 +101,7 @@ function CreateMonitorForm({ onCreated }: { onCreated: (m: Monitor) => void }) {
               type="button"
               onClick={() => setNotify((v) => !v)}
               className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-colors ${
-                notify ? 'border-primary text-primary' : 'text-muted-foreground'
+                notify ? 'border-indigo-500/50 text-indigo-300' : 'border-white/10 text-[#475569]'
               }`}
             >
               {notify ? <Bell className="h-3.5 w-3.5" /> : <BellOff className="h-3.5 w-3.5" />}
@@ -126,7 +125,7 @@ function CreateMonitorForm({ onCreated }: { onCreated: (m: Monitor) => void }) {
             )}
           </div>
 
-          <Button type="submit" disabled={loading} size="sm">
+          <Button type="submit" disabled={loading} size="sm" className="bg-gradient-to-r from-indigo-500 to-violet-500 text-white hover:from-indigo-400 hover:to-violet-400 border-0">
             {loading ? 'Creating…' : 'Create monitor'}
           </Button>
         </form>
@@ -184,13 +183,12 @@ function MonitorCard({
   const scores = monitor.last_scores;
 
   return (
-    <Card className={monitor.is_active ? '' : 'opacity-60'}>
-      <CardContent className="pt-4 space-y-3">
+    <div className={`bg-[#13131A] border border-white/5 rounded-xl hover:border-indigo-500/20 transition-colors p-4 space-y-3 ${monitor.is_active ? '' : 'opacity-60'}`}>
         {/* URL + status */}
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2 min-w-0">
             <Globe className="h-4 w-4 shrink-0 text-muted-foreground" />
-            <span className="font-medium text-sm truncate max-w-xs">{monitor.url}</span>
+            <span className="font-semibold text-foreground text-sm truncate max-w-xs">{monitor.url}</span>
             <a
               href={monitor.url}
               target="_blank"
@@ -201,24 +199,25 @@ function MonitorCard({
             </a>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <Badge variant={monitor.is_active ? 'default' : 'secondary'}>
-              {monitor.is_active ? 'Active' : 'Paused'}
-            </Badge>
-            <Badge variant="outline" className="capitalize">{monitor.frequency}</Badge>
+            <div className="flex items-center gap-1.5">
+              <span className={`h-2 w-2 rounded-full ${monitor.is_active ? 'bg-emerald-400 animate-pulse' : 'bg-[#475569]'}`} />
+              <span className="text-xs text-muted-foreground">{monitor.is_active ? 'Active' : 'Paused'}</span>
+            </div>
+            <span className="bg-[#1C1C27] text-muted-foreground border border-white/10 text-xs px-2 py-0.5 rounded-full capitalize">{monitor.frequency}</span>
           </div>
         </div>
 
         {/* Last scores */}
         {scores && (
-          <div className="flex flex-wrap gap-3">
+          <div className="bg-[#0A0A0F] rounded-lg p-3 border border-white/5 flex flex-wrap gap-4">
             {(['performance', 'accessibility', 'seo'] as const).map((k) => {
               const v = (scores as any)[k];
               if (v == null) return null;
-              const color = v >= 90 ? 'text-green-600' : v >= 50 ? 'text-yellow-600' : 'text-red-600';
+              const color = v >= 80 ? 'text-emerald-400' : v >= 50 ? 'text-amber-400' : 'text-red-400';
               return (
                 <div key={k} className="text-center">
                   <div className={`text-lg font-bold leading-none ${color}`}>{v}</div>
-                  <div className="text-xs text-muted-foreground capitalize mt-0.5">{k}</div>
+                  <div className="text-xs text-[#475569] capitalize mt-0.5">{k}</div>
                 </div>
               );
             })}
@@ -231,7 +230,7 @@ function MonitorCard({
         )}
 
         {/* Timing */}
-        <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
+        <div className="flex items-center gap-4 text-xs text-[#475569] flex-wrap">
           {monitor.last_run_at && (
             <span className="flex items-center gap-1">
               <Clock className="h-3 w-3" />
@@ -254,7 +253,7 @@ function MonitorCard({
         {monitor.last_analysis_id && (
           <a
             href={`/reports/${monitor.last_analysis_id}`}
-            className="text-xs text-primary hover:underline"
+            className="text-xs text-indigo-400 hover:underline"
           >
             View last report →
           </a>
@@ -262,29 +261,26 @@ function MonitorCard({
 
         {/* Actions */}
         <div className="flex gap-2 pt-1">
-          <Button
-            variant="outline"
-            size="sm"
+          <button
+            type="button"
             onClick={toggle}
             disabled={busy}
-            className="gap-1.5"
+            className="text-[#475569] hover:text-muted-foreground text-xs flex items-center gap-1"
           >
             {monitor.is_active
-              ? <><Pause className="h-3.5 w-3.5" /> Pause</>
-              : <><Play className="h-3.5 w-3.5" /> Resume</>}
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
+              ? <><Pause className="h-3 w-3" /> Pause</>
+              : <><Play className="h-3 w-3" /> Resume</>}
+          </button>
+          <button
+            type="button"
             onClick={remove}
             disabled={busy}
-            className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 gap-1.5"
+            className="text-red-400/50 hover:text-red-400 text-xs flex items-center gap-1"
           >
-            <Trash2 className="h-3.5 w-3.5" /> Delete
-          </Button>
+            <Trash2 className="h-3 w-3" /> Delete
+          </button>
         </div>
-      </CardContent>
-    </Card>
+    </div>
   );
 }
 
@@ -303,7 +299,7 @@ export function MonitorsList({ initialMonitors }: { initialMonitors: Monitor[] }
       <CreateMonitorForm onCreated={handleCreated} />
 
       {monitors.length === 0 ? (
-        <div className="rounded-lg border border-dashed p-10 text-center text-muted-foreground text-sm">
+        <div className="rounded-lg border border-dashed border-white/10 p-10 text-[#475569] text-center text-sm py-12">
           No monitors yet. Create one above to start tracking your sites automatically.
         </div>
       ) : (

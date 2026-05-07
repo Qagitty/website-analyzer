@@ -16,13 +16,18 @@ export default async function MonitorsPage() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Scheduled Monitors</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
+      {/* Header */}
+      <div className="space-y-1">
+        <h1 className="text-3xl font-bold text-gradient">Scheduled Monitors</h1>
+        <p className="text-muted-foreground text-sm">
           Automatically re-analyze your sites daily or weekly and get alerted when scores drop.
         </p>
       </div>
-      <MonitorsList initialMonitors={monitors} />
+
+      {/* Content */}
+      <div className="bg-[#13131A] border border-white/5 rounded-xl p-6">
+        <MonitorsList initialMonitors={monitors} />
+      </div>
     </div>
   );
 }

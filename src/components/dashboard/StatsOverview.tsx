@@ -42,7 +42,17 @@ export function StatsOverview({ analyses, settings }: Props) {
       {stats.map((stat) => (
         <Card key={stat.label}>
           <CardContent className="pt-6">
-            <div className="text-2xl md:text-3xl font-bold">{stat.value}</div>
+            <div
+              className={`text-2xl md:text-3xl font-bold tabular-nums ${
+                stat.label === 'Credits Remaining'
+                  ? (stat.value as number) <= 1
+                    ? 'text-amber-400'
+                    : 'text-foreground'
+                  : 'text-foreground'
+              }`}
+            >
+              {stat.value}
+            </div>
             <p className="text-sm text-muted-foreground mt-1">{stat.label}</p>
             <p className="text-xs text-muted-foreground/70 mt-0.5">{stat.sub}</p>
           </CardContent>

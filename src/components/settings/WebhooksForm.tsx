@@ -5,7 +5,6 @@ import { toast } from 'sonner';
 import { Trash2, Plus, Webhook, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export interface WebhookRow {
@@ -165,13 +164,14 @@ export function WebhooksForm({ initialWebhooks }: Props) {
               placeholder="https://hooks.slack.com/… or https://your-endpoint.com/webhook"
               value={newUrl}
               onChange={(e) => setNewUrl(e.target.value)}
-              className="flex-1"
+              className="flex-1 bg-[#0A0A0F] border-white/10 text-foreground placeholder:text-[#475569] focus:border-indigo-500/50 focus:ring-indigo-500/20"
               aria-label="Webhook URL"
             />
             <Button
               type="submit"
               size="sm"
               disabled={adding || !newUrl.trim() || webhooks.length >= 5}
+              className="bg-gradient-to-r from-indigo-500 to-violet-500 text-white hover:from-indigo-400 hover:to-violet-400"
             >
               <Plus className="h-4 w-4 mr-1" />
               {adding ? 'Adding…' : 'Add'}
@@ -193,14 +193,14 @@ export function WebhooksForm({ initialWebhooks }: Props) {
           </div>
 
           {isSlackUrl(newUrl) && (
-            <p className="text-xs text-green-600 font-medium flex items-center gap-1">
-              <span className="inline-block h-2 w-2 rounded-full bg-green-500" />
+            <p className="text-xs text-emerald-400 font-medium flex items-center gap-1">
+              <span className="inline-block h-2 w-2 rounded-full bg-emerald-400" />
               Slack incoming webhook detected — payload will be formatted as a Slack message.
             </p>
           )}
 
           {webhooks.length >= 5 && (
-            <p className="text-xs text-amber-600">Maximum of 5 webhooks reached.</p>
+            <p className="text-xs text-amber-400">Maximum of 5 webhooks reached.</p>
           )}
         </form>
 
@@ -210,39 +210,36 @@ export function WebhooksForm({ initialWebhooks }: Props) {
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               Active webhooks ({webhooks.length}/5)
             </p>
-            <div className="divide-y rounded-lg border">
+            <div className="rounded-lg border border-white/5">
               {webhooks.map((webhook) => (
                 <div
                   key={webhook.id}
-                  className="flex items-center gap-3 p-3"
+                  className="flex items-center gap-3 py-3 border-b border-white/5 last:border-0 px-3"
                 >
                   {/* Status dot */}
                   <span
                     className={`h-2 w-2 rounded-full shrink-0 ${
-                      webhook.active ? 'bg-green-500' : 'bg-muted-foreground/40'
+                      webhook.active ? 'bg-emerald-400' : 'bg-[#475569]'
                     }`}
                   />
 
                   {/* URL + meta */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-sm font-mono truncate">
+                      <span className="font-mono text-sm text-muted-foreground truncate">
                         {truncateUrl(webhook.url)}
                       </span>
                       {isSlackUrl(webhook.url) && (
-                        <Badge
-                          variant="secondary"
-                          className="text-xs text-green-700 bg-green-100 dark:bg-green-900/30 dark:text-green-400"
-                        >
+                        <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs px-2 py-0.5 rounded-full">
                           Slack
-                        </Badge>
+                        </span>
                       )}
                     </div>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {webhook.events.map((ev) => (
-                        <Badge key={ev} variant="outline" className="text-xs px-1.5 py-0">
+                        <span key={ev} className="bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 text-xs px-2 py-0.5 rounded-full">
                           {EVENT_LABELS[ev] ?? ev}
-                        </Badge>
+                        </span>
                       ))}
                     </div>
                   </div>
@@ -253,7 +250,7 @@ export function WebhooksForm({ initialWebhooks }: Props) {
                       href={webhook.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-1.5 rounded hover:bg-muted transition-colors"
+                      className="p-1.5 rounded hover:bg-white/5 transition-colors"
                       title="Open URL"
                     >
                       <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
@@ -263,7 +260,7 @@ export function WebhooksForm({ initialWebhooks }: Props) {
                       type="button"
                       onClick={() => handleToggle(webhook)}
                       disabled={togglingId === webhook.id}
-                      className="text-xs px-2 py-1 rounded border border-muted-foreground/20 hover:bg-muted transition-colors disabled:opacity-50"
+                      className="text-xs px-2 py-1 rounded border border-indigo-500/30 text-indigo-300 bg-transparent hover:bg-indigo-500/10 transition-colors disabled:opacity-50"
                       title={webhook.active ? 'Disable' : 'Enable'}
                     >
                       {togglingId === webhook.id
@@ -277,7 +274,7 @@ export function WebhooksForm({ initialWebhooks }: Props) {
                       type="button"
                       onClick={() => handleDelete(webhook.id)}
                       disabled={deletingId === webhook.id}
-                      className="p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-950/30 text-red-500 transition-colors disabled:opacity-50"
+                      className="p-1.5 rounded text-red-400/50 hover:text-red-400 transition-colors disabled:opacity-50"
                       title="Delete webhook"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -288,7 +285,7 @@ export function WebhooksForm({ initialWebhooks }: Props) {
             </div>
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground text-center py-4 border rounded-lg">
+          <p className="text-sm text-muted-foreground text-center py-4 border border-white/5 rounded-lg">
             No webhooks configured yet.
           </p>
         )}

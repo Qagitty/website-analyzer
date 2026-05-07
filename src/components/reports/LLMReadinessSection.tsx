@@ -1,5 +1,4 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, XCircle, Lightbulb } from 'lucide-react';
 
 interface Props {
@@ -32,16 +31,10 @@ const CHECK_ORDER = [
   'hasCanonical',
 ];
 
-function scoreBadgeVariant(score: number): 'default' | 'secondary' | 'destructive' {
-  if (score >= 80) return 'default';
-  if (score >= 50) return 'secondary';
-  return 'destructive';
-}
-
-function scoreColor(score: number): string {
-  if (score >= 80) return 'text-green-600';
-  if (score >= 50) return 'text-yellow-600';
-  return 'text-red-600';
+function scoreBadgeClass(score: number): string {
+  if (score >= 80) return 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+  if (score >= 50) return 'bg-amber-500/10 text-amber-400 border border-amber-500/20';
+  return 'bg-red-500/10 text-red-400 border border-red-500/20';
 }
 
 export function LLMReadinessSection({ scores }: Props) {
@@ -54,9 +47,9 @@ export function LLMReadinessSection({ scores }: Props) {
     <section className="space-y-4">
       <div className="flex items-center gap-3">
         <h2 className="text-2xl font-bold">AI &amp; LLM Readiness</h2>
-        <Badge variant={scoreBadgeVariant(llmReadiness)}>
-          <span className={scoreColor(llmReadiness)}>{llmReadiness}/100</span>
-        </Badge>
+        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${scoreBadgeClass(llmReadiness)}`}>
+          {llmReadiness}/100
+        </span>
       </div>
 
       <p className="text-sm text-muted-foreground">
@@ -68,22 +61,22 @@ export function LLMReadinessSection({ scores }: Props) {
           <CardTitle className="text-base">Readiness Checks</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <ul className="divide-y">
+          <ul className="divide-y divide-white/5">
             {CHECK_ORDER.map((key) => {
               const passing = checksToRender[key] ?? false;
               return (
-                <li key={key} className="flex items-center gap-3 px-6 py-3">
+                <li key={key} className="flex items-center gap-3 hover:bg-white/[0.03] rounded-lg px-3 py-2 transition-colors">
                   {passing ? (
-                    <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
+                    <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0" />
                   ) : (
-                    <XCircle className="h-5 w-5 text-muted-foreground shrink-0" />
+                    <XCircle className="h-5 w-5 text-red-400/40 shrink-0" />
                   )}
                   <span className={passing ? 'text-sm' : 'text-sm text-muted-foreground'}>
                     {CHECK_LABELS[key] ?? key}
                   </span>
                   <span className="ml-auto text-xs font-medium">
                     {passing ? (
-                      <span className="text-green-600">Pass</span>
+                      <span className="text-emerald-400">Pass</span>
                     ) : (
                       <span className="text-muted-foreground">Fail</span>
                     )}
@@ -96,24 +89,20 @@ export function LLMReadinessSection({ scores }: Props) {
       </Card>
 
       {llmSignals && llmSignals.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Lightbulb className="h-4 w-4 text-yellow-500" />
-              How to improve
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-2">
-              {llmSignals.map((tip, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm">
-                  <span className="text-yellow-500 mt-0.5 shrink-0">•</span>
-                  <span className="text-muted-foreground">{tip}</span>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
+        <div className="bg-[#1C1C27] border border-indigo-500/20 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Lightbulb className="h-4 w-4 text-indigo-400" />
+            <span className="text-base font-semibold text-foreground">How to improve</span>
+          </div>
+          <ul className="space-y-2">
+            {llmSignals.map((tip, i) => (
+              <li key={i} className="flex items-start gap-2 text-sm">
+                <span className="text-indigo-400 mt-0.5 shrink-0">•</span>
+                <span className="text-muted-foreground">{tip}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </section>
   );

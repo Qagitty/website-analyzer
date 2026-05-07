@@ -11,6 +11,17 @@ import type { PlanId } from '@/lib/stripe/plans';
 
 export const metadata: Metadata = { title: 'Settings' };
 
+function SettingsSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="space-y-4">
+      <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+      <div className="bg-[#13131A] border border-white/5 rounded-xl p-6">
+        {children}
+      </div>
+    </section>
+  );
+}
+
 export default async function SettingsPage() {
   const supabase = createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -53,42 +64,56 @@ export default async function SettingsPage() {
   const isPro = plan === 'pro' || plan === 'agency';
 
   return (
-    <div className="max-w-2xl space-y-6">
-      <h1 className="text-3xl font-bold">Settings</h1>
+    <div className="max-w-2xl space-y-8">
+      <h1 className="text-3xl font-bold text-gradient">Settings</h1>
 
-      <ProfileForm
-        email={user!.email!}
-        initialName={user?.user_metadata?.full_name ?? ''}
-      />
+      <SettingsSection title="Profile">
+        <ProfileForm
+          email={user!.email!}
+          initialName={user?.user_metadata?.full_name ?? ''}
+        />
+      </SettingsSection>
 
-      <NotificationPrefs initial={notifications} />
+      <SettingsSection title="Notifications">
+        <NotificationPrefs initial={notifications} />
+      </SettingsSection>
 
-      <BrandingForm
-        initialAgencyName={(settings as any)?.agency_name ?? ''}
-        initialBrandColor={(settings as any)?.brand_color ?? '#6366f1'}
-        initialShowPoweredBy={(settings as any)?.show_powered_by ?? true}
-        isPro={isPro}
-      />
+      <SettingsSection title="Branding">
+        <BrandingForm
+          initialAgencyName={(settings as any)?.agency_name ?? ''}
+          initialBrandColor={(settings as any)?.brand_color ?? '#6366f1'}
+          initialShowPoweredBy={(settings as any)?.show_powered_by ?? true}
+          isPro={isPro}
+        />
+      </SettingsSection>
 
-      <TeamMembersForm
-        isPro={plan === 'agency'}
-        initialMembers={(teamMembers as any) ?? []}
-        ownerEmail={user!.email!}
-      />
+      <SettingsSection title="Team Members">
+        <TeamMembersForm
+          isPro={plan === 'agency'}
+          initialMembers={(teamMembers as any) ?? []}
+          ownerEmail={user!.email!}
+        />
+      </SettingsSection>
 
-      <WebhooksForm initialWebhooks={(webhooks as any) ?? []} />
+      <SettingsSection title="Webhooks">
+        <WebhooksForm initialWebhooks={(webhooks as any) ?? []} />
+      </SettingsSection>
 
-      <ApiKeysForm initialKeys={(apiKeys as any) ?? []} />
+      <SettingsSection title="API Keys">
+        <ApiKeysForm initialKeys={(apiKeys as any) ?? []} />
+      </SettingsSection>
 
-      <SubscriptionCard
-        plan={plan}
-        status={subscription?.status ?? 'active'}
-        periodEnd={subscription?.current_period_end ?? null}
-        credits={settings?.credits ?? 0}
-        stripeConfigured={
-          !!(process.env.STRIPE_PRO_PRICE_ID && process.env.STRIPE_AGENCY_PRICE_ID)
-        }
-      />
+      <SettingsSection title="Subscription">
+        <SubscriptionCard
+          plan={plan}
+          status={subscription?.status ?? 'active'}
+          periodEnd={subscription?.current_period_end ?? null}
+          credits={settings?.credits ?? 0}
+          stripeConfigured={
+            !!(process.env.STRIPE_PRO_PRICE_ID && process.env.STRIPE_AGENCY_PRICE_ID)
+          }
+        />
+      </SettingsSection>
     </div>
   );
 }

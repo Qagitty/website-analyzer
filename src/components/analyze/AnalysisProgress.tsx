@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { QueuePosition } from '@/components/analyze/QueuePosition';
 import { toast } from 'sonner';
@@ -97,15 +96,15 @@ export function AnalysisProgress({ analysisId, initialData }: Props) {
   }, [analysisId, router]);
 
   if (!state) {
-    return <div className="animate-pulse h-24 bg-muted rounded-lg" />;
+    return <div className="animate-pulse h-24 bg-[#13131A] rounded-lg" />;
   }
 
   if (state.status === 'failed') {
     return (
-      <div className="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-900 p-6 text-center space-y-4">
+      <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-6 text-center space-y-4">
         <div className="space-y-1">
-          <p className="text-red-700 dark:text-red-400 font-medium">Analysis Failed</p>
-          <p className="text-red-600 dark:text-red-500 text-sm">
+          <p className="text-red-400 font-medium">Analysis Failed</p>
+          <p className="text-red-400/70 text-sm mt-1">
             {state.errorMessage ?? 'Something went wrong. Please try again.'}
           </p>
         </div>
@@ -121,11 +120,18 @@ export function AnalysisProgress({ analysisId, initialData }: Props) {
     );
   }
 
+  const statusBadgeClass = (() => {
+    const base = 'text-xs font-medium px-2.5 py-0.5 rounded-full';
+    if (state.status === 'completed') return `${base} bg-emerald-500/10 text-emerald-400 border border-emerald-500/20`;
+    if (state.status === 'running')   return `${base} bg-indigo-500/10 text-indigo-300 border border-indigo-500/20`;
+    return `${base} bg-[#1C1C27] text-muted-foreground border border-white/10`;
+  })();
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-medium truncate max-w-xs">{state.url}</p>
-        <Badge variant="secondary">{state.status}</Badge>
+        <p className="text-sm font-medium truncate max-w-xs text-foreground">{state.url}</p>
+        <span className={statusBadgeClass}>{state.status}</span>
       </div>
 
       <Progress value={STATUS_PROGRESS[state.status]} className="h-2" />

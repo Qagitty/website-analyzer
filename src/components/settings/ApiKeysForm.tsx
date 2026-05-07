@@ -7,7 +7,6 @@ import { Copy, Check, Trash2, ChevronDown, ChevronRight, KeyRound } from 'lucide
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 
 export interface ApiKeyRow {
   id: string;
@@ -119,37 +118,40 @@ export function ApiKeysForm({ initialKeys }: { initialKeys: ApiKeyRow[] }) {
             value={name}
             onChange={(e) => setName(e.target.value)}
             maxLength={50}
-            className="flex-1"
+            className="flex-1 bg-[#0A0A0F] border-white/10 text-foreground placeholder:text-[#475569] focus:border-indigo-500/50 focus:ring-indigo-500/20"
           />
-          <Button type="submit" disabled={generating}>
+          <Button
+            type="submit"
+            disabled={generating}
+            className="bg-gradient-to-r from-indigo-500 to-violet-500 text-white hover:from-indigo-400 hover:to-violet-400"
+          >
             {generating ? 'Generating...' : 'Generate API key'}
           </Button>
         </form>
 
         {/* One-time key reveal */}
         {revealedKey && (
-          <div className="rounded-lg border border-yellow-300 bg-yellow-50 dark:bg-yellow-950 dark:border-yellow-700 p-4 space-y-3">
-            <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+          <div className="bg-[#0A0A0F] border border-amber-500/30 rounded-xl p-4 space-y-3">
+            <p className="text-amber-400/70 text-xs">
               Save your API key now — it will not be shown again.
             </p>
             <div className="flex items-center gap-2">
-              <code className="flex-1 rounded bg-white dark:bg-black border px-3 py-2 text-sm font-mono break-all">
+              <code className="flex-1 font-mono text-sm text-amber-300 break-all">
                 {revealedKey.key}
               </code>
-              <Button
-                variant="outline"
-                size="sm"
+              <button
+                type="button"
                 onClick={() => handleCopy(revealedKey.key, revealedKey.id)}
-                className="shrink-0"
+                className="shrink-0 bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 text-xs px-3 py-1.5 rounded-lg transition-colors"
               >
                 {copiedKeyId === revealedKey.id ? (
-                  <Check className="h-4 w-4 text-green-600" />
+                  <Check className="h-4 w-4" />
                 ) : (
                   <Copy className="h-4 w-4" />
                 )}
-              </Button>
+              </button>
             </div>
-            <p className="text-xs text-yellow-700 dark:text-yellow-300">
+            <p className="text-amber-400/70 text-xs">
               This key will not be shown again. Store it in a secure location.
             </p>
           </div>
@@ -162,18 +164,19 @@ export function ApiKeysForm({ initialKeys }: { initialKeys: ApiKeyRow[] }) {
           </p>
         ) : (
           <div className="space-y-2">
-            <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+            <p className="text-xs text-[#475569] uppercase tracking-wider">
               Active keys ({activeKeys.length}/5)
             </p>
-            <div className="divide-y rounded-lg border">
+            <div className="h-px bg-white/5" />
+            <div className="rounded-lg border border-white/5">
               {activeKeys.map((key) => (
-                <div key={key.id} className="flex items-center justify-between px-4 py-3 gap-4">
+                <div key={key.id} className="flex items-center justify-between py-3 border-b border-white/5 last:border-0 px-4 gap-4">
                   <div className="min-w-0 flex-1 space-y-0.5">
-                    <p className="text-sm font-medium truncate">{key.name}</p>
+                    <p className="text-sm text-foreground truncate">{key.name}</p>
                     <p className="text-xs text-muted-foreground font-mono">
                       {key.key_prefix}...
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-[#475569]">
                       Created {format(new Date(key.created_at), 'MMM d, yyyy')}
                       {' · '}
                       Last used:{' '}
@@ -182,22 +185,21 @@ export function ApiKeysForm({ initialKeys }: { initialKeys: ApiKeyRow[] }) {
                         : 'Never'}
                     </p>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
+                  <button
+                    type="button"
                     onClick={() => handleRevoke(key.id)}
                     disabled={revoking === key.id}
-                    className="text-destructive hover:text-destructive shrink-0"
+                    className="text-red-400/50 hover:text-red-400 text-xs shrink-0 transition-colors disabled:opacity-50"
                   >
                     {revoking === key.id ? (
-                      <span className="text-xs">Revoking...</span>
+                      <span>Revoking...</span>
                     ) : (
-                      <>
-                        <Trash2 className="h-4 w-4 mr-1" />
+                      <span className="flex items-center gap-1">
+                        <Trash2 className="h-4 w-4" />
                         Revoke
-                      </>
+                      </span>
                     )}
-                  </Button>
+                  </button>
                 </div>
               ))}
             </div>
@@ -221,18 +223,19 @@ export function ApiKeysForm({ initialKeys }: { initialKeys: ApiKeyRow[] }) {
             </button>
 
             {showRevoked && (
-              <div className="divide-y rounded-lg border opacity-60">
+              <div className="rounded-lg border border-white/5 opacity-60">
+                <p className="text-xs text-[#475569] uppercase tracking-wider px-4 pt-3 pb-1">Revoked</p>
                 {revokedKeys.map((key) => (
-                  <div key={key.id} className="flex items-center justify-between px-4 py-3 gap-4">
+                  <div key={key.id} className="flex items-center justify-between px-4 py-3 border-b border-white/5 last:border-0 gap-4">
                     <div className="min-w-0 flex-1 space-y-0.5">
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium truncate">{key.name}</p>
-                        <Badge variant="secondary" className="text-xs">Revoked</Badge>
+                        <p className="text-sm text-foreground truncate">{key.name}</p>
+                        <span className="bg-[#1C1C27] text-[#475569] border border-white/5 text-xs px-2 py-0.5 rounded-full">Revoked</span>
                       </div>
-                      <p className="text-xs text-muted-foreground font-mono">
+                      <p className="font-mono text-sm text-muted-foreground">
                         {key.key_prefix}...
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-[#475569]">
                         Revoked {format(new Date(key.revoked_at!), 'MMM d, yyyy')}
                       </p>
                     </div>

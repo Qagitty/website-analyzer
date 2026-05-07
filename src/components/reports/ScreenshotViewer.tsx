@@ -15,7 +15,7 @@ export function ScreenshotViewer({ url, siteUrl }: Props) {
         <CardTitle>Screenshot</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="relative w-full overflow-hidden rounded-md border">
+        <div className="rounded-lg overflow-hidden border border-white/10">
           <Image
             src={url}
             alt={`Screenshot of ${siteUrl}`}

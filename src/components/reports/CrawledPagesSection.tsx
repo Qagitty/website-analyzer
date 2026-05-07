@@ -1,5 +1,4 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import type { CrawledPage } from '@/types/analysis';
 
 interface Props {
@@ -7,9 +6,9 @@ interface Props {
 }
 
 function scoreClass(score: number): string {
-  if (score >= 80) return 'text-green-600 font-semibold';
-  if (score >= 50) return 'text-yellow-600 font-semibold';
-  return 'text-red-600 font-semibold';
+  if (score >= 80) return 'text-emerald-400 font-semibold tabular-nums';
+  if (score >= 50) return 'text-amber-400 font-semibold tabular-nums';
+  return 'text-red-400 font-semibold tabular-nums';
 }
 
 function avg(pages: CrawledPage[], key: keyof CrawledPage): number {
@@ -39,20 +38,22 @@ export function CrawledPagesSection({ pages }: Props) {
     <section className="space-y-4">
       <div className="flex items-center gap-3">
         <h2 className="text-2xl font-bold">Site Crawl</h2>
-        <Badge variant="secondary">{pages.length} page{pages.length !== 1 ? 's' : ''}</Badge>
+        <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
+          {pages.length} page{pages.length !== 1 ? 's' : ''}
+        </span>
       </div>
 
       {pages.length === 1 ? (
-        <p className="text-sm text-muted-foreground">
+        <p className="text-[#475569] text-sm text-center py-6 italic">
           Only the homepage was crawled — no internal links found.
         </p>
       ) : (
-        <div className="flex gap-6 text-sm text-muted-foreground">
-          <span>
+        <div className="bg-[#1C1C27] rounded-xl p-4 flex gap-6">
+          <span className="text-sm text-muted-foreground">
             Avg Performance:{' '}
             <span className={scoreClass(avgPerf)}>{avgPerf}</span>
           </span>
-          <span>
+          <span className="text-sm text-muted-foreground">
             Avg SEO:{' '}
             <span className={scoreClass(avgSeo)}>{avgSeo}</span>
           </span>
@@ -66,23 +67,23 @@ export function CrawledPagesSection({ pages }: Props) {
         <CardContent className="p-0 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b bg-muted/40">
-                <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Page</th>
-                <th className="text-right px-3 py-2.5 font-medium text-muted-foreground">Perf</th>
-                <th className="text-right px-3 py-2.5 font-medium text-muted-foreground">SEO</th>
-                <th className="text-right px-3 py-2.5 font-medium text-muted-foreground">A11y</th>
-                <th className="text-right px-4 py-2.5 font-medium text-muted-foreground">LLM</th>
+              <tr className="border-b border-white/5">
+                <th className="text-left px-4 py-2.5 text-[#475569] text-xs uppercase tracking-wider pb-2">Page</th>
+                <th className="text-right px-3 py-2.5 text-[#475569] text-xs uppercase tracking-wider pb-2">Perf</th>
+                <th className="text-right px-3 py-2.5 text-[#475569] text-xs uppercase tracking-wider pb-2">SEO</th>
+                <th className="text-right px-3 py-2.5 text-[#475569] text-xs uppercase tracking-wider pb-2">A11y</th>
+                <th className="text-right px-4 py-2.5 text-[#475569] text-xs uppercase tracking-wider pb-2">LLM</th>
               </tr>
             </thead>
-            <tbody className="divide-y">
+            <tbody>
               {pages.map((page, i) => (
-                <tr key={i} className="hover:bg-muted/20 transition-colors">
+                <tr key={i} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
                   <td className="px-4 py-3">
-                    <div className="font-medium truncate max-w-xs" title={page.url}>
+                    <div className="text-sm text-muted-foreground font-mono truncate max-w-[200px]" title={page.url}>
                       {truncateUrl(page.url)}
                     </div>
                     {page.title && page.title !== page.url && (
-                      <div className="text-xs text-muted-foreground truncate max-w-xs">
+                      <div className="text-sm text-foreground truncate max-w-[200px]">
                         {page.title}
                       </div>
                     )}

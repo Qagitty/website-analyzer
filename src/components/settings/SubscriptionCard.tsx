@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { PLANS, type PlanId } from '@/lib/stripe/plans';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -64,11 +63,23 @@ export function SubscriptionCard({ plan, status, periodEnd, credits, stripeConfi
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm text-muted-foreground">Current plan</p>
-            <p className="font-semibold text-lg capitalize">{currentPlan.name}</p>
+            <div className="flex items-center gap-2 mt-0.5">
+              <p className="font-semibold text-lg capitalize">{currentPlan.name}</p>
+              {(() => {
+                const base = 'text-xs font-medium px-2.5 py-0.5 rounded-full';
+                if (plan === 'agency') return <span className={`${base} bg-violet-500/10 text-violet-300 border border-violet-500/20`}>{plan}</span>;
+                if (plan === 'pro')    return <span className={`${base} bg-indigo-500/10 text-indigo-300 border border-indigo-500/20`}>{plan}</span>;
+                return <span className={`${base} bg-[#1C1C27] text-muted-foreground border border-white/10`}>{plan}</span>;
+              })()}
+            </div>
           </div>
-          <Badge variant={status === 'active' ? 'default' : 'destructive'}>
+          <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${
+            status === 'active'
+              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+              : 'bg-red-500/10 text-red-400 border border-red-500/20'
+          }`}>
             {status}
-          </Badge>
+          </span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
@@ -100,20 +111,25 @@ export function SubscriptionCard({ plan, status, periodEnd, credits, stripeConfi
 
         {/* Billing portal for paid users */}
         {plan !== 'free' && (
-          <Button variant="outline" onClick={openPortal} disabled={loadingPortal} className="w-full">
+          <Button
+            variant="outline"
+            onClick={openPortal}
+            disabled={loadingPortal}
+            className="w-full border border-indigo-500/30 text-indigo-300 bg-transparent hover:bg-indigo-500/10"
+          >
             {loadingPortal ? 'Opening…' : 'Manage Billing & Invoices'}
           </Button>
         )}
 
         {/* Upgrade options */}
         {(plan === 'free' || plan === 'pro') && (
-          <div className="space-y-3 pt-2 border-t">
+          <div className="space-y-3 pt-2 border-t border-white/5">
             <p className="text-sm font-medium">
               {plan === 'free' ? 'Upgrade your plan' : 'Upgrade to Agency'}
             </p>
 
             {!stripeConfigured && (
-              <div className="rounded-lg border border-dashed p-3 text-center text-sm text-muted-foreground">
+              <div className="rounded-lg border border-white/10 border-dashed p-3 text-center text-sm text-muted-foreground">
                 Paid plans coming soon. Stripe is not yet configured.
               </div>
             )}
@@ -121,7 +137,7 @@ export function SubscriptionCard({ plan, status, periodEnd, credits, stripeConfi
             {stripeConfigured && (
               <div className={`grid gap-3 ${plan === 'free' ? 'grid-cols-2' : 'grid-cols-1'}`}>
                 {(plan === 'free' ? (['pro', 'agency'] as PlanId[]) : (['agency'] as PlanId[])).map((p) => (
-                  <div key={p} className="rounded-lg border p-3 space-y-2">
+                  <div key={p} className="rounded-lg border border-white/10 bg-[#13131A] p-3 space-y-2">
                     <p className="font-semibold">{PLANS[p].name} — ${PLANS[p].price}/mo</p>
                     <ul className="text-xs text-muted-foreground space-y-1">
                       {PLANS[p].features.slice(0, 3).map((f) => (
@@ -130,7 +146,7 @@ export function SubscriptionCard({ plan, status, periodEnd, credits, stripeConfi
                     </ul>
                     <Button
                       size="sm"
-                      className="w-full"
+                      className="w-full bg-gradient-to-r from-indigo-500 to-violet-500 text-white hover:from-indigo-400 hover:to-violet-400"
                       disabled={loadingUpgrade === p}
                       onClick={() => upgrade(p)}
                     >

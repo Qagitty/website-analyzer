@@ -139,17 +139,17 @@ export function URLInput({ credits }: { credits: number }) {
         </Button>
       </div>
 
-      {error && <p className="text-sm text-red-500">{error}</p>}
+      {error && <p className="text-sm text-red-400">{error}</p>}
 
       {credits === 0 && (
-        <p className="text-sm text-amber-600">
+        <p className="text-sm text-amber-400">
           No credits remaining.{' '}
           <a href="/settings" className="underline">Upgrade your plan</a>.
         </p>
       )}
 
       {credits > 0 && (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-[#475569]">
           {credits} credit{credits !== 1 ? 's' : ''} remaining
         </p>
       )}
@@ -169,7 +169,7 @@ export function URLInput({ credits }: { credits: number }) {
         </button>
 
         {showDesign && (
-          <div className="mt-3 space-y-2">
+          <div className="mt-3 bg-[#13131A] border border-white/5 rounded-xl p-4 space-y-3">
             {!designPreview ? (
               <div
                 onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
@@ -180,8 +180,8 @@ export function URLInput({ credits }: { credits: number }) {
                   flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed
                   p-6 cursor-pointer transition-colors select-none
                   ${dragOver
-                    ? 'border-primary bg-primary/5'
-                    : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50'}
+                    ? 'border-indigo-500/50 bg-indigo-500/5'
+                    : 'border-white/10 hover:border-indigo-500/30 hover:bg-white/[0.02]'}
                 `}
               >
                 <ImageIcon className="h-8 w-8 text-muted-foreground" />
@@ -203,12 +203,12 @@ export function URLInput({ credits }: { credits: number }) {
                 />
               </div>
             ) : (
-              <div className="relative rounded-lg overflow-hidden border bg-muted/30">
+              <div className="relative rounded-lg overflow-hidden border border-white/10 bg-[#1C1C27]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={designPreview}
                   alt="Design preview"
-                  className="w-full max-h-40 object-contain"
+                  className="h-16 w-24 object-cover rounded-lg border border-white/10"
                 />
                 <div className="absolute top-2 right-2 flex gap-1.5">
                   <span className="rounded bg-black/60 px-2 py-0.5 text-xs text-white">
@@ -217,7 +217,7 @@ export function URLInput({ credits }: { credits: number }) {
                   <button
                     type="button"
                     onClick={clearDesign}
-                    className="rounded bg-black/60 p-0.5 text-white hover:bg-black/80 transition-colors"
+                    className="rounded bg-black/60 p-0.5 text-[#475569] hover:text-muted-foreground transition-colors text-xs"
                     aria-label="Remove design"
                   >
                     <X className="h-3.5 w-3.5" />
@@ -225,9 +225,12 @@ export function URLInput({ credits }: { credits: number }) {
                 </div>
               </div>
             )}
-            <p className="text-xs text-muted-foreground">
-              Claude AI will compare your design with the live site and highlight differences.
-            </p>
+            <div className="flex items-center gap-2">
+              <span className="bg-[#1C1C27] text-muted-foreground border border-white/10 text-xs px-2 py-0.5 rounded-full">Optional</span>
+              <p className="text-xs text-muted-foreground">
+                Claude AI will compare your design with the live site and highlight differences.
+              </p>
+            </div>
           </div>
         )}
       </div>

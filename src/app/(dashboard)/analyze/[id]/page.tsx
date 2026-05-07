@@ -24,13 +24,18 @@ export default async function AnalysisStatusPage({ params }: { params: { id: str
 
   return (
     <div className="max-w-xl mx-auto mt-16 space-y-8">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold">Analyzing your website</h1>
-        <p className="text-muted-foreground mt-2">
+      {/* Header */}
+      <div className="text-center space-y-2">
+        <h1 className="text-2xl font-bold text-gradient">Analyzing your website</h1>
+        <p className="text-muted-foreground text-sm">
           This usually takes 30–60 seconds. You&apos;ll be redirected when done.
         </p>
       </div>
-      <AnalysisProgress analysisId={params.id} initialData={initialData} />
+
+      {/* Progress card */}
+      <div className="bg-[#13131A] border border-white/5 rounded-xl p-6">
+        <AnalysisProgress analysisId={params.id} initialData={initialData} />
+      </div>
     </div>
   );
 }

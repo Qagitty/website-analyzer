@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -41,15 +40,18 @@ export function TeamMembersForm({ isPro, initialMembers, ownerEmail }: Props) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col items-center gap-4 py-6 text-center">
-            <Lock className="h-8 w-8 text-muted-foreground" />
+          <div className="bg-[#1C1C27] border border-white/5 rounded-xl p-8 flex flex-col items-center gap-4 text-center">
+            <Lock className="h-8 w-8 text-[#475569]" />
             <div>
-              <p className="font-medium">Team seats require the Agency plan</p>
+              <p className="font-medium text-foreground">Team seats require the Agency plan</p>
               <p className="text-sm text-muted-foreground mt-1">
                 Upgrade to invite up to 10 collaborators and share analyses across your team.
               </p>
             </div>
-            <Button asChild>
+            <Button
+              asChild
+              className="bg-gradient-to-r from-indigo-500 to-violet-500 text-white hover:from-indigo-400 hover:to-violet-400"
+            >
               <Link href="/settings">Upgrade to Agency</Link>
             </Button>
           </div>
@@ -102,21 +104,15 @@ export function TeamMembersForm({ isPro, initialMembers, ownerEmail }: Props) {
     }
   };
 
-  const statusVariant = (status: TeamMember['status']): 'default' | 'secondary' | 'destructive' => {
-    if (status === 'active') return 'default';
-    if (status === 'rejected') return 'destructive';
-    return 'secondary';
-  };
-
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Users className="h-5 w-5" />
           Team Members
-          <Badge variant="secondary" className="ml-1">
+          <span className="ml-1 bg-[#1C1C27] text-muted-foreground border border-white/10 text-xs font-medium px-2.5 py-0.5 rounded-full">
             {members.length} / 10
-          </Badge>
+          </span>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
@@ -127,13 +123,14 @@ export function TeamMembersForm({ isPro, initialMembers, ownerEmail }: Props) {
             placeholder="colleague@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="flex-1"
+            className="flex-1 bg-[#0A0A0F] border-white/10 text-foreground placeholder:text-[#475569] focus:border-indigo-500/50 focus:ring-indigo-500/20"
             aria-label="Invite by email"
             disabled={inviting || members.length >= 10}
           />
           <Button
             type="submit"
             disabled={inviting || !email.trim() || members.length >= 10}
+            className="bg-gradient-to-r from-indigo-500 to-violet-500 text-white hover:from-indigo-400 hover:to-violet-400"
           >
             <UserPlus className="h-4 w-4 mr-1" />
             {inviting ? 'Sending…' : 'Send Invite'}
@@ -148,45 +145,50 @@ export function TeamMembersForm({ isPro, initialMembers, ownerEmail }: Props) {
 
         {/* Members list */}
         {members.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-4 text-center">
+          <p className="text-sm text-[#475569] py-4 text-center">
             No team members yet. Invite collaborators above.
           </p>
         ) : (
-          <div className="divide-y">
-            {members.map((member) => (
-              <div
-                key={member.id}
-                className="flex items-center justify-between py-3 gap-3"
-              >
-                <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">{member.member_email}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Invited {new Date(member.invited_at).toLocaleDateString()}
-                    {member.accepted_at && (
-                      <> · Accepted {new Date(member.accepted_at).toLocaleDateString()}</>
-                    )}
-                  </p>
+          <div>
+            {members.map((member) => {
+              const statusClass = (() => {
+                const base = 'text-xs font-medium px-2.5 py-0.5 rounded-full capitalize';
+                if (member.status === 'active')  return `${base} bg-emerald-500/10 text-emerald-400 border border-emerald-500/20`;
+                if (member.status === 'pending') return `${base} bg-amber-500/10 text-amber-400 border border-amber-500/20`;
+                return `${base} bg-red-500/10 text-red-400 border border-red-500/20`;
+              })();
+              return (
+                <div
+                  key={member.id}
+                  className="flex items-center justify-between py-3 border-b border-white/5 gap-3"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{member.member_email}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Invited {new Date(member.invited_at).toLocaleDateString()}
+                      {member.accepted_at && (
+                        <> · Accepted {new Date(member.accepted_at).toLocaleDateString()}</>
+                      )}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className={statusClass}>{member.status}</span>
+                    <span className="bg-[#1C1C27] text-muted-foreground border border-white/10 text-xs px-2 py-0.5 rounded-full capitalize">
+                      {member.role}
+                    </span>
+                    <button
+                      type="button"
+                      className="text-red-400/50 hover:text-red-400 text-xs transition-colors disabled:opacity-50"
+                      disabled={removingId === member.id}
+                      onClick={() => handleRemove(member.id)}
+                      aria-label={`Remove ${member.member_email}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <Badge variant={statusVariant(member.status)} className="capitalize">
-                    {member.status}
-                  </Badge>
-                  <Badge variant="outline" className="capitalize text-xs">
-                    {member.role}
-                  </Badge>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                    disabled={removingId === member.id}
-                    onClick={() => handleRemove(member.id)}
-                    aria-label={`Remove ${member.member_email}`}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </CardContent>

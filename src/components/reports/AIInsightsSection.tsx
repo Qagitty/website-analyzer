@@ -2,17 +2,16 @@
 
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Check, Copy, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 import type { AIInsights, AIInsight } from '@/types/analysis';
 
-const PRIORITY_VARIANT: Record<AIInsight['priority'], 'destructive' | 'secondary' | 'outline'> = {
-  critical: 'destructive',
-  high: 'destructive',
-  medium: 'secondary',
-  low: 'outline',
+const PRIORITY_CLASS: Record<string, string> = {
+  critical: 'bg-red-500/10 text-red-400 border border-red-500/20 text-xs font-medium px-2.5 py-0.5 rounded-full shrink-0',
+  high: 'bg-red-500/10 text-red-400 border border-red-500/20 text-xs font-medium px-2.5 py-0.5 rounded-full shrink-0',
+  medium: 'bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-medium px-2.5 py-0.5 rounded-full shrink-0',
+  low: 'bg-[#1C1C27] text-muted-foreground border border-white/10 text-xs font-medium px-2.5 py-0.5 rounded-full shrink-0',
 };
 
 const CATEGORY_ICONS: Record<AIInsight['category'], string> = {
@@ -38,23 +37,23 @@ function CodeBlock({ code }: { code: string }) {
   };
 
   return (
-    <div className="relative rounded-md bg-zinc-950 dark:bg-zinc-900 border border-zinc-800">
-      <div className="flex items-center justify-between px-3 py-1.5 border-b border-zinc-800">
-        <span className="text-xs text-zinc-500 font-medium">Suggested fix</span>
+    <div className="relative rounded-md bg-[#0A0A0F] border border-white/10">
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-white/10">
+        <span className="text-xs text-[#475569] font-medium">Suggested fix</span>
         <Button
           variant="ghost"
           size="sm"
           onClick={copy}
-          className="h-6 px-2 text-xs text-zinc-400 hover:text-white hover:bg-zinc-800"
+          className="h-6 px-2 text-xs text-[#475569] hover:text-foreground hover:bg-white/5"
         >
           {copied ? (
-            <><Check className="h-3 w-3 mr-1 text-green-400" />Copied</>
+            <><Check className="h-3 w-3 mr-1 text-emerald-400" />Copied</>
           ) : (
             <><Copy className="h-3 w-3 mr-1" />Copy</>
           )}
         </Button>
       </div>
-      <pre className="overflow-x-auto p-3 text-xs text-zinc-200 leading-relaxed">
+      <pre className="overflow-x-auto p-3 text-xs text-[#94A3B8] font-mono leading-relaxed">
         <code>{code.trim()}</code>
       </pre>
     </div>
@@ -70,16 +69,16 @@ function InsightCard({ insight }: { insight: AIInsight }) {
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
-            <span>{CATEGORY_ICONS[insight.category]}</span>
+            <span className="bg-[#1C1C27] rounded-lg p-1.5 flex items-center justify-center">{CATEGORY_ICONS[insight.category]}</span>
             <CardTitle className="text-base">{insight.title}</CardTitle>
           </div>
-          <Badge variant={PRIORITY_VARIANT[insight.priority]}>{insight.priority}</Badge>
+          <span className={PRIORITY_CLASS[insight.priority] ?? PRIORITY_CLASS.low}>{insight.priority}</span>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
         <p className="text-sm text-muted-foreground">{insight.description}</p>
 
-        <div className="rounded-md bg-muted p-3">
+        <div className="bg-[#0A0A0F] rounded-lg p-3 border border-white/5">
           <p className="text-xs font-medium mb-1">Recommendation:</p>
           <p className="text-sm">{insight.recommendation}</p>
         </div>
@@ -88,7 +87,7 @@ function InsightCard({ insight }: { insight: AIInsight }) {
           <div>
             <button
               onClick={() => setExpanded((v) => !v)}
-              className="flex items-center gap-1 text-xs text-primary hover:underline"
+              className="flex items-center gap-1 text-[#475569] hover:text-muted-foreground text-xs"
             >
               {expanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
               {expanded ? 'Hide code' : 'Show code fix'}
@@ -101,7 +100,7 @@ function InsightCard({ insight }: { insight: AIInsight }) {
           </div>
         )}
 
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-[#475569]">
           Expected impact: {insight.estimatedImpact}
         </p>
       </CardContent>
@@ -115,9 +114,9 @@ export function AIInsightsSection({ insights }: { insights: AIInsights }) {
       <h2 className="text-2xl font-bold">AI Insights</h2>
 
       {typeof insights.summary === 'string' && insights.summary.trim().length > 5 && (
-        <Card className="border-indigo-200 bg-indigo-50 dark:bg-indigo-950/40 dark:border-indigo-900">
+        <Card className="bg-indigo-500/5 border border-indigo-500/20">
           <CardContent className="pt-6">
-            <p className="text-sm leading-relaxed">{insights.summary}</p>
+            <p className="text-sm leading-relaxed text-muted-foreground">{insights.summary}</p>
           </CardContent>
         </Card>
       )}
@@ -130,8 +129,8 @@ export function AIInsightsSection({ insights }: { insights: AIInsights }) {
           <CardContent>
             <ul className="space-y-2">
               {insights.quickWins.map((win, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm">
-                  <span className="text-green-500 mt-0.5 shrink-0">✓</span>
+                <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <span className="text-emerald-400 mt-0.5 shrink-0">✓</span>
                   <span>{win}</span>
                 </li>
               ))}
