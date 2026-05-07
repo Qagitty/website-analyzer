@@ -1,0 +1,317 @@
+'use client';
+
+import { useState } from 'react';
+import { formatDistanceToNow, format } from 'date-fns';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
+import {
+  Clock, Globe, Trash2, Play, Pause, Plus, Bell, BellOff, ExternalLink,
+} from 'lucide-react';
+import { z } from 'zod';
+import type { Monitor } from '@/types/analysis';
+
+const urlSchema = z.string().trim().url('Please enter a valid URL including https://');
+
+// ── Create form ──────────────────────────────────────────────────────────────
+function CreateMonitorForm({ onCreated }: { onCreated: (m: Monitor) => void }) {
+  const [url, setUrl] = useState('');
+  const [frequency, setFrequency] = useState<'daily' | 'weekly'>('weekly');
+  const [notify, setNotify] = useState(true);
+  const [threshold, setThreshold] = useState(10);
+  const [loading, setLoading] = useState(false);
+  const [urlError, setUrlError] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = url.trim();
+    const parsed = urlSchema.safeParse(trimmed);
+    if (!parsed.success) {
+      setUrlError(parsed.error.errors[0].message);
+      return;
+    }
+    setUrlError('');
+    setLoading(true);
+    try {
+      const res = await fetch('/api/monitors', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: trimmed,
+          frequency,
+          notify_on_score_drop: notify,
+          score_drop_threshold: threshold,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Failed to create monitor');
+      onCreated(data);
+      setUrl('');
+      toast.success('Monitor created!');
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          <Plus className="h-4 w-4" /> New Monitor
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Input
+              type="url"
+              placeholder="https://example.com"
+              value={url}
+              onChange={(e) => { setUrl(e.target.value); setUrlError(''); }}
+              aria-label="URL to monitor"
+            />
+            {urlError && <p className="text-xs text-red-500 mt-1">{urlError}</p>}
+          </div>
+
+          <div className="flex flex-wrap gap-3 items-center">
+            {/* Frequency */}
+            <div className="flex rounded-md border overflow-hidden text-sm">
+              {(['daily', 'weekly'] as const).map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => setFrequency(f)}
+                  className={`px-3 py-1.5 capitalize transition-colors ${
+                    frequency === f
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-background hover:bg-muted'
+                  }`}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+
+            {/* Notify toggle */}
+            <button
+              type="button"
+              onClick={() => setNotify((v) => !v)}
+              className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-colors ${
+                notify ? 'border-primary text-primary' : 'text-muted-foreground'
+              }`}
+            >
+              {notify ? <Bell className="h-3.5 w-3.5" /> : <BellOff className="h-3.5 w-3.5" />}
+              {notify ? 'Alerts on' : 'Alerts off'}
+            </button>
+
+            {/* Threshold */}
+            {notify && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span>Alert if score drops by</span>
+                <Input
+                  type="number"
+                  min={1}
+                  max={50}
+                  value={threshold}
+                  onChange={(e) => setThreshold(Number(e.target.value))}
+                  className="w-16 h-8 text-center"
+                />
+                <span>pts</span>
+              </div>
+            )}
+          </div>
+
+          <Button type="submit" disabled={loading} size="sm">
+            {loading ? 'Creating…' : 'Create monitor'}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── Monitor card ─────────────────────────────────────────────────────────────
+function MonitorCard({
+  monitor,
+  onUpdate,
+  onDelete,
+}: {
+  monitor: Monitor;
+  onUpdate: (updated: Monitor) => void;
+  onDelete: (id: string) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+
+  const toggle = async () => {
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/monitors/${monitor.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active: !monitor.is_active }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      onUpdate(data);
+      toast.success(data.is_active ? 'Monitor resumed' : 'Monitor paused');
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = async () => {
+    if (!confirm(`Delete monitor for ${monitor.url}?`)) return;
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/monitors/${monitor.id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete');
+      onDelete(monitor.id);
+      toast.success('Monitor deleted');
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const scores = monitor.last_scores;
+
+  return (
+    <Card className={monitor.is_active ? '' : 'opacity-60'}>
+      <CardContent className="pt-4 space-y-3">
+        {/* URL + status */}
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2 min-w-0">
+            <Globe className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <span className="font-medium text-sm truncate max-w-xs">{monitor.url}</span>
+            <a
+              href={monitor.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Badge variant={monitor.is_active ? 'default' : 'secondary'}>
+              {monitor.is_active ? 'Active' : 'Paused'}
+            </Badge>
+            <Badge variant="outline" className="capitalize">{monitor.frequency}</Badge>
+          </div>
+        </div>
+
+        {/* Last scores */}
+        {scores && (
+          <div className="flex flex-wrap gap-3">
+            {(['performance', 'accessibility', 'seo'] as const).map((k) => {
+              const v = (scores as any)[k];
+              if (v == null) return null;
+              const color = v >= 90 ? 'text-green-600' : v >= 50 ? 'text-yellow-600' : 'text-red-600';
+              return (
+                <div key={k} className="text-center">
+                  <div className={`text-lg font-bold leading-none ${color}`}>{v}</div>
+                  <div className="text-xs text-muted-foreground capitalize mt-0.5">{k}</div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Timing */}
+        <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
+          {monitor.last_run_at && (
+            <span className="flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              Last run {formatDistanceToNow(new Date(monitor.last_run_at), { addSuffix: true })}
+            </span>
+          )}
+          <span className="flex items-center gap-1">
+            <Clock className="h-3 w-3" />
+            Next run {format(new Date(monitor.next_run_at), 'MMM d, HH:mm')}
+          </span>
+          {monitor.notify_on_score_drop && (
+            <span className="flex items-center gap-1">
+              <Bell className="h-3 w-3" />
+              Alert on {monitor.score_drop_threshold}pt drop
+            </span>
+          )}
+        </div>
+
+        {/* Last report link */}
+        {monitor.last_analysis_id && (
+          <a
+            href={`/reports/${monitor.last_analysis_id}`}
+            className="text-xs text-primary hover:underline"
+          >
+            View last report →
+          </a>
+        )}
+
+        {/* Actions */}
+        <div className="flex gap-2 pt-1">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={toggle}
+            disabled={busy}
+            className="gap-1.5"
+          >
+            {monitor.is_active
+              ? <><Pause className="h-3.5 w-3.5" /> Pause</>
+              : <><Play className="h-3.5 w-3.5" /> Resume</>}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={remove}
+            disabled={busy}
+            className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 gap-1.5"
+          >
+            <Trash2 className="h-3.5 w-3.5" /> Delete
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── Main list ────────────────────────────────────────────────────────────────
+export function MonitorsList({ initialMonitors }: { initialMonitors: Monitor[] }) {
+  const [monitors, setMonitors] = useState<Monitor[]>(initialMonitors);
+
+  const handleCreated = (m: Monitor) => setMonitors((prev) => [m, ...prev]);
+  const handleUpdate = (updated: Monitor) =>
+    setMonitors((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+  const handleDelete = (id: string) =>
+    setMonitors((prev) => prev.filter((m) => m.id !== id));
+
+  return (
+    <div className="space-y-4">
+      <CreateMonitorForm onCreated={handleCreated} />
+
+      {monitors.length === 0 ? (
+        <div className="rounded-lg border border-dashed p-10 text-center text-muted-foreground text-sm">
+          No monitors yet. Create one above to start tracking your sites automatically.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {monitors.map((m) => (
+            <MonitorCard
+              key={m.id}
+              monitor={m}
+              onUpdate={handleUpdate}
+              onDelete={handleDelete}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

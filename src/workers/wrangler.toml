@@ -1,0 +1,8 @@
+name = "website-analyzer"
+main = "analyzer/index.ts"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Secrets — never put values here, set them with:
+#   wrangler secret put WORKER_AUTH_TOKEN
+#   wrangler secret put WORKER_CALLBACK_SECRET
