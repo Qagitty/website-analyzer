@@ -6,6 +6,7 @@ import { SubscriptionCard } from '@/components/settings/SubscriptionCard';
 import { BrandingForm } from '@/components/settings/BrandingForm';
 import { TeamMembersForm } from '@/components/settings/TeamMembersForm';
 import { WebhooksForm } from '@/components/settings/WebhooksForm';
+import { ApiKeysForm } from '@/components/settings/ApiKeysForm';
 import type { PlanId } from '@/lib/stripe/plans';
 
 export const metadata: Metadata = { title: 'Settings' };
@@ -14,7 +15,7 @@ export default async function SettingsPage() {
   const supabase = createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const [{ data: subscription }, { data: settings }, { data: teamMembers }, { data: webhooks }] = await Promise.all([
+  const [{ data: subscription }, { data: settings }, { data: teamMembers }, { data: webhooks }, { data: apiKeys }] = await Promise.all([
     supabase
       .from('subscriptions')
       .select('plan, status, current_period_end')
@@ -33,6 +34,11 @@ export default async function SettingsPage() {
     (supabase as any)
       .from('webhooks')
       .select('*')
+      .eq('user_id', user!.id)
+      .order('created_at', { ascending: false }),
+    (supabase as any)
+      .from('api_keys')
+      .select('id, name, key_prefix, last_used_at, requests_today, created_at, revoked_at')
       .eq('user_id', user!.id)
       .order('created_at', { ascending: false }),
   ]);
@@ -71,6 +77,8 @@ export default async function SettingsPage() {
       />
 
       <WebhooksForm initialWebhooks={(webhooks as any) ?? []} />
+
+      <ApiKeysForm initialKeys={(apiKeys as any) ?? []} />
 
       <SubscriptionCard
         plan={plan}

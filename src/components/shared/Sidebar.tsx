@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { CreditsDisplay } from '@/components/dashboard/CreditsDisplay';
 import { useCredits } from '@/hooks/useCredits';
+import { Code2 } from 'lucide-react';
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard' },
@@ -40,6 +41,18 @@ export function Sidebar() {
             {item.label}
           </Link>
         ))}
+        <Link
+          href="/docs"
+          className={cn(
+            'flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors',
+            pathname.startsWith('/docs')
+              ? 'bg-primary text-primary-foreground'
+              : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+          )}
+        >
+          <Code2 className="h-4 w-4" />
+          Docs
+        </Link>
       </nav>
       {loading ? (
         <div className="px-3 py-2">
