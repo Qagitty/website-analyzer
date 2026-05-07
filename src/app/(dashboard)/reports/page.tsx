@@ -36,7 +36,13 @@ export default async function ReportsPage() {
       <h1 className="text-3xl font-bold">Reports</h1>
 
       {!analyses?.length ? (
-        <p className="text-muted-foreground">No analyses yet. Start by analyzing a website.</p>
+        <div className="rounded-xl border border-dashed p-12 text-center space-y-3">
+          <p className="text-lg font-medium text-muted-foreground">No analyses yet</p>
+          <p className="text-sm text-muted-foreground">Run your first analysis to see results here.</p>
+          <a href="/analyze" className="inline-block rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+            Analyze a site →
+          </a>
+        </div>
       ) : (
         <div className="space-y-3">
           {analyses.map((analysis) => (

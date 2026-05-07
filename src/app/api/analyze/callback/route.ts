@@ -4,6 +4,7 @@ import { analyzeWithAI, compareWithDesign } from '@/lib/ai/claude';
 import { uploadScreenshot } from '@/lib/supabase/storage';
 import { sendScoreDropAlert, sendMonitorSummary } from '@/lib/email/resend';
 import { fireWebhooksForAnalysis } from '@/lib/webhooks/deliver';
+import * as Sentry from '@sentry/nextjs';
 
 export async function POST(req: NextRequest) {
   const authHeader = req.headers.get('Authorization');
@@ -164,6 +165,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true, status: 'completed' });
   } catch (err) {
     console.error('Callback processing error:', err);
+    Sentry.captureException(err);
     await supabase
       .from('analyses')
       .update({

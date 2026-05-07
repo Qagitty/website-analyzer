@@ -3,6 +3,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import { StatsOverview } from '@/components/dashboard/StatsOverview';
 import { RecentAnalyses } from '@/components/dashboard/RecentAnalyses';
 import { QuickActions } from '@/components/dashboard/QuickActions';
+import { OnboardingBanner } from '@/components/dashboard/OnboardingBanner';
 
 export const metadata: Metadata = { title: 'Dashboard' };
 
@@ -27,6 +28,7 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Dashboard</h1>
+      <OnboardingBanner analysisCount={analyses?.length ?? 0} />
       <StatsOverview analyses={analyses ?? []} settings={settings} />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
