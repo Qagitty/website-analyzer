@@ -147,3 +147,55 @@ export async function sendMonitorSummary({
     html,
   });
 }
+
+export async function sendTeamInvite({
+  to,
+  inviterEmail,
+  acceptUrl,
+}: {
+  to: string;
+  inviterEmail: string;
+  acceptUrl: string;
+}): Promise<void> {
+  if (!resend) {
+    console.log('[email] RESEND_API_KEY not set — skipping team invite email for', to);
+    return;
+  }
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8" /></head>
+<body style="font-family:system-ui,sans-serif;background:#f9fafb;margin:0;padding:24px;">
+  <div style="max-width:520px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;">
+    <div style="background:#4f46e5;padding:20px 24px;">
+      <h1 style="margin:0;color:#fff;font-size:18px;">You've been invited to join a team on WebAnalyzer</h1>
+    </div>
+    <div style="padding:24px;">
+      <p style="margin:0 0 20px;color:#374151;">
+        <strong>${inviterEmail}</strong> has invited you to collaborate on WebAnalyzer.
+      </p>
+      <a href="${acceptUrl}"
+         style="display:inline-block;background:#4f46e5;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;font-size:15px;">
+        Accept Invitation
+      </a>
+      <p style="margin:20px 0 0;font-size:12px;color:#9ca3af;">
+        This link expires in 7 days. If you did not expect this invitation, you can safely ignore this email.
+      </p>
+    </div>
+    <div style="padding:12px 24px;border-top:1px solid #e5e7eb;font-size:12px;color:#9ca3af;">
+      WebAnalyzer — Website performance &amp; accessibility analysis
+      <br />
+      <a href="${APP_URL}" style="color:#6366f1;">${APP_URL}</a>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `You've been invited to join a team on WebAnalyzer`,
+    html,
+  });
+}

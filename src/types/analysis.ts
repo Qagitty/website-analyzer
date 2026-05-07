@@ -26,6 +26,8 @@ export interface LighthouseScores {
   fid: number;
   cls: number;
   ttfb: number;
+  ttfbSamples?: number[];
+  performanceVariance?: number;
 }
 
 export interface ConsoleError {

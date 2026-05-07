@@ -9,6 +9,7 @@ import {
   Tooltip,
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { ScoreGauge } from '@/components/reports/ScoreGauge';
 import type { LighthouseScores } from '@/types/analysis';
 
@@ -36,6 +37,24 @@ export function PerformanceSection({ scores }: { scores: LighthouseScores }) {
           <ScoreGauge key={item.subject} score={item.value} label={item.subject} size="lg" />
         ))}
       </div>
+
+      {scores.performanceVariance !== undefined && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <span className="font-medium">Measurement confidence:</span>
+          {scores.performanceVariance < 200 ? (
+            <Badge variant="default" className="bg-green-600">High — stable connection</Badge>
+          ) : scores.performanceVariance < 600 ? (
+            <Badge variant="secondary">Medium — some variance</Badge>
+          ) : (
+            <Badge variant="destructive">Low — unstable connection (±{Math.round(scores.performanceVariance / 10)}%)</Badge>
+          )}
+          {scores.ttfbSamples && (
+            <span className="text-xs">
+              (TTFB: {scores.ttfbSamples[0]}ms / {scores.ttfbSamples[1]}ms / {scores.ttfbSamples[2]}ms)
+            </span>
+          )}
+        </div>
+      )}
 
       <Card>
         <CardHeader><CardTitle>Score Overview</CardTitle></CardHeader>

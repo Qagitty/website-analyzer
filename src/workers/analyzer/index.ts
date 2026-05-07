@@ -39,19 +39,39 @@ async function runAnalysis(req: AnalysisRequest): Promise<void> {
   const startTime = Date.now();
 
   try {
-    const fetchStart = Date.now();
-    const response = await fetch(req.url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; WebsiteAnalyzer/1.0)',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-      },
-      redirect: 'follow',
-    });
-    const ttfb = Date.now() - fetchStart;
+    // Run 3 TTFB measurements for stability
+    const ttfbSamples: number[] = [];
+    let html = '';
+    let response!: Response;
+    let pageBytes = 0;
 
-    const html = await response.text();
-    const pageBytes = new TextEncoder().encode(html).length;
+    const fetchHeaders = {
+      'User-Agent': 'Mozilla/5.0 (compatible; WebsiteAnalyzer/1.0)',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      'Accept-Language': 'en-US,en;q=0.5',
+    };
+
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const t0 = Date.now();
+      const r = await fetch(req.url, { headers: fetchHeaders, redirect: 'follow' });
+      const ttfb = Date.now() - t0;
+      ttfbSamples.push(ttfb);
+      if (attempt === 0) {
+        // Only read body once (expensive)
+        html = await r.text();
+        pageBytes = new TextEncoder().encode(html).length;
+        response = r;
+      } else {
+        await r.body?.cancel(); // discard body
+      }
+      if (attempt < 2) await new Promise<void>((res) => setTimeout(res, 200)); // 200ms between
+    }
+
+    // Median TTFB (middle value of sorted samples)
+    const sorted = [...ttfbSamples].sort((a, b) => a - b);
+    const ttfb = sorted[1]; // median of 3
+    const ttfbMin = sorted[0];
+    const ttfbMax = sorted[2];
 
     const scores = analyzeHTML(html, response, pageBytes, ttfb);
     const accessibilityIssues = checkAccessibility(html);
@@ -69,6 +89,8 @@ async function runAnalysis(req: AnalysisRequest): Promise<void> {
         fid: 0,
         cls: 0,
         ttfb,
+        ttfbSamples,
+        performanceVariance: ttfbMax - ttfbMin,
       },
       consoleErrors,
       accessibilityIssues,

@@ -12,10 +12,23 @@ export default async function ReportsPage() {
   const supabase = createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
 
+  // Check if this user is a member of another owner's team
+  const { data: membership } = await (supabase as any)
+    .from('team_members')
+    .select('owner_id')
+    .eq('member_id', user!.id)
+    .eq('status', 'active')
+    .single();
+
+  const userIds: string[] = [user!.id];
+  if (membership?.owner_id) {
+    userIds.push(membership.owner_id);
+  }
+
   const { data: analyses } = await supabase
     .from('analyses')
-    .select('id, url, status, lighthouse_scores, created_at, completed_at')
-    .eq('user_id', user!.id)
+    .select('id, url, status, lighthouse_scores, created_at, completed_at, user_id')
+    .in('user_id', userIds)
     .order('created_at', { ascending: false });
 
   return (
@@ -40,6 +53,11 @@ export default async function ReportsPage() {
                     </p>
                   </div>
                   <div className="flex items-center gap-3 shrink-0 ml-4">
+                    {(analysis as any).user_id !== user!.id && (
+                      <Badge variant="outline" className="text-xs">
+                        Team
+                      </Badge>
+                    )}
                     {analysis.lighthouse_scores != null && (
                       <span className="text-sm font-semibold">
                         {(analysis.lighthouse_scores as any).performance}/100

@@ -4,6 +4,7 @@ import { ProfileForm } from '@/components/settings/ProfileForm';
 import { NotificationPrefs } from '@/components/settings/NotificationPrefs';
 import { SubscriptionCard } from '@/components/settings/SubscriptionCard';
 import { BrandingForm } from '@/components/settings/BrandingForm';
+import { TeamMembersForm } from '@/components/settings/TeamMembersForm';
 import type { PlanId } from '@/lib/stripe/plans';
 
 export const metadata: Metadata = { title: 'Settings' };
@@ -12,7 +13,7 @@ export default async function SettingsPage() {
   const supabase = createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const [{ data: subscription }, { data: settings }] = await Promise.all([
+  const [{ data: subscription }, { data: settings }, { data: teamMembers }] = await Promise.all([
     supabase
       .from('subscriptions')
       .select('plan, status, current_period_end')
@@ -23,6 +24,11 @@ export default async function SettingsPage() {
       .select('credits, notifications, agency_name, brand_color, show_powered_by')
       .eq('user_id', user!.id)
       .single() as unknown as Promise<{ data: Record<string, any> | null }>,
+    (supabase as any)
+      .from('team_members')
+      .select('*')
+      .eq('owner_id', user!.id)
+      .order('created_at', { ascending: false }),
   ]);
 
   const notifications = (settings?.notifications as any) ?? {
@@ -50,6 +56,12 @@ export default async function SettingsPage() {
         initialBrandColor={(settings as any)?.brand_color ?? '#6366f1'}
         initialShowPoweredBy={(settings as any)?.show_powered_by ?? true}
         isPro={isPro}
+      />
+
+      <TeamMembersForm
+        isPro={plan === 'agency'}
+        initialMembers={(teamMembers as any) ?? []}
+        ownerEmail={user!.email!}
       />
 
       <SubscriptionCard
