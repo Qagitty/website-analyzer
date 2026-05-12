@@ -538,3 +538,224 @@ Detailed feature specifications from the perspective of each user type.
 - If one section throws a render error (e.g. malformed AI JSON), the error boundary renders a fallback card: "This section encountered an error" instead of crashing the whole page
 - Other sections continue to render normally
 - The error is reported to Sentry (when configured)
+
+---
+
+## 12. API Keys
+
+### US-APIKEY-01: Generate an API key
+**As a** developer on an Agency plan,  
+**I want to** generate a personal API key,  
+**so that** I can integrate Website Analyzer programmatically into my CI/CD pipeline or custom tools.
+
+**Acceptance Criteria:**
+- API Keys section is visible on `/settings` for all users (but key generation is restricted to Agency plan)
+- Clicking "Generate API Key" calls `POST /api/user/api-keys`
+- The returned key has the format `wa_live_` followed by 32 random hex characters
+- The full key is shown **once** in a revealed state (amber-highlighted box with monospace font) — it cannot be retrieved again after this moment
+- A "Copy" button copies the key to clipboard; it turns amber-colored after copying
+- The key is stored in the DB as a SHA-256 hash — the plaintext is never stored server-side
+- After generating, the page shows the key prefix (first 12 characters + `…`) and the creation date
+- Free/Pro users see a locked state with an "Upgrade to Agency" prompt
+
+---
+
+### US-APIKEY-02: Use an API key to trigger analysis
+**As a** developer,  
+**I want to** call `POST /api/v1/analyze` with my API key in the `Authorization` header,  
+**so that** I can trigger analyses from automated scripts.
+
+**Acceptance Criteria:**
+- API endpoint: `POST /api/v1/analyze` with `Authorization: Bearer wa_live_...`
+- Request body: `{ "url": "https://example.com" }`
+- The key is hashed and looked up in the `api_keys` table
+- If valid: analysis is created and `{ analysisId, status }` returned with HTTP 202
+- If invalid key: HTTP 401 `{ "error": "Invalid API key" }`
+- Rate limiting enforced per plan:
+  - Free: 10 requests/hour
+  - Pro: 60 requests/hour
+  - Agency: 300 requests/hour
+- Exceeding rate limit: HTTP 429 `{ "error": "Rate limit exceeded" }`
+- Each API key usage increments `last_used_at` and `use_count` on the `api_keys` row
+
+---
+
+### US-APIKEY-03: Revoke an API key
+**As a** developer,  
+**I want to** revoke an existing API key,  
+**so that** I can invalidate it if it was accidentally exposed.
+
+**Acceptance Criteria:**
+- Each API key row has a "Revoke" button (red text)
+- Clicking "Revoke" calls `DELETE /api/user/api-keys/{id}`
+- The key row is removed from the list immediately
+- Any subsequent API call using the revoked key returns HTTP 401
+- Action is irreversible — a new key must be generated if needed
+
+---
+
+## 13. Webhooks
+
+### US-WEBHOOK-01: Register a webhook endpoint
+**As a** pro/agency user,  
+**I want to** register a webhook URL that receives a POST request every time an analysis completes,  
+**so that** I can build automated workflows (e.g. post results to Slack, trigger CI).
+
+**Acceptance Criteria:**
+- Webhooks section is on `/settings`
+- "Add Webhook" form: URL input + "Add" button
+- URL must be a valid `https://` URL
+- On save, a `webhooks` row is created with a randomly-generated `secret` (used for HMAC signature)
+- The webhook list shows: URL, status (Active/Paused), event types, creation date, "Delete" button
+- Webhook secret is shown once after creation in an amber reveal box (same pattern as API keys)
+- Maximum 5 webhooks per account (across all plans)
+
+---
+
+### US-WEBHOOK-02: Receive a signed webhook payload
+**As a** developer receiving webhooks,  
+**I want to** verify that webhook payloads come from Website Analyzer,  
+**so that** my endpoint rejects forged requests.
+
+**Acceptance Criteria:**
+- Every webhook POST includes the header `X-WebsiteAnalyzer-Signature: sha256=<hmac_hex>`
+- HMAC is computed as `HMAC-SHA256(secret, JSON.stringify(payload))`
+- Payload structure: `{ event: "analysis.completed", analysisId, url, scores: { performance, accessibility, seo }, completedAt }`
+- For Slack webhook URLs (containing `hooks.slack.com`): payload is sent in Slack Block Kit format instead
+- Delivery is attempted once; failed deliveries are not retried in the current implementation
+- Webhook URL is called within 30 seconds of analysis completion
+
+---
+
+### US-WEBHOOK-03: Delete a webhook
+**As a** user,  
+**I want to** delete a webhook I no longer need,  
+**so that** it stops receiving events and my list stays tidy.
+
+**Acceptance Criteria:**
+- Clicking "Delete" on a webhook row calls `DELETE /api/webhooks/{id}`
+- The row is removed immediately from the UI
+- No further events are delivered to the deleted endpoint
+
+---
+
+## 14. Team Members
+
+### US-TEAM-01: Invite a team member
+**As a** pro/agency user who manages multiple websites for clients or a team,  
+**I want to** invite other users to access my account's reports,  
+**so that** my team can collaborate without sharing login credentials.
+
+**Acceptance Criteria:**
+- Team Members section is on `/settings`
+- "Invite Member" form: email input + role selector (Member / Admin) + "Send Invite" button
+- On submit, a `team_members` row is created with `status = 'pending'` and a unique `invite_token`
+- An invitation email is sent via Resend to the provided email address
+- Email subject: "You've been invited to Website Analyzer"
+- Email body contains a link: `/invite/{token}`
+- The team members list shows: email, role badge, status badge (Pending/Active/Rejected), invited date
+- The owner can see all pending and accepted members
+
+---
+
+### US-TEAM-02: Accept a team invitation
+**As a** user who received an invitation email,  
+**I want to** accept the invitation,  
+**so that** I can access the team's reports.
+
+**Acceptance Criteria:**
+- Clicking the invite link navigates to `/invite/{token}`
+- If the user is not logged in, they are prompted to log in or sign up first
+- After authentication, the invite is accepted: `status = 'active'`, `member_id` set, `accepted_at` set
+- The user can now see the team owner's analyses in their reports list
+- If the token is invalid or already used: error page "This invitation is invalid or has expired"
+- If the invited email doesn't match the logged-in account email: error "This invitation was sent to a different email address"
+
+---
+
+## 15. LLM Readiness
+
+### US-LLM-01: View LLM Readiness score in a report
+**As a** developer building AI-powered features or wanting to make my site AI-crawlable,  
+**I want to** see how ready my site is to be indexed and understood by AI bots,  
+**so that** I can optimise for LLM-based search engines and AI assistants.
+
+**Acceptance Criteria:**
+- LLM Readiness section appears in every completed report
+- An overall score (0–100) is shown with colour coding: ≥ 80 green, ≥ 50 amber, < 50 red
+- 8 individual checks are shown, each as a pass/fail row:
+  1. `robots.txt` allows AI bots (Googlebot, GPTBot, ClaudeBot, PerplexityBot)
+  2. Clean HTML structure (semantic elements: `<main>`, `<article>`, `<section>`, `<h1>–<h6>`)
+  3. Meta description present (non-empty `<meta name="description">`)
+  4. Open Graph tags present (`og:title`, `og:description`, `og:url`)
+  5. Structured data (JSON-LD `<script type="application/ld+json">`)
+  6. No excessive JavaScript dependency (page renders meaningful text server-side)
+  7. Canonical URL set (`<link rel="canonical">`)
+  8. `sitemap.xml` referenced in `robots.txt` or present at `/sitemap.xml`
+- Each check shows a pass ✓ (green) or fail ✗ (red/amber) indicator with a brief label
+- Failed checks show a "How to improve" expandable hint
+- Score is calculated as `(passed checks / 8) * 100`
+
+---
+
+## 16. Crawled Pages
+
+### US-CRAWL-01: View multi-page crawl results
+**As a** developer running an analysis on a website,  
+**I want to** see a summary of all internal pages the crawler discovered,  
+**so that** I can understand the site's structure and identify pages with issues.
+
+**Acceptance Criteria:**
+- Crawled Pages section appears in reports when the crawler followed internal links
+- The section shows a summary card: total pages discovered, average performance score, pages with errors
+- A table lists each discovered page:
+  - URL (relative path shown, full URL on hover)
+  - HTTP status code (200 = green, 3xx = amber, 4xx/5xx = red)
+  - Performance score (0–100) with colour coding, if available
+  - Any errors found on that page
+- Pages are sorted by HTTP status (errors first)
+- If only one page was analysed (no crawl): the section is hidden
+- Crawler follows `<a href>` links with the same origin domain only — external links are excluded
+- Maximum 10 pages crawled per analysis to keep analysis time bounded
+
+---
+
+## 17. Onboarding
+
+### US-ONBOARD-01: See onboarding guidance on first login
+**As a** new user who just signed up,  
+**I want to** see clear guidance on what to do next,  
+**so that** I can get value from the product immediately without having to explore on my own.
+
+**Acceptance Criteria:**
+- After first login (account with 0 completed analyses), an onboarding banner is shown at the top of the dashboard
+- Banner contents:
+  - Welcome message: "Welcome to Website Analyzer!"
+  - Step 1: Analyse your first website (links to `/analyze`)
+  - Step 2: Review your report (links to `/reports`)
+  - Step 3: Set up monitoring (links to `/monitors`)
+- Each step shows a tick ✓ when completed (persisted in `user_settings.preferences`)
+- The banner can be dismissed manually ("Got it" or "×" button)
+- Once dismissed or once all 3 steps are completed, the banner does not appear again
+- Returning users (with completed analyses) never see the banner
+
+---
+
+## 18. EAA Compliance
+
+### US-EAA-01: View European Accessibility Act compliance status
+**As a** developer or product owner building a product for the EU market,  
+**I want to** see whether my site meets EAA (European Accessibility Act) requirements,  
+**so that** I can understand our legal compliance obligations and prioritise fixes.
+
+**Acceptance Criteria:**
+- EAA Compliance section appears in every completed report (shown above the full Accessibility section)
+- Section shows an overall compliance level: **Compliant** (green), **Partially Compliant** (amber), or **Non-Compliant** (red)
+- Three compliance categories are evaluated:
+  1. **WCAG 2.1 Level AA** — mapped from axe-core violations
+  2. **Perceivable** — no critical contrast or alt-text failures
+  3. **Operable** — no keyboard-trap or focus-order violations
+- Each category shows: status badge + count of issues in that category
+- A legal notice callout explains the EAA deadline (June 2025) and its implications for EU-market products
+- WCAG criterion tags (e.g. `wcag2aa`, `wcag143`) are shown next to each issue
+- Section links to the full Accessibility Section below for detailed violation info
