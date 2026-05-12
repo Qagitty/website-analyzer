@@ -8,7 +8,14 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { ImageIcon, X, ChevronDown, ChevronUp } from 'lucide-react';
 
-const urlSchema = z.string().url('Please enter a valid URL including https://');
+const urlSchema = z.string().url('Please enter a valid domain (e.g. example.com)');
+
+function normalizeUrl(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return trimmed;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+}
 
 const ACCEPTED_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
 const MAX_SIZE_MB = 10;
@@ -25,7 +32,7 @@ export function URLInput({ credits }: { credits: number }) {
   const router = useRouter();
 
   const validate = (value: string): boolean => {
-    const result = urlSchema.safeParse(value);
+    const result = urlSchema.safeParse(normalizeUrl(value));
     if (!result.success) {
       setError(result.error.errors[0].message);
       return false;
@@ -62,23 +69,36 @@ export function URLInput({ credits }: { credits: number }) {
     if (file) handleDesignFile(file);
   };
 
-  const toBase64 = (file: File): Promise<string> =>
+  // Compress image to JPEG ≤1920px wide before base64-encoding.
+  // Prevents 413 FUNCTION_PAYLOAD_TOO_LARGE on Vercel (4.5MB limit).
+  const compressImage = (file: File): Promise<{ base64: string; mimeType: string }> =>
     new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        // Strip the data URL prefix, keep only the base64 part
-        resolve(result.split(',')[1]);
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        const MAX_WIDTH = 1920;
+        let { width, height } = img;
+        if (width > MAX_WIDTH) {
+          height = Math.round(height * MAX_WIDTH / width);
+          width = MAX_WIDTH;
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        resolve({ base64: dataUrl.split(',')[1], mimeType: 'image/jpeg' });
       };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
+      img.onerror = reject;
+      img.src = objectUrl;
     });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmed = url.trim();
-    setUrl(trimmed);
-    if (!validate(trimmed)) return;
+    const normalized = normalizeUrl(url);
+    setUrl(normalized);
+    if (!validate(normalized)) return;
 
     setLoading(true);
     try {
@@ -86,15 +106,16 @@ export function URLInput({ credits }: { credits: number }) {
       let designMimeType: string | null = null;
 
       if (designFile) {
-        designScreenshotBase64 = await toBase64(designFile);
-        designMimeType = designFile.type;
+        const compressed = await compressImage(designFile);
+        designScreenshotBase64 = compressed.base64;
+        designMimeType = compressed.mimeType;
       }
 
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          url: trimmed,
+          url: normalized,
           ...(designScreenshotBase64 && { designScreenshotBase64, designMimeType }),
         }),
       });
@@ -122,8 +143,8 @@ export function URLInput({ credits }: { credits: number }) {
     <form onSubmit={handleSubmit} className="space-y-3">
       <div className="flex gap-2">
         <Input
-          type="url"
-          placeholder="https://example.com"
+          type="text"
+          placeholder="example.com"
           value={url}
           onChange={(e) => {
             const v = e.target.value;
@@ -149,7 +170,7 @@ export function URLInput({ credits }: { credits: number }) {
       )}
 
       {credits > 0 && (
-        <p className="text-xs text-[#475569]">
+        <p className="text-xs text-muted-foreground/60">
           {credits} credit{credits !== 1 ? 's' : ''} remaining
         </p>
       )}
@@ -169,7 +190,7 @@ export function URLInput({ credits }: { credits: number }) {
         </button>
 
         {showDesign && (
-          <div className="mt-3 bg-[#13131A] border border-white/5 rounded-xl p-4 space-y-3">
+          <div className="mt-3 bg-card border border-border rounded-xl p-4 space-y-3">
             {!designPreview ? (
               <div
                 onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
@@ -181,7 +202,7 @@ export function URLInput({ credits }: { credits: number }) {
                   p-6 cursor-pointer transition-colors select-none
                   ${dragOver
                     ? 'border-indigo-500/50 bg-indigo-500/5'
-                    : 'border-white/10 hover:border-indigo-500/30 hover:bg-white/[0.02]'}
+                    : 'border-border hover:border-indigo-500/30 hover:bg-white/[0.02]'}
                 `}
               >
                 <ImageIcon className="h-8 w-8 text-muted-foreground" />
@@ -203,12 +224,12 @@ export function URLInput({ credits }: { credits: number }) {
                 />
               </div>
             ) : (
-              <div className="relative rounded-lg overflow-hidden border border-white/10 bg-[#1C1C27]">
+              <div className="relative rounded-lg overflow-hidden border border-border bg-secondary">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={designPreview}
                   alt="Design preview"
-                  className="h-16 w-24 object-cover rounded-lg border border-white/10"
+                  className="h-16 w-24 object-cover rounded-lg border border-border"
                 />
                 <div className="absolute top-2 right-2 flex gap-1.5">
                   <span className="rounded bg-black/60 px-2 py-0.5 text-xs text-white">
@@ -217,7 +238,7 @@ export function URLInput({ credits }: { credits: number }) {
                   <button
                     type="button"
                     onClick={clearDesign}
-                    className="rounded bg-black/60 p-0.5 text-[#475569] hover:text-muted-foreground transition-colors text-xs"
+                    className="rounded bg-black/60 p-0.5 text-muted-foreground/60 hover:text-muted-foreground transition-colors text-xs"
                     aria-label="Remove design"
                   >
                     <X className="h-3.5 w-3.5" />
@@ -226,7 +247,7 @@ export function URLInput({ credits }: { credits: number }) {
               </div>
             )}
             <div className="flex items-center gap-2">
-              <span className="bg-[#1C1C27] text-muted-foreground border border-white/10 text-xs px-2 py-0.5 rounded-full">Optional</span>
+              <span className="bg-secondary text-muted-foreground border border-border text-xs px-2 py-0.5 rounded-full">Optional</span>
               <p className="text-xs text-muted-foreground">
                 Claude AI will compare your design with the live site and highlight differences.
               </p>
