@@ -3,8 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { CreditsDisplay } from '@/components/dashboard/CreditsDisplay';
-import { useCredits } from '@/hooks/useCredits';
+import { UserMenu } from '@/components/shared/UserMenu';
 import { Code2, Zap } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -12,12 +11,10 @@ const NAV_ITEMS = [
   { href: '/analyze',   label: 'Analyze' },
   { href: '/reports',   label: 'Reports' },
   { href: '/monitors',  label: 'Monitors' },
-  { href: '/settings',  label: 'Settings' },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { credits, loading } = useCredits();
 
   return (
     <aside className="hidden md:flex w-56 shrink-0 border-r border-white/5 bg-[#0A0A0F] flex-col">
@@ -57,13 +54,7 @@ export function Sidebar() {
           Docs
         </Link>
       </nav>
-      {loading ? (
-        <div className="px-3 py-2">
-          <div className="h-9 rounded-md bg-white/5 animate-pulse" />
-        </div>
-      ) : (
-        <CreditsDisplay credits={credits} />
-      )}
+      <UserMenu />
     </aside>
   );
 }

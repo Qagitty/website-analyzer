@@ -3,9 +3,13 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Zap, Shield, Brain, BarChart3, CheckCircle2, Globe, Code2, Bell, Users } from 'lucide-react';
+import { AuthModal } from '@/components/auth/AuthModal';
+
+type ModalState = { open: boolean; tab: 'signin' | 'signup' };
 
 export default function LandingPage() {
   const [url, setUrl] = useState('');
+  const [modal, setModal] = useState<ModalState>({ open: false, tab: 'signup' });
 
   return (
     <div className="min-h-screen bg-[#0A0A0F] text-[#F8FAFC] overflow-x-hidden">
@@ -24,10 +28,10 @@ export default function LandingPage() {
             <Link href="/docs" className="hover:text-white transition-colors">Docs</Link>
           </div>
           <div className="flex items-center gap-3">
-            <Link href="/login" className="text-sm text-[#94A3B8] hover:text-white transition-colors hidden sm:block">Sign in</Link>
-            <Link href="/signup" className="rounded-lg bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-1.5 text-sm font-medium text-white hover:from-indigo-400 hover:to-violet-400 transition-all">
+            <button onClick={() => setModal({ open: true, tab: 'signin' })} className="text-sm text-[#94A3B8] hover:text-white transition-colors hidden sm:block">Sign in</button>
+            <button onClick={() => setModal({ open: true, tab: 'signup' })} className="rounded-lg bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-1.5 text-sm font-medium text-white hover:from-indigo-400 hover:to-violet-400 transition-all">
               Get started free
-            </Link>
+            </button>
           </div>
         </div>
       </nav>
@@ -67,13 +71,13 @@ export default function LandingPage() {
               placeholder="https://yoursite.com"
               className="flex-1 rounded-xl border border-indigo-500/20 bg-[#13131A] px-4 py-3 text-sm text-white placeholder:text-[#475569] focus:outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/20 transition-all"
             />
-            <Link
-              href={url ? `/signup?url=${encodeURIComponent(url)}` : '/signup'}
+            <button
+              onClick={() => setModal({ open: true, tab: 'signup' })}
               className="rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-6 py-3 text-sm font-semibold text-white hover:from-indigo-400 hover:to-violet-400 transition-all whitespace-nowrap flex items-center gap-2 justify-center"
               style={{ boxShadow: '0 0 24px rgba(99,102,241,0.3)' }}
             >
               Analyze free <ArrowRight className="h-4 w-4" />
-            </Link>
+            </button>
           </div>
           <p className="text-xs text-[#475569]">No credit card required · 3 free analyses/month</p>
         </div>
@@ -179,9 +183,9 @@ export default function LandingPage() {
                   </li>
                 ))}
               </ul>
-              <Link href="/signup" className="block text-center rounded-xl border border-white/10 px-4 py-2.5 text-sm font-medium hover:bg-white/5 transition-colors">
+              <button onClick={() => setModal({ open: true, tab: 'signup' })} className="w-full text-center rounded-xl border border-white/10 px-4 py-2.5 text-sm font-medium hover:bg-white/5 transition-colors">
                 Get started free
-              </Link>
+              </button>
             </div>
 
             {/* Pro — highlighted */}
@@ -204,9 +208,9 @@ export default function LandingPage() {
                   </li>
                 ))}
               </ul>
-              <Link href="/signup" className="block text-center rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-2.5 text-sm font-semibold text-white hover:from-indigo-400 hover:to-violet-400 transition-all">
+              <button onClick={() => setModal({ open: true, tab: 'signup' })} className="w-full text-center rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-2.5 text-sm font-semibold text-white hover:from-indigo-400 hover:to-violet-400 transition-all">
                 Start Pro trial
-              </Link>
+              </button>
             </div>
 
             {/* Agency */}
@@ -226,9 +230,9 @@ export default function LandingPage() {
                   </li>
                 ))}
               </ul>
-              <Link href="/signup" className="block text-center rounded-xl border border-white/10 px-4 py-2.5 text-sm font-medium hover:bg-white/5 transition-colors">
+              <button onClick={() => setModal({ open: true, tab: 'signup' })} className="w-full text-center rounded-xl border border-white/10 px-4 py-2.5 text-sm font-medium hover:bg-white/5 transition-colors">
                 Start Agency trial
-              </Link>
+              </button>
             </div>
           </div>
         </div>
@@ -252,15 +256,22 @@ export default function LandingPage() {
             </h2>
           </div>
           <p className="text-[#94A3B8] mb-8">Start free. Your first report takes 30 seconds.</p>
-          <Link
-            href="/signup"
+          <button
+            onClick={() => setModal({ open: true, tab: 'signup' })}
             className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-8 py-3.5 text-base font-semibold text-white hover:from-indigo-400 hover:to-violet-400 transition-all"
             style={{ boxShadow: '0 0 32px rgba(99,102,241,0.35)' }}
           >
             Analyze your site free <ArrowRight className="h-4 w-4" />
-          </Link>
+          </button>
         </div>
       </section>
+
+      {/* Auth Modal */}
+      <AuthModal
+        open={modal.open}
+        defaultTab={modal.tab}
+        onClose={() => setModal({ open: false, tab: 'signup' })}
+      />
 
       {/* Footer */}
       <footer className="border-t border-white/5 py-10 px-4">
@@ -271,10 +282,14 @@ export default function LandingPage() {
             </div>
             <span>WebAnalyzer</span>
           </div>
-          <div className="flex items-center gap-6">
+          <div className="flex flex-wrap items-center gap-4 md:gap-6">
             <Link href="/docs" className="hover:text-[#94A3B8] transition-colors">API Docs</Link>
             <a href="#pricing" className="hover:text-[#94A3B8] transition-colors">Pricing</a>
-            <Link href="/login" className="hover:text-[#94A3B8] transition-colors">Sign in</Link>
+            <button onClick={() => setModal({ open: true, tab: 'signin' })} className="hover:text-[#94A3B8] transition-colors">Sign in</button>
+            <Link href="/privacy" className="hover:text-[#94A3B8] transition-colors">Privacy</Link>
+            <Link href="/terms" className="hover:text-[#94A3B8] transition-colors">Terms</Link>
+            <Link href="/cookies" className="hover:text-[#94A3B8] transition-colors">Cookies</Link>
+            <Link href="/refund" className="hover:text-[#94A3B8] transition-colors">Refunds</Link>
           </div>
           <p>© 2026 WebAnalyzer. All rights reserved.</p>
         </div>

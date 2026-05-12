@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -49,6 +50,12 @@ export function LoginForm() {
           {errors.email && <p className="mt-1 text-sm text-red-400">{errors.email.message}</p>}
         </div>
         <div>
+          <div className="flex items-center justify-between mb-1">
+            <span />
+            <Link href="/forgot-password" className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">
+              Forgot password?
+            </Link>
+          </div>
           <Input type="password" placeholder="Password" {...register('password')} />
           {errors.password && <p className="mt-1 text-sm text-red-400">{errors.password.message}</p>}
         </div>

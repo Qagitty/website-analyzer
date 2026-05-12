@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import { Toaster } from 'sonner';
 import { Analytics } from '@vercel/analytics/react';
 import { ThemeProvider } from '@/components/shared/ThemeProvider';
+import { CookieBanner } from '@/components/shared/CookieBanner';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -28,6 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
           {children}
+          <CookieBanner />
           <Toaster richColors position="top-right" />
           <Analytics />
         </ThemeProvider>

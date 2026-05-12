@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { createBrowserClient } from '@/lib/supabase/client';
 
 const schema = z.object({
   displayName: z
@@ -34,12 +35,30 @@ interface Props {
 
 export function ProfileForm({ email, initialName }: Props) {
   const [loading, setLoading] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
   const router = useRouter();
+  const supabase = createBrowserClient();
 
   const { register, handleSubmit, formState: { errors, isDirty } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { displayName: initialName },
   });
+
+  const handlePasswordReset = async () => {
+    setResetLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/update-password`,
+      });
+      if (error) throw error;
+      setResetSent(true);
+    } catch (err: any) {
+      toast.error(err.message ?? 'Failed to send reset link');
+    } finally {
+      setResetLoading(false);
+    }
+  };
 
   const onSubmit = async (data: FormData) => {
     setLoading(true);
@@ -60,6 +79,7 @@ export function ProfileForm({ email, initialName }: Props) {
   };
 
   return (
+    <>
     <Card>
       <CardHeader>
         <CardTitle>Profile</CardTitle>
@@ -94,5 +114,32 @@ export function ProfileForm({ email, initialName }: Props) {
         </form>
       </CardContent>
     </Card>
+
+    <Card>
+      <CardHeader>
+        <CardTitle>Change Password</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-sm text-[#94A3B8]">
+          We&apos;ll send a password reset link to <strong className="text-white">{email}</strong>.
+        </p>
+        {resetSent ? (
+          <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-3">
+            <p className="text-sm text-emerald-400">Reset link sent to your email.</p>
+          </div>
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handlePasswordReset}
+            disabled={resetLoading}
+            className="border-white/10 hover:bg-white/5"
+          >
+            {resetLoading ? 'Sending…' : 'Send password reset email'}
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+    </>
   );
 }
