@@ -12,6 +12,17 @@ import {
 import { z } from 'zod';
 import type { Monitor } from '@/types/analysis';
 import { TrendChart } from './TrendChart';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 const urlSchema = z.string().trim().url('Please enter a valid URL including https://');
 
@@ -168,7 +179,6 @@ function MonitorCard({
   };
 
   const remove = async () => {
-    if (!confirm(`Delete monitor for ${monitor.url}?`)) return;
     setBusy(true);
     try {
       const res = await fetch(`/api/monitors/${monitor.id}`, { method: 'DELETE' });
@@ -273,14 +283,36 @@ function MonitorCard({
               ? <><Pause className="h-3 w-3" /> Pause</>
               : <><Play className="h-3 w-3" /> Resume</>}
           </button>
-          <button
-            type="button"
-            onClick={remove}
-            disabled={busy}
-            className="text-red-400/50 hover:text-red-400 text-xs flex items-center gap-1"
-          >
-            <Trash2 className="h-3 w-3" /> Delete
-          </button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button
+                type="button"
+                disabled={busy}
+                className="text-red-400/50 hover:text-red-400 text-xs flex items-center gap-1 disabled:opacity-50"
+              >
+                <Trash2 className="h-3 w-3" /> Delete
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete monitor?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete the monitor for{' '}
+                  <span className="font-medium text-foreground break-all">{monitor.url}</span>.
+                  This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={remove}
+                  className="bg-red-500 hover:bg-red-600 text-white border-0"
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
     </div>
   );
