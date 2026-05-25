@@ -5,11 +5,13 @@ import { useState, useEffect, useRef } from 'react';
 interface Credits {
   credits: number;
   creditsUsed: number;
-  /** True only during the very first load — subsequent polls are silent */
   loading: boolean;
   error: string | null;
   refresh: () => void;
 }
+
+// Re-fetch on tab focus only if data is older than 5 minutes
+const STALE_MS = 5 * 60 * 1000;
 
 export function useCredits(): Credits {
   const [credits, setCredits] = useState(0);
@@ -17,11 +19,13 @@ export function useCredits(): Credits {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const initialized = useRef(false);
+  const lastFetchedAt = useRef(0);
 
-  const fetch_ = async () => {
-    // Only show loading spinner on the very first fetch
+  const fetch_ = async (force = false) => {
+    // Skip if data is still fresh (unless forced — initial load or explicit refresh)
+    if (!force && initialized.current && Date.now() - lastFetchedAt.current < STALE_MS) return;
+
     if (!initialized.current) setLoading(true);
-
     try {
       const res = await fetch('/api/user/credits');
       if (!res.ok) throw new Error('Failed to load credits');
@@ -29,6 +33,7 @@ export function useCredits(): Credits {
       setCredits(data.credits);
       setCreditsUsed(data.creditsUsed);
       setError(null);
+      lastFetchedAt.current = Date.now();
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -40,21 +45,15 @@ export function useCredits(): Credits {
   };
 
   useEffect(() => {
-    fetch_();
+    fetch_(true);
 
     const onVisible = () => {
       if (document.visibilityState === 'visible') fetch_();
     };
     document.addEventListener('visibilitychange', onVisible);
-
-    const interval = setInterval(fetch_, 30_000);
-
-    return () => {
-      document.removeEventListener('visibilitychange', onVisible);
-      clearInterval(interval);
-    };
+    return () => document.removeEventListener('visibilitychange', onVisible);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return { credits, creditsUsed, loading, error, refresh: fetch_ };
+  return { credits, creditsUsed, loading, error, refresh: () => fetch_(true) };
 }
