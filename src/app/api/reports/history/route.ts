@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
 
   const { data: analyses, error } = await (supabase as any)
     .from('analyses')
-    .select('created_at, lighthouse_scores')
+    .select('id, created_at, lighthouse_scores')
     .eq('status', 'completed')
     .eq('url', url)
     .eq('user_id', user.id)
@@ -33,6 +33,7 @@ export async function GET(req: NextRequest) {
   const history = (analyses ?? [])
     .filter((a: any) => a.lighthouse_scores != null)
     .map((a: any) => ({
+      id: a.id,
       date: a.created_at,
       performance: a.lighthouse_scores.performance ?? null,
       accessibility: a.lighthouse_scores.accessibility ?? null,

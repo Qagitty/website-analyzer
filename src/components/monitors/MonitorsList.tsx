@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import {
-  Clock, Globe, Trash2, Play, Pause, Plus, Bell, BellOff, ExternalLink,
+  Clock, Globe, Trash2, Play, Pause, Plus, Bell, BellOff, ExternalLink, ChevronDown, ChevronRight,
 } from 'lucide-react';
 import { z } from 'zod';
 import type { Monitor } from '@/types/analysis';
@@ -145,6 +145,92 @@ function CreateMonitorForm({ onCreated }: { onCreated: (m: Monitor) => void }) {
   );
 }
 
+// ── History panel ────────────────────────────────────────────────────────────
+interface HistoryEntry {
+  id: string;
+  date: string;
+  performance: number | null;
+  accessibility: number | null;
+  seo: number | null;
+}
+
+function HistoryPanel({ url }: { url: string }) {
+  const [open, setOpen] = useState(false);
+  const [entries, setEntries] = useState<HistoryEntry[] | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const load = async () => {
+    if (entries !== null) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/reports/history?url=${encodeURIComponent(url)}&limit=20`);
+      if (!res.ok) throw new Error('Failed to load');
+      const data = await res.json();
+      setEntries(data);
+    } catch {
+      setEntries([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggle = () => {
+    if (!open) load();
+    setOpen((v) => !v);
+  };
+
+  return (
+    <div className="border-t border-border pt-2">
+      <button
+        type="button"
+        onClick={toggle}
+        className="flex items-center gap-1 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+      >
+        {open ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+        Report history
+      </button>
+
+      {open && (
+        <div className="mt-2 space-y-1">
+          {loading && (
+            <p className="text-xs text-muted-foreground/50 pl-1">Loading…</p>
+          )}
+          {!loading && entries?.length === 0 && (
+            <p className="text-xs text-muted-foreground/50 pl-1">No completed reports yet.</p>
+          )}
+          {!loading && entries && entries.length > 0 && (
+            <div className="rounded-lg border border-border overflow-hidden">
+              {[...entries].reverse().map((e) => {
+                const scores = [e.performance, e.accessibility, e.seo].filter((v) => v != null) as number[];
+                const avg = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null;
+                const color = avg == null ? 'text-muted-foreground' : avg >= 80 ? 'text-emerald-400' : avg >= 50 ? 'text-amber-400' : 'text-red-400';
+                return (
+                  <div key={e.id} className="flex items-center justify-between px-3 py-2 border-b border-border last:border-0 gap-3">
+                    <span className="text-xs text-muted-foreground/70">
+                      {format(new Date(e.date), 'MMM d, yyyy HH:mm')}
+                    </span>
+                    <div className="flex items-center gap-3">
+                      {avg != null && (
+                        <span className={`text-xs font-semibold ${color}`}>{avg} avg</span>
+                      )}
+                      <a
+                        href={`/reports/${e.id}`}
+                        className="text-xs text-indigo-400 hover:underline whitespace-nowrap"
+                      >
+                        View →
+                      </a>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Monitor card ─────────────────────────────────────────────────────────────
 function MonitorCard({
   monitor,
@@ -261,15 +347,8 @@ function MonitorCard({
           )}
         </div>
 
-        {/* Last report link */}
-        {monitor.last_analysis_id && (
-          <a
-            href={`/reports/${monitor.last_analysis_id}`}
-            className="text-xs text-indigo-400 hover:underline"
-          >
-            View last report →
-          </a>
-        )}
+        {/* Report history */}
+        <HistoryPanel url={monitor.url} />
 
         {/* Actions */}
         <div className="flex gap-2 pt-1">
