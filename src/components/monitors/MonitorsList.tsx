@@ -281,7 +281,9 @@ function MonitorCard({
   const scores = monitor.last_scores;
 
   return (
-    <div className={`bg-card border border-border rounded-xl hover:border-indigo-500/20 transition-colors p-4 space-y-3 ${monitor.is_active ? '' : 'opacity-60'}`}>
+    <div className="bg-card border border-border rounded-xl hover:border-indigo-500/20 transition-colors p-4 space-y-3">
+        {/* URL + status — dimmed when paused, actions row stays at full opacity */}
+        <div className={monitor.is_active ? '' : 'opacity-60'}>
         {/* URL + status */}
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2 min-w-0">
@@ -349,6 +351,7 @@ function MonitorCard({
 
         {/* Report history */}
         <HistoryPanel url={monitor.url} />
+        </div>
 
         {/* Actions */}
         <div className="flex gap-2 pt-1">
