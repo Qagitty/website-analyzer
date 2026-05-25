@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { Link2, Link2Off, Check, Activity, Download } from 'lucide-react';
+import { Link2, Link2Off, Check, Activity, Download, Bell, BellOff } from 'lucide-react';
 import type { Analysis } from '@/types/analysis';
 
 export function ReportHeader({ analysis }: { analysis: Analysis }) {
@@ -14,6 +15,13 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
   const [copied, setCopied] = useState(false);
   const [monitoring, setMonitoring] = useState(false);
   const [monitoringActive, setMonitoringActive] = useState(false);
+
+  // Monitor form state
+  const [showMonitorForm, setShowMonitorForm] = useState(false);
+  const [frequency, setFrequency] = useState<'daily' | 'weekly'>('weekly');
+  const [notify, setNotify] = useState(true);
+  const [threshold, setThreshold] = useState(10);
+  const monitorFormRef = useRef<HTMLDivElement>(null);
 
   // Check on mount whether this URL is already being monitored
   useEffect(() => {
@@ -28,6 +36,18 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
       .catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [analysis.url]);
+
+  // Close monitor form on outside click
+  useEffect(() => {
+    if (!showMonitorForm) return;
+    const handler = (e: MouseEvent) => {
+      if (monitorFormRef.current && !monitorFormRef.current.contains(e.target as Node)) {
+        setShowMonitorForm(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showMonitorForm]);
 
   const duration = analysis.completed_at && analysis.started_at
     ? Math.round(
@@ -82,16 +102,17 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           url: analysis.url,
-          frequency: 'weekly',
-          notify_on_score_drop: true,
-          score_drop_threshold: 10,
+          frequency,
+          notify_on_score_drop: notify,
+          score_drop_threshold: threshold,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Failed to create monitor');
       setMonitoringActive(true);
+      setShowMonitorForm(false);
       toast.success('Monitor created!', {
-        description: `${analysis.url} will be checked weekly.`,
+        description: `${analysis.url} will be checked ${frequency}.`,
       });
     } catch (err: any) {
       toast.error(err.message);
@@ -163,16 +184,81 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
               Monitoring active
             </Badge>
           ) : (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={createMonitor}
-              disabled={monitoring}
-              className="gap-1.5 border-border text-muted-foreground hover:bg-accent hover:text-foreground"
-            >
-              <Activity className="h-3.5 w-3.5" />
-              {monitoring ? 'Setting up…' : 'Monitor this site'}
-            </Button>
+            <div ref={monitorFormRef} className="relative">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowMonitorForm((v) => !v)}
+                className="gap-1.5 border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+              >
+                <Activity className="h-3.5 w-3.5" />
+                Monitor this site
+              </Button>
+
+              {showMonitorForm && (
+                <div className="absolute right-0 top-full mt-2 z-50 w-72 rounded-xl border border-border bg-card shadow-xl p-4 space-y-4">
+                  {/* Frequency */}
+                  <div className="space-y-1.5">
+                    <p className="text-xs text-muted-foreground/70 font-medium">Check frequency</p>
+                    <div className="flex rounded-md border border-border overflow-hidden text-sm">
+                      {(['daily', 'weekly'] as const).map((f) => (
+                        <button
+                          key={f}
+                          type="button"
+                          onClick={() => setFrequency(f)}
+                          className={`flex-1 px-3 py-1.5 capitalize transition-colors ${
+                            frequency === f
+                              ? 'bg-gradient-to-r from-indigo-500 to-violet-500 text-white'
+                              : 'bg-card hover:bg-accent text-muted-foreground'
+                          }`}
+                        >
+                          {f}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Notify toggle */}
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground/70 font-medium">Alerts</p>
+                    <button
+                      type="button"
+                      onClick={() => setNotify((v) => !v)}
+                      className={`flex items-center gap-1.5 w-full rounded-md border px-3 py-1.5 text-sm transition-colors ${
+                        notify ? 'border-indigo-500/50 text-indigo-300' : 'border-border text-muted-foreground/60'
+                      }`}
+                    >
+                      {notify ? <Bell className="h-3.5 w-3.5" /> : <BellOff className="h-3.5 w-3.5" />}
+                      {notify ? 'Alerts on' : 'Alerts off'}
+                    </button>
+
+                    {notify && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <span className="text-xs whitespace-nowrap">Alert if score drops by</span>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={50}
+                          value={threshold}
+                          onChange={(e) => setThreshold(Number(e.target.value))}
+                          className="w-16 h-8 text-center"
+                        />
+                        <span className="text-xs">pts</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <Button
+                    onClick={createMonitor}
+                    disabled={monitoring}
+                    size="sm"
+                    className="w-full bg-gradient-to-r from-indigo-500 to-violet-500 text-white hover:from-indigo-400 hover:to-violet-400 border-0"
+                  >
+                    {monitoring ? 'Creating…' : 'Create monitor'}
+                  </Button>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
