@@ -1,7 +1,7 @@
 # Website Analyzer — QA Specification
 
-**Version:** 3.0  
-**Last updated:** 2026-05-14  
+**Version:** 4.0  
+**Last updated:** 2026-05-25  
 **Coverage:** Sprints 1–8 + all post-sprint features  
 **Test runner:** Vitest v4 + @testing-library/react + jsdom
 
@@ -112,6 +112,7 @@
 | 4 | Status = `running` | "Analysing your website…" message |
 | 5 | Status = `completed` | Progress bar 100%, auto-redirect after 1.5s |
 | 6 | Status = `failed` | Error message shown, polling stops |
+| 7 | Analysis not completed/failed within 2 min | "Analysis Timed Out" card shown; polling stops; retry button visible |
 
 ### TC-ANALYZE-004 — Design screenshot upload
 | # | Step | Expected Result |
@@ -213,7 +214,9 @@
 | 1 | Sidebar credits badge | Shows correct count |
 | 2 | After analysis submitted | Count decrements by 1 |
 | 3 | Credits = 0 | Badge turns red/warning colour |
-| 4 | Background poll (30s interval) | Count silently updated, no spinner |
+| 4 | Tab regains focus after 5+ min stale period | Count silently updated, no spinner |
+| 5 | Tab regains focus within 5 min of last fetch | No re-fetch — stale guard prevents it |
+| 6 | Credits = 0 (API path) | 402 if called directly |
 
 ### TC-BILLING-002 — Stripe checkout
 | # | Step | Expected Result |
@@ -240,13 +243,16 @@
 | # | Step | Expected Result |
 |---|------|----------------|
 | 1 | Submit form with valid HTTPS URL | Monitor created, card appears in list |
-| 2 | `next_run_at` | Set to now + 7 days (weekly default) |
+| 2 | `next_run_at` | Set to now + 7 days (weekly default) — governs second run; first runs immediately |
 | 3 | Set frequency = Daily | `next_run_at` = now + 24 h |
 | 4 | Invalid URL | Validation error, no API call |
 | 5 | threshold = 0 | Validation error |
 | 6 | threshold = 51 | Validation error |
 | 7 | threshold = 5.5 (float) | Validation error |
 | 8 | Free user creates 4th monitor | 402: "Free plan allows up to 3 monitors" |
+| 9 | Monitor created successfully | 1 credit immediately deducted |
+| 10 | Monitor created successfully | Analysis dispatched to Worker; monitor shows `last_run_at` |
+| 11 | User has 0 credits when creating monitor | 402 "Insufficient credits" — monitor not created |
 
 ### TC-MONITOR-002 — Monitor card display
 | # | Step | Expected Result |
@@ -254,9 +260,11 @@
 | 1 | Active monitor | Green "Active" badge |
 | 2 | Paused monitor | Gray "Paused" badge |
 | 3 | No runs yet | "Never run yet" label |
-| 4 | Has `last_analysis_id` | "View last report →" link shown |
-| 5 | No `last_analysis_id` | Link not shown |
-| 6 | Multiple runs | Trend chart visible |
+| 4 | Click "Report history" chevron | Panel expands, history fetched from /api/reports/history |
+| 5 | History panel: reports exist | Shows entries newest-first: date, avg score (colour-coded), "View →" link |
+| 6 | History panel: no completed reports | "No completed reports yet." message |
+| 7 | Monitor is paused | URL/scores/timing section dimmed; Resume and Delete buttons at full opacity |
+| 8 | Multiple runs | Trend chart visible |
 
 ### TC-MONITOR-003 — Pause / Resume / Delete
 | # | Step | Expected Result |
@@ -265,8 +273,10 @@
 | 2 | Card badge | Switches to "Paused" |
 | 3 | Cron runs | Paused monitor skipped |
 | 4 | Click "Resume" | `is_active: true`, badge back to "Active" |
-| 5 | Click "Delete" | `DELETE /api/monitors/{id}`, card removed |
-| 6 | Toast on delete | "Monitor deleted" |
+| 5 | Click "Delete" | AlertDialog confirmation opens |
+| 6 | Confirm in dialog | `DELETE /api/monitors/{id}`, card removed |
+| 7 | Cancel in dialog | Dialog dismissed, monitor unchanged |
+| 8 | Toast on delete | "Monitor deleted" |
 
 ### TC-MONITOR-004 — Cron execution
 | # | Step | Expected Result |
@@ -277,6 +287,18 @@
 | 4 | Due monitor with 0 credits | Monitor set `is_active = false`, no analysis |
 | 5 | Score drop ≥ threshold | Email sent (if `RESEND_API_KEY` configured) |
 | 6 | `RESEND_API_KEY` missing | Cron completes, email silently skipped |
+
+### TC-MONITOR-005 — Monitor this site dropdown (from report page)
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Click "Monitor this site" on a report | Settings dropdown panel opens (not immediate creation) |
+| 2 | Frequency toggle | Daily / Weekly options, Weekly pre-selected |
+| 3 | Alerts toggle | Toggles Bell on/off |
+| 4 | Threshold input (alerts on) | Shown; accepts 1–50 |
+| 5 | Threshold input (alerts off) | Hidden |
+| 6 | Click "Create monitor" | Monitor created with chosen settings; dropdown closes |
+| 7 | Click outside dropdown | Dropdown closes without creating |
+| 8 | Monitor already exists for URL | "Monitoring active" badge shown instead of button |
 
 ---
 
@@ -344,10 +366,13 @@
 |---|------|----------------|
 | 1 | Agency user clicks "Generate API Key" | `POST /api/api-keys` |
 | 2 | Key format | `wa_live_` + 32 hex chars |
-| 3 | Key displayed | Shown once in amber box |
+| 3 | Key displayed | Shown in green post-generation banner |
 | 4 | Copy button | Clipboard updated |
-| 5 | Refresh page | Full key no longer visible (only prefix) |
-| 6 | DB | Key stored as SHA-256 hash |
+| 5 | Refresh page | Only prefix shown in row (full key hidden) |
+| 5a | Click Eye icon on key row | GET `/api/api-keys/{id}/reveal` called; full key shown inline |
+| 5b | Click EyeOff icon | Key hidden again (client-side) |
+| 5c | Copy button (key revealed) | Clipboard updated with full key |
+| 6 | DB | Key stored as SHA-256 hash + AES-256-GCM encrypted ciphertext |
 | 7 | Free/Pro user | Locked state, "Upgrade to Agency" shown |
 
 ### TC-APIKEYS-002 — Key authentication
@@ -367,6 +392,17 @@
 | 1 | Click "Revoke" | `DELETE /api/api-keys/{id}` |
 | 2 | UI | Row removed immediately |
 | 3 | API call with revoked key | 401 |
+
+### TC-APIKEYS-004 — Key reveal
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Click Eye icon on active key | GET `/api/api-keys/{id}/reveal`; full key shown inline |
+| 2 | Full key format | `wa_live_` + 32 hex chars |
+| 3 | Click Copy next to revealed key | Clipboard updated |
+| 4 | Click EyeOff | Key hidden, prefix shown again |
+| 5 | Reveal a revoked key | 410 error; key not revealed |
+| 6 | Key generated before reveal feature | 404 with "revoke and re-generate" message |
+| 7 | Different user calls reveal endpoint | 404 (owner-only) |
 
 ---
 

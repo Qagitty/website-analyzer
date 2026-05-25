@@ -87,12 +87,41 @@ describe('useCredits()', () => {
     expect(global.fetch).toHaveBeenCalledTimes(2);
   });
 
-  // ── Background poll anti-flicker ──────────────────────────────────────────
-  it('background poll does NOT set loading=true after initialization', async () => {
+  // ── No polling interval ───────────────────────────────────────────────────
+  it('does not set up a polling interval — fetch called exactly once on mount', async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: true,
+      json: async () => ({ credits: 5, creditsUsed: 0 }),
+    });
+
+    renderHook(() => useCredits());
+
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+    // Only one fetch — no setInterval
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('refresh() always re-fetches regardless of stale guard', async () => {
+    (global.fetch as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ credits: 5, creditsUsed: 0 }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ credits: 4, creditsUsed: 1 }) });
+
+    const { result } = renderHook(() => useCredits());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.credits).toBe(5);
+
+    // refresh() forces a fetch even if data is fresh
+    await act(async () => { result.current.refresh(); });
+    await waitFor(() => expect(result.current.credits).toBe(4));
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
+
+  // ── Background refresh anti-flicker ───────────────────────────────────────
+  it('background refresh does NOT set loading=true after initialization', async () => {
     // First fetch: initializes the hook
     (global.fetch as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce({ ok: true, json: async () => ({ credits: 5, creditsUsed: 1 }) })
-      // Second fetch: simulates a background poll (e.g. refresh() called internally)
+      // Second fetch: simulates an explicit refresh() call
       .mockResolvedValueOnce({ ok: true, json: async () => ({ credits: 4, creditsUsed: 2 }) });
 
     const { result } = renderHook(() => useCredits());

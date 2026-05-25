@@ -91,6 +91,48 @@
 
 ---
 
+### FIX-011 — Analyzer hung indefinitely on unreachable URLs
+**Problem:** The Cloudflare Worker's `fetch()` calls had no timeout. When a user submitted a non-existent or unreachable domain, the worker hung forever and the progress bar never advanced past "Waiting in queue."
+**Fix:** Added `AbortController` with 15-second timeout to all fetch attempts in the TTFB measurement loop, and 10-second timeout in the `crawlPage()` helper. Any timeout aborts the fetch and proceeds to the error handler.
+**Files:** `src/workers/analyzer/index.ts`
+
+---
+
+### FIX-012 — No frontend escape from permanently stuck analyses
+**Problem:** If the Cloudflare Worker timed out silently or the callback was lost, the status page at `/analyze/{id}` polled forever with no user-visible escape.
+**Fix:** Added a 2-minute `setTimeout` guard in `AnalysisProgress.tsx` using `useRef`. If the analysis is still not in a terminal state after 2 minutes, an "Analysis Timed Out" error card is shown with a retry button. The guard is cancelled when `completed` or `failed` is detected.
+**Files:** `src/components/analyze/AnalysisProgress.tsx`
+
+---
+
+### FIX-013 — Dashboard layout stretched to full viewport on wide screens
+**Problem:** The dashboard `<main>` had no `max-width` constraint. On monitors wider than 1440px, grid layouts (e.g. the reports list) stretched columns indefinitely.
+**Fix:** Added a `max-w-7xl mx-auto w-full` wrapper `<div>` around `{children}` in the dashboard layout's `<main>` element.
+**Files:** `src/app/(dashboard)/layout.tsx`
+
+---
+
+### FIX-014 — Credits badge sent excessive requests to the server
+**Problem:** `useCredits` ran `setInterval(fetch_, 30_000)` unconditionally, causing a request every 30 seconds for every open tab — even on idle pages. Combined with an unthrottled `visibilitychange` handler, returning to the tab after even a few seconds triggered another fetch.
+**Fix:** Removed `setInterval` entirely. Added a `lastFetchedAt` ref and a `STALE_MS = 5 * 60 * 1000` guard: `visibilitychange` re-fetch is skipped if data was fetched within the last 5 minutes. `refresh()` always forces a fetch (used after submitting an analysis or returning from Stripe).
+**Files:** `src/hooks/useCredits.ts`
+
+---
+
+### FIX-015 — Monitor delete confirmation blocked by browser popup suppression
+**Problem:** The delete confirmation used `window.confirm()`. Browsers allow users to check "Don't allow prompts from this page," after which `window.confirm()` silently returns `false`. The Delete button became permanently non-functional with no feedback to the user.
+**Fix:** Replaced `window.confirm()` with the shadcn `AlertDialog` component — an in-app modal that is never blocked by browser popup policies.
+**Files:** `src/components/monitors/MonitorsList.tsx`
+
+---
+
+### FIX-016 — Paused monitor delete button appeared non-interactive
+**Problem:** The entire `MonitorCard` wrapper had `opacity-60` applied when `is_active = false`. This made the Resume and Delete action buttons appear greyed-out and non-clickable, misleading users into thinking paused monitors could not be deleted.
+**Fix:** Moved `opacity-60` from the outer card wrapper to a new inner `<div>` that wraps only the content (URL, scores, timing, history) — not the actions row. Buttons always render at full opacity.
+**Files:** `src/components/monitors/MonitorsList.tsx`
+
+---
+
 ## 2. Feature Additions (Post-Sprint)
 
 ### ADD-001 — Dark Observatory design system
@@ -255,6 +297,57 @@
 
 ---
 
+### ADD-015 — API key reveal via AES-256-GCM encryption
+**Description:** Users can now view their full API key at any time using an Eye icon, instead of needing to revoke and regenerate.
+**Details:**
+- New `key_encrypted` column on `api_keys` (migration 013: AES-256-GCM, stored as `iv.ciphertext.authtag`)
+- `encryptApiKey()` and `decryptApiKey()` functions in `lib/api-keys/generate.ts`
+- `POST /api/api-keys` now saves the encrypted key alongside the hash
+- New `GET /api/api-keys/[id]/reveal` endpoint: authenticates owner, decrypts, returns `{ key: raw }`
+- `ApiKeysForm` gets per-row Eye/EyeOff toggle; key shown inline with a copy button when revealed
+- Keys generated before this feature (no `key_encrypted`) return 404 with a "revoke and re-generate" message
+- Revoked keys return 410
+
+**Files:** `src/lib/api-keys/generate.ts`, `src/app/api/api-keys/route.ts`, `src/app/api/api-keys/[id]/reveal/route.ts`, `src/components/settings/ApiKeysForm.tsx`, `supabase/migrations/013_api_key_encrypted.sql`
+
+---
+
+### ADD-016 — Monitor creation triggers immediate analysis
+**Description:** Creating a monitor now immediately runs an analysis, deducting 1 credit, instead of waiting up to 7 days for the first cron run.
+**Details:**
+- `POST /api/monitors` calls `use_credit()`, creates an `analyses` row, updates the monitor with `last_run_at` and `last_analysis_id`, and fires the Cloudflare Worker — all in the same request
+- Returns 402 "Insufficient credits" if the user has 0 credits (monitor not created)
+- `next_run_at` is set to 1 or 7 days from creation — this governs the SECOND and subsequent runs
+- Same credit-refund guard as `POST /api/analyze`: if the analysis insert fails, credit is restored
+
+**Files:** `src/app/api/monitors/route.ts`
+
+---
+
+### ADD-017 — Monitor report history panel
+**Description:** Each monitor card now has a collapsible "Report history" panel showing all past analyses for the monitored URL.
+**Details:**
+- `GET /api/reports/history` now returns `id` alongside each score entry
+- `HistoryPanel` component added inside `MonitorCard`: collapsed by default, lazy-fetches on first expand
+- Shows analyses newest-first: formatted date, average score (emerald/amber/red), and a "View →" link to the full report
+- Replaces the single "View last report →" link
+
+**Files:** `src/app/api/reports/history/route.ts`, `src/components/monitors/MonitorsList.tsx`
+
+---
+
+### ADD-018 — Monitor this site settings dropdown
+**Description:** The "Monitor this site" button on report pages now opens a settings panel instead of immediately creating a monitor with hardcoded weekly defaults.
+**Details:**
+- Clicking the button toggles a positioned `<div>` panel anchored below the button
+- Panel contains: frequency toggle (Daily/Weekly), alerts on/off toggle, score-drop threshold input (when alerts on), and "Create monitor" button
+- Panel closes on outside click (`mousedown` listener) or after successful creation
+- `monitoringActive` badge still appears when the URL is already monitored
+
+**Files:** `src/components/reports/ReportHeader.tsx`
+
+---
+
 ## 3. Spec Deviations & Resolutions
 
 | Spec Item | Original Spec | Actual Implementation | Resolution |
@@ -311,6 +404,7 @@
 | `009_design_comparison.sql` | `design_screenshot_url` and `design_comparison` columns on `analyses` |
 | `010_is_public.sql` | `is_public` column on `analyses` for sharing |
 | `011_refund_credit.sql` | `refund_credit()` DB function |
+| `013_api_key_encrypted.sql` | `key_encrypted` TEXT column on `api_keys` for AES-256-GCM reversible storage |
 
 ---
 
@@ -397,7 +491,13 @@
 | `lib/monitor-scheduling.test.ts` | 19 | `next_run_at`, score-drop detection, cron eligibility |
 | `lib/cookie-consent.test.ts` | 14 | Consent storage, analytics gating, banner visibility |
 
-**Total tests (cumulative): ~285 (pre-update) + ~129 (new) = ~414 tests**
+### Session 2026-05-25 tests added:
+| Test File | Tests Added | What it covers |
+|-----------|-------------|---------------|
+| `lib/api-keys.test.ts` | +6 | `encryptApiKey`/`decryptApiKey`: round-trip, IV randomness, tamper detection, missing env var |
+| `hooks/useCredits.test.ts` | +2 | No polling interval (fetch called once on mount); `refresh()` bypasses stale guard |
+
+**Total tests (cumulative): ~285 (pre-update) + ~129 (post-sprint) + ~8 (2026-05-25 session) = ~422 tests**
 
 ---
 

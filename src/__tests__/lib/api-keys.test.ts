@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { generateApiKey, hashApiKey } from '@/lib/api-keys/generate';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { generateApiKey, hashApiKey, encryptApiKey, decryptApiKey } from '@/lib/api-keys/generate';
 
 describe('generateApiKey', () => {
   it('returns a key starting with wa_live_', () => {
@@ -44,5 +44,49 @@ describe('hashApiKey', () => {
 
   it('produces different hash for different input', () => {
     expect(hashApiKey('wa_live_aaa')).not.toBe(hashApiKey('wa_live_bbb'));
+  });
+});
+
+describe('encryptApiKey / decryptApiKey', () => {
+  beforeEach(() => {
+    process.env.API_KEY_ENCRYPTION_SECRET = 'test-secret-for-unit-tests-only-32chars!!';
+  });
+
+  it('round-trips: decrypt(encrypt(raw)) === raw', () => {
+    const raw = 'wa_live_abc1234567890abcdef123456';
+    const stored = encryptApiKey(raw);
+    expect(decryptApiKey(stored)).toBe(raw);
+  });
+
+  it('encrypted output has three dot-separated segments (iv.ciphertext.authtag)', () => {
+    const stored = encryptApiKey('wa_live_test');
+    const parts = stored.split('.');
+    expect(parts).toHaveLength(3);
+    expect(parts[0]).toMatch(/^[0-9a-f]+$/); // iv hex
+    expect(parts[1]).toMatch(/^[0-9a-f]+$/); // ciphertext hex
+    expect(parts[2]).toMatch(/^[0-9a-f]+$/); // auth tag hex
+  });
+
+  it('two encryptions of the same value produce different ciphertexts (random IV)', () => {
+    const raw = 'wa_live_same_key';
+    expect(encryptApiKey(raw)).not.toBe(encryptApiKey(raw));
+  });
+
+  it('both results still decrypt correctly despite different IVs', () => {
+    const raw = 'wa_live_same_key';
+    expect(decryptApiKey(encryptApiKey(raw))).toBe(raw);
+    expect(decryptApiKey(encryptApiKey(raw))).toBe(raw);
+  });
+
+  it('throws when API_KEY_ENCRYPTION_SECRET is not set', () => {
+    delete process.env.API_KEY_ENCRYPTION_SECRET;
+    expect(() => encryptApiKey('wa_live_test')).toThrow('API_KEY_ENCRYPTION_SECRET is not set');
+  });
+
+  it('throws on tampered ciphertext (auth tag mismatch)', () => {
+    const stored = encryptApiKey('wa_live_test');
+    const [iv, ct, tag] = stored.split('.');
+    const tampered = `${iv}.${ct}ff.${tag}`; // corrupt ciphertext
+    expect(() => decryptApiKey(tampered)).toThrow();
   });
 });

@@ -138,6 +138,7 @@ Detailed feature specifications from the perspective of each user type.
   - Error message is shown
   - Polling stops
 - No loading spinner or layout shift between poll cycles (polling is silent after first render)
+- If the analysis has not reached `completed` or `failed` within 2 minutes, the status page shows an "Analysis Timed Out" error card with a "Try another URL" button — polling stops. This is a frontend safety guard against stuck analyses.
 
 ---
 
@@ -306,7 +307,7 @@ Detailed feature specifications from the perspective of each user type.
 
 **Acceptance Criteria:**
 - Credits balance is displayed in the sidebar (bottom-left, "Credits left" badge)
-- The badge updates silently in the background every 30 seconds and on page visibility change
+- The badge refreshes on initial load and when the tab regains focus, but only if data is older than 5 minutes (stale guard). No interval polling.
 - The badge does **not** flash, disappear, or show a loading spinner during background polls — only the very first load triggers a loading state
 - After submitting an analysis, the count decrements by 1 immediately (or on next poll)
 - When credits = 0:
@@ -365,7 +366,8 @@ Detailed feature specifications from the perspective of each user type.
   - "Create monitor" submit button
 - On successful creation:
   - Monitor card appears in the list
-  - `next_run_at` is set to now + 24 h (daily) or now + 7 days (weekly)
+  - 1 credit is immediately deducted and an analysis is dispatched to the Cloudflare Worker. The monitor card shows `last_run_at` right away.
+  - `next_run_at` is set to now + 24 h (daily) or now + 7 days (weekly) — this governs the SECOND and subsequent runs; the first runs immediately at creation time.
   - Toast: "Monitor created"
 - Free plan limit: maximum 3 monitors. Creating a 4th returns 402 "Free plan allows up to 3 monitors. Upgrade for more."
 - Pro/Agency: unlimited monitors
@@ -385,9 +387,10 @@ Detailed feature specifications from the perspective of each user type.
   - Last run: "Last run X ago" (or "Never run yet")
   - Next run: "Next run: May 14" (formatted date)
   - Latest Lighthouse scores (Performance, Accessibility, SEO) with colour coding, if available
-  - "View last report →" link, visible only when `last_analysis_id` is set
+  - Collapsible "Report history" panel — lazy-loads on first expand; shows all completed analyses for the URL, newest first, with date, average score (colour-coded), and a "View →" link to each report
   - Pause / Resume button
   - Delete button
+- When a monitor is paused, the URL/scores/timing content is dimmed (opacity-60) but the Resume and Delete buttons remain at full opacity to make it clear they are still interactive.
 - Score trend chart is visible when a monitor has multiple historical runs
 
 ---
@@ -436,7 +439,7 @@ Detailed feature specifications from the perspective of each user type.
 
 **Acceptance Criteria:**
 - Each monitor card has a "Delete" button
-- Clicking "Delete" calls `DELETE /api/monitors/{id}`
+- Clicking "Delete" opens an in-app confirmation dialog (AlertDialog). Confirming calls `DELETE /api/monitors/{id}`; cancelling dismisses without action.
 - The monitor is removed from the DB (hard delete — RLS ensures only the owner can delete it)
 - The card is removed from the UI immediately
 - Toast: "Monitor deleted"
@@ -587,9 +590,9 @@ Detailed feature specifications from the perspective of each user type.
 - API Keys section is visible on `/settings` for all users (but key generation is restricted to Agency plan)
 - Clicking "Generate API Key" calls `POST /api/api-keys`
 - The returned key has the format `wa_live_` followed by 32 random hex characters
-- The full key is shown **once** in a revealed state (amber-highlighted box with monospace font) — it cannot be retrieved again after this moment
+- After generation, the full key is shown in a green post-generation banner. The key can also be revealed at any time via the Eye icon (👁) on the key row, which calls `GET /api/api-keys/{id}/reveal` and displays the decrypted key inline with a copy button.
 - A "Copy" button copies the key to clipboard; it turns amber-colored after copying
-- The key is stored in the DB as a SHA-256 hash — the plaintext is never stored server-side
+- The key is stored in the DB as both a SHA-256 hash (for authentication) and AES-256-GCM encrypted ciphertext (for reveal). The plaintext is never stored in plain text.
 - After generating, the page shows the key prefix (first 12 characters + `…`) and the creation date
 - Free/Pro users see a locked state with an "Upgrade to Agency" prompt
 
@@ -653,6 +656,22 @@ Detailed feature specifications from the perspective of each user type.
 - The key row is removed from the list immediately
 - Any subsequent API call using the revoked key returns HTTP 401
 - Action is irreversible — a new key must be generated if needed
+
+---
+
+### US-APIKEY-06: Reveal an API key
+**As a** developer who has already generated a key,  
+**I want to** view the full key again at any time,  
+**so that** I don't need to revoke and regenerate the key if I forget to copy it.
+
+**Acceptance Criteria:**
+- Each active key row has an Eye icon button
+- Clicking it calls `GET /api/api-keys/{id}/reveal` — server decrypts and returns the key
+- The full key appears inline in the row in monospace font, replacing the `prefix...` display
+- A copy button appears next to the revealed key
+- Clicking the EyeOff icon hides the key again (client-side — no server call)
+- Revoked keys cannot be revealed (endpoint returns 410)
+- Keys generated before the reveal feature was added (no `key_encrypted`) return a 404 with a message to revoke and re-generate
 
 ---
 
@@ -905,4 +924,4 @@ Detailed feature specifications from the perspective of each user type.
 
 ---
 
-*Last updated: 2026-05-14 | Covers Sprints 1–8 + post-sprint additions*
+*Last updated: 2026-05-25 | Covers Sprints 1–8 + post-sprint additions*
