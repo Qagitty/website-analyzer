@@ -27,6 +27,48 @@ const schema = z.object({
     ),
 });
 
+// Verify the URL resolves and a server responds before consuming a credit.
+// Any HTTP response (even 4xx/5xx) means the host is reachable.
+// Only a network-level failure (DNS, connection refused, timeout) blocks the analysis.
+async function checkUrlReachable(url: string): Promise<{ ok: boolean; error?: string }> {
+  const attempt = async (method: 'HEAD' | 'GET'): Promise<boolean> => {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 10_000);
+    try {
+      await fetch(url, { method, redirect: 'follow', signal: ctrl.signal });
+      return true; // any HTTP response = host is up
+    } catch (err: any) {
+      if (err?.name === 'AbortError') throw err; // propagate timeout
+      return false; // network / DNS error
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+
+  try {
+    // HEAD first (fast) — fall back to GET if the server rejects HEAD
+    const headOk = await attempt('HEAD');
+    if (headOk) return { ok: true };
+    const getOk = await attempt('GET');
+    if (getOk) return { ok: true };
+    return {
+      ok: false,
+      error: 'The URL could not be reached. Please check that the domain exists and the site is online.',
+    };
+  } catch (err: any) {
+    if (err?.name === 'AbortError') {
+      return {
+        ok: false,
+        error: 'The URL timed out during reachability check. The site may be down or very slow.',
+      };
+    }
+    return {
+      ok: false,
+      error: 'The URL could not be reached. Please check that the domain exists and the site is online.',
+    };
+  }
+}
+
 export async function POST(req: NextRequest) {
   const supabase = createServerClient();
 
@@ -42,6 +84,12 @@ export async function POST(req: NextRequest) {
   }
 
   const { url, designScreenshotBase64, designMimeType } = parsed.data;
+
+  // Pre-check: verify the URL resolves before spending a credit
+  const reachable = await checkUrlReachable(url);
+  if (!reachable.ok) {
+    return NextResponse.json({ error: reachable.error }, { status: 422 });
+  }
 
   const { data: hasCredit, error: creditError } = await supabase.rpc('use_credit', {
     p_user_id: user.id,

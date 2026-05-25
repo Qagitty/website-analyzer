@@ -94,6 +94,8 @@ export function URLInput({ credits }: { credits: number }) {
       img.src = objectUrl;
     });
 
+  const [loadingLabel, setLoadingLabel] = useState('');
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const normalized = normalizeUrl(url);
@@ -101,6 +103,8 @@ export function URLInput({ credits }: { credits: number }) {
     if (!validate(normalized)) return;
 
     setLoading(true);
+    setLoadingLabel('Checking site…');
+    setError('');
     try {
       let designScreenshotBase64: string | null = null;
       let designMimeType: string | null = null;
@@ -125,17 +129,25 @@ export function URLInput({ credits }: { credits: number }) {
         return;
       }
 
+      if (res.status === 422) {
+        const data = await res.json();
+        setError(data.error ?? 'This URL could not be reached.');
+        return;
+      }
+
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error ?? 'Failed to start analysis');
       }
 
+      setLoadingLabel('Starting…');
       const { analysisId } = await res.json();
       router.push(`/analyze/${analysisId}`);
     } catch (err: any) {
       toast.error(err.message);
     } finally {
       setLoading(false);
+      setLoadingLabel('');
     }
   };
 
