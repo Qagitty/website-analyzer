@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { lookup } from 'dns/promises';
+import { Resolver } from 'dns/promises';
 import { createServerClient } from '@/lib/supabase/server';
 import { uploadDesignScreenshot } from '@/lib/supabase/storage';
 import { z } from 'zod';
@@ -39,12 +39,15 @@ async function checkUrlReachable(url: string): Promise<{ ok: boolean; error?: st
     return { ok: false, error: 'Invalid URL.' };
   }
 
-  // DNS check — fastest way to detect non-existent domains
+  // DNS check using public resolvers (Google + Cloudflare) instead of Vercel's system
+  // resolver, which may have quirks with certain TLDs and incorrectly resolve NXDOMAIN.
+  const resolver = new Resolver();
+  resolver.setServers(['8.8.8.8', '1.1.1.1', '9.9.9.9']);
   try {
-    await lookup(hostname);
+    await resolver.resolve4(hostname);
   } catch (err: any) {
     const dnsError = err?.code as string | undefined;
-    if (dnsError === 'ENOTFOUND' || dnsError === 'EAI_NONAME' || dnsError === 'EAI_AGAIN') {
+    if (dnsError === 'ENOTFOUND' || dnsError === 'ENODATA' || dnsError === 'EAI_NONAME' || dnsError === 'EAI_AGAIN') {
       return {
         ok: false,
         error: 'This domain does not exist. Please check the URL for typos.',
