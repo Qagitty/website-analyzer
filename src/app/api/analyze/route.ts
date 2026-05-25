@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { lookup } from 'dns/promises';
 import { createServerClient } from '@/lib/supabase/server';
 import { uploadDesignScreenshot } from '@/lib/supabase/storage';
 import { z } from 'zod';
@@ -28,25 +29,46 @@ const schema = z.object({
 });
 
 // Verify the URL resolves and a server responds before consuming a credit.
-// Any HTTP response (even 4xx/5xx) means the host is reachable.
-// Only a network-level failure (DNS, connection refused, timeout) blocks the analysis.
+// Step 1: explicit DNS lookup — catches NXDOMAIN definitively regardless of Vercel's network.
+// Step 2: HTTP reachability — any response (even 4xx/5xx) means the host is up.
 async function checkUrlReachable(url: string): Promise<{ ok: boolean; error?: string }> {
+  let hostname: string;
+  try {
+    hostname = new URL(url).hostname;
+  } catch {
+    return { ok: false, error: 'Invalid URL.' };
+  }
+
+  // DNS check — fastest way to detect non-existent domains
+  try {
+    await lookup(hostname);
+  } catch (err: any) {
+    const dnsError = err?.code as string | undefined;
+    if (dnsError === 'ENOTFOUND' || dnsError === 'EAI_NONAME' || dnsError === 'EAI_AGAIN') {
+      return {
+        ok: false,
+        error: 'This domain does not exist. Please check the URL for typos.',
+      };
+    }
+    // Unknown DNS error — fall through and let the HTTP check decide
+  }
+
+  // HTTP reachability check — HEAD first (fast), fall back to GET
   const attempt = async (method: 'HEAD' | 'GET'): Promise<boolean> => {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 10_000);
     try {
       await fetch(url, { method, redirect: 'follow', signal: ctrl.signal });
-      return true; // any HTTP response = host is up
+      return true;
     } catch (err: any) {
-      if (err?.name === 'AbortError') throw err; // propagate timeout
-      return false; // network / DNS error
+      if (err?.name === 'AbortError') throw err;
+      return false;
     } finally {
       clearTimeout(timer);
     }
   };
 
   try {
-    // HEAD first (fast) — fall back to GET if the server rejects HEAD
     const headOk = await attempt('HEAD');
     if (headOk) return { ok: true };
     const getOk = await attempt('GET');
