@@ -102,7 +102,7 @@ function IssueCard({ issue, ai }: IssueCardProps) {
 
         {/* Affected nodes */}
         {issue.nodes.length > 0 && (
-          <div className="bg-[#0A0A0F] border border-white/5 rounded p-2">
+          <div className="bg-background border border-border rounded p-2">
             <p className="text-xs font-medium mb-1">Affected elements:</p>
             {issue.nodes.map((node, j) => (
               <code key={j} className="text-xs block truncate">
@@ -124,18 +124,18 @@ function IssueCard({ issue, ai }: IssueCardProps) {
             </button>
 
             {showCode && (
-              <div className="relative rounded-md bg-[#0A0A0F] border border-white/10">
-                <div className="flex items-center justify-between px-3 py-1.5 border-b border-white/10">
-                  <span className="text-xs text-[#475569]">Code fix</span>
+              <div className="relative rounded-md bg-background border border-border">
+                <div className="flex items-center justify-between px-3 py-1.5 border-b border-border">
+                  <span className="text-xs text-muted-foreground/60">Code fix</span>
                   <button
                     type="button"
                     onClick={handleCopy}
-                    className="text-xs text-[#475569] hover:text-foreground px-2 py-0.5 rounded hover:bg-white/5 transition-colors"
+                    className="text-xs text-muted-foreground/60 hover:text-foreground px-2 py-0.5 rounded hover:bg-accent transition-colors"
                   >
                     {copied ? '✓ Copied' : 'Copy'}
                   </button>
                 </div>
-                <pre className="overflow-x-auto p-3 text-xs text-[#94A3B8] font-mono">
+                <pre className="overflow-x-auto p-3 text-xs text-muted-foreground font-mono">
                   <code>{ai.fixExample.trim()}</code>
                 </pre>
               </div>
@@ -164,7 +164,7 @@ export function AccessibilitySection({ issues, aiInsights }: Props) {
       {issues.length === 0 ? (
         <Card>
           <CardContent className="pt-6 text-center">
-            <span className="text-emerald-400 font-medium">No accessibility issues found</span>
+            <span className="text-emerald-600 dark:text-emerald-400 font-medium">No accessibility issues found</span>
           </CardContent>
         </Card>
       ) : (

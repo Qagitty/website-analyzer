@@ -64,7 +64,7 @@ Detailed feature specifications from the perspective of each user type.
 **so that** my session is cleared on shared devices.
 
 **Acceptance Criteria:**
-- Logout button is accessible from the sidebar or user menu
+- Logout button is accessible from the user menu (avatar/name in sidebar or navbar)
 - After logout, session cookie is cleared
 - Visiting `/dashboard` redirects to `/login`
 - No personal data remains accessible in the browser
@@ -156,7 +156,10 @@ Detailed feature specifications from the perspective of each user type.
   - **AI Summary**: short paragraph from Claude (shown only when `length > 5` — legacy "0" values are suppressed)
   - **Screenshot**: full-page PNG of the analysed site
   - **Performance Section**: Lighthouse score cards, radar chart, Core Web Vitals
+  - **EAA Compliance Section**: EU Accessibility Act compliance level and category breakdown
   - **Accessibility Section**: WCAG violations list or "No violations found" empty state
+  - **LLM Readiness Section**: AI-bot readiness score with 8 individual checks
+  - **Crawled Pages Section**: multi-page crawl results (hidden when only 1 page analysed)
   - **Console Errors Section**: grouped errors or "No errors" empty state
   - **AI Insights Section**: insights with priority badges, quick wins, expandable code fixes
   - **Design Comparison Section**: only shown when a design was uploaded
@@ -331,6 +334,20 @@ Detailed feature specifications from the perspective of each user type.
 
 ---
 
+### US-CREDITS-03: Manage billing via Stripe portal
+**As a** Pro or Agency user,  
+**I want to** access the Stripe billing portal,  
+**so that** I can update my payment method, view invoices, or cancel my subscription.
+
+**Acceptance Criteria:**
+- Settings page shows a "Manage Billing" button for paid subscribers
+- Clicking it calls `POST /api/stripe/portal` and redirects to the Stripe Customer Portal
+- From the portal the user can: update payment details, download invoices, cancel subscription
+- On cancellation, `cancel_at_period_end = true`; plan remains active until the period end date
+- On return from the portal, the settings page reflects the current subscription state
+
+---
+
 ## 6. Scheduled Monitoring
 
 ### US-MONITOR-01: Create a scheduled monitor
@@ -371,6 +388,7 @@ Detailed feature specifications from the perspective of each user type.
   - "View last report →" link, visible only when `last_analysis_id` is set
   - Pause / Resume button
   - Delete button
+- Score trend chart is visible when a monitor has multiple historical runs
 
 ---
 
@@ -438,8 +456,9 @@ Detailed feature specifications from the perspective of each user type.
 - All analyses for the logged-in user are listed, sorted by date (newest first)
 - Each row shows: URL, status badge, date/time, and a link to view the report
 - Clicking a completed analysis navigates to `/reports/{id}`
-- Failed analyses show a "Retry" button that creates a new analysis for the same URL (consuming 1 credit)
+- Failed analyses show a "Retry" button (via `RetryButton` component) that creates a new analysis for the same URL consuming 1 credit
 - Empty state: "No analyses yet. Analyse your first website →" CTA
+- `GET /api/reports/history` is the dedicated endpoint used to fetch the paginated list
 
 ---
 
@@ -452,7 +471,7 @@ Detailed feature specifications from the perspective of each user type.
 
 **Acceptance Criteria:**
 - Settings page at `/settings`
-- Profile section: display name input, Save button
+- Profile section: display name input, Save button — calls `PATCH /api/user/profile`
 - Notification section: toggles for "Email on complete" and "Email on fail"
 - Saving updates `user_settings.preferences` (display name) or `user_settings.notifications` in the DB
 - Toast on success: "Profile updated"
@@ -469,9 +488,24 @@ Detailed feature specifications from the perspective of each user type.
 - Settings page shows the current plan badge (Free / Pro / Agency)
 - For free users: "Upgrade to Pro" and "Upgrade to Agency" cards are shown with feature lists
 - For Pro/Agency users: "Manage Billing" button is shown
-- Clicking "Manage Billing" redirects to the Stripe Customer Portal (opens in new tab)
+- Clicking "Manage Billing" calls `POST /api/stripe/portal` and redirects to the Stripe Customer Portal (opens in new tab)
 - From the portal, users can: update payment method, download invoices, cancel subscription
 - On cancellation, `cancel_at_period_end` is set to `true`; the plan remains active until period end
+
+---
+
+### US-SETTINGS-03: Custom branding
+**As an** Agency user,  
+**I want to** configure custom branding (logo and primary colour),  
+**so that** reports I share with clients reflect my agency's identity.
+
+**Acceptance Criteria:**
+- Branding section is visible on `/settings` for Agency plan users
+- Form fields: Logo URL input, Primary colour picker (hex input)
+- Saving calls `PATCH /api/user/branding`
+- Branding settings are stored in `user_settings.preferences`
+- On public shared reports (`/share/{id}`), the custom logo replaces the default WebAnalyzer logo when the owning user has branding configured
+- Free/Pro users see a locked state with an "Upgrade to Agency" prompt
 
 ---
 
@@ -502,13 +536,14 @@ Detailed feature specifications from the perspective of each user type.
 **Acceptance Criteria:**
 - Landing page at `/` is fully public (no auth required)
 - Page sections:
-  - Hero: headline, sub-headline, "Get Started for Free" CTA, example screenshot or animation
+  - Hero: headline, sub-headline, "Get Started for Free" CTA, product demo animation
   - Features: performance, accessibility, AI insights, design comparison, scheduled monitoring, PDF export
   - Pricing: Free (3 analyses/mo), Pro ($29/mo, 100 analyses), Agency ($99/mo, unlimited)
   - Footer: links to login, signup, privacy policy
 - "Get Started for Free" and all upgrade CTAs link to `/signup`
 - "Log in" link in the header navigates to `/login`
 - Logged-in users who visit `/` are not redirected (they can still view the landing page)
+- `ProductDemo` component shows a live animated preview of the analysis UI
 
 ---
 
@@ -523,7 +558,7 @@ Detailed feature specifications from the perspective of each user type.
 - If the Cloudflare Worker returns an error, the analysis `status` is set to `failed` with an `error_message`
 - The status page `/analyze/{id}` shows the error message and stops polling
 - If the credit was consumed before the failure, a `refund_credit()` DB call is made — the user's balance is restored
-- The reports history page shows a "Retry" button on failed analyses
+- The reports history page shows a "Retry" button (via `RetryButton` component) on failed analyses
 - Clicking "Retry" creates a new analysis for the same URL (consuming 1 new credit)
 
 ---
@@ -550,7 +585,7 @@ Detailed feature specifications from the perspective of each user type.
 
 **Acceptance Criteria:**
 - API Keys section is visible on `/settings` for all users (but key generation is restricted to Agency plan)
-- Clicking "Generate API Key" calls `POST /api/user/api-keys`
+- Clicking "Generate API Key" calls `POST /api/api-keys`
 - The returned key has the format `wa_live_` followed by 32 random hex characters
 - The full key is shown **once** in a revealed state (amber-highlighted box with monospace font) — it cannot be retrieved again after this moment
 - A "Copy" button copies the key to clipboard; it turns amber-colored after copying
@@ -580,14 +615,41 @@ Detailed feature specifications from the perspective of each user type.
 
 ---
 
-### US-APIKEY-03: Revoke an API key
+### US-APIKEY-03: List past analyses via API
+**As a** developer,  
+**I want to** call `GET /api/v1/analyses` to retrieve my analysis history,  
+**so that** I can integrate report data into my own dashboards.
+
+**Acceptance Criteria:**
+- Endpoint: `GET /api/v1/analyses` with `Authorization: Bearer wa_live_...`
+- Returns a JSON array of analyses belonging to the authenticated API key owner
+- Each item includes: `id`, `url`, `status`, `created_at`, `lighthouse_scores`
+- Same rate limiting as `POST /api/v1/analyze`
+- Invalid key → 401
+
+---
+
+### US-APIKEY-04: Retrieve a single report via API
+**As a** developer,  
+**I want to** call `GET /api/v1/reports/{id}` to fetch a specific report,  
+**so that** I can access full report data programmatically.
+
+**Acceptance Criteria:**
+- Endpoint: `GET /api/v1/reports/{id}` with `Authorization: Bearer wa_live_...`
+- Returns the full analysis object including all sections
+- Only the owner of the analysis (matched by API key's user) can retrieve it — others get 404
+- Invalid key → 401
+
+---
+
+### US-APIKEY-05: Revoke an API key
 **As a** developer,  
 **I want to** revoke an existing API key,  
 **so that** I can invalidate it if it was accidentally exposed.
 
 **Acceptance Criteria:**
 - Each API key row has a "Revoke" button (red text)
-- Clicking "Revoke" calls `DELETE /api/user/api-keys/{id}`
+- Clicking "Revoke" calls `DELETE /api/api-keys/{id}`
 - The key row is removed from the list immediately
 - Any subsequent API call using the revoked key returns HTTP 401
 - Action is irreversible — a new key must be generated if needed
@@ -648,13 +710,12 @@ Detailed feature specifications from the perspective of each user type.
 
 **Acceptance Criteria:**
 - Team Members section is on `/settings`
-- "Invite Member" form: email input + role selector (Member / Admin) + "Send Invite" button
+- "Invite Member" form: email input + role selector (Member / Admin) + "Send Invite" button — calls `POST /api/team`
 - On submit, a `team_members` row is created with `status = 'pending'` and a unique `invite_token`
 - An invitation email is sent via Resend to the provided email address
 - Email subject: "You've been invited to Website Analyzer"
 - Email body contains a link: `/invite/{token}`
 - The team members list shows: email, role badge, status badge (Pending/Active/Rejected), invited date
-- The owner can see all pending and accepted members
 
 ---
 
@@ -664,12 +725,25 @@ Detailed feature specifications from the perspective of each user type.
 **so that** I can access the team's reports.
 
 **Acceptance Criteria:**
-- Clicking the invite link navigates to `/invite/{token}`
+- Clicking the invite link navigates to `/invite/{token}` which calls `POST /api/team/accept`
 - If the user is not logged in, they are prompted to log in or sign up first
 - After authentication, the invite is accepted: `status = 'active'`, `member_id` set, `accepted_at` set
 - The user can now see the team owner's analyses in their reports list
 - If the token is invalid or already used: error page "This invitation is invalid or has expired"
 - If the invited email doesn't match the logged-in account email: error "This invitation was sent to a different email address"
+
+---
+
+### US-TEAM-03: Remove a team member
+**As a** team owner,  
+**I want to** remove a team member,  
+**so that** they can no longer access my account's reports.
+
+**Acceptance Criteria:**
+- Each team member row has a "Remove" button (owner only)
+- Clicking "Remove" calls `DELETE /api/team/{id}`
+- The member row is removed from the UI immediately
+- The removed user can no longer see the owner's analyses
 
 ---
 
@@ -730,7 +804,7 @@ Detailed feature specifications from the perspective of each user type.
 **Acceptance Criteria:**
 - After first login (account with 0 completed analyses), an onboarding banner is shown at the top of the dashboard
 - Banner contents:
-  - Welcome message: "Welcome to Website Analyzer!"
+  - Welcome message: "Welcome to WebAnalyzer!"
   - Step 1: Analyse your first website (links to `/analyze`)
   - Step 2: Review your report (links to `/reports`)
   - Step 3: Set up monitoring (links to `/monitors`)
@@ -759,3 +833,76 @@ Detailed feature specifications from the perspective of each user type.
 - A legal notice callout explains the EAA deadline (June 2025) and its implications for EU-market products
 - WCAG criterion tags (e.g. `wcag2aa`, `wcag143`) are shown next to each issue
 - Section links to the full Accessibility Section below for detailed violation info
+
+---
+
+## 19. Theme
+
+### US-THEME-01: Toggle dark and light mode
+**As a** user,  
+**I want to** switch between dark and light mode,  
+**so that** I can use the app comfortably in different lighting conditions.
+
+**Acceptance Criteria:**
+- A theme toggle button (`ThemeToggle` component) is accessible in the sidebar or navbar
+- Clicking it cycles through: System → Light → Dark (or Dark → Light)
+- The selected theme is persisted in `localStorage` and survives page reloads
+- The Dark Observatory design system (`#0A0A0F` background, indigo-500→violet-500 primary) is the default dark theme
+- The toggle does not cause a flash of unstyled content (FOUC) — `ThemeProvider` wraps the app root
+
+---
+
+## 20. Support
+
+### US-SUPPORT-01: Contact support
+**As a** user encountering a problem,  
+**I want to** send a support message from within the app,  
+**so that** I can get help without leaving to an external email client.
+
+**Acceptance Criteria:**
+- Support chat widget (`SupportChat` component) is accessible site-wide
+- Clicking it opens a contact form with: subject, message body, and Send button
+- On submit, calls `POST /api/support/contact`
+- The endpoint sends the message to the support team email (via Resend or equivalent)
+- On success: toast "Message sent! We'll get back to you shortly."
+- On error: toast with the error message
+- The form is accessible to both authenticated users (email pre-filled) and unauthenticated visitors
+
+---
+
+## 21. Cookie Consent
+
+### US-COOKIE-01: Manage cookie preferences
+**As a** visitor or user,  
+**I want to** choose which cookies to accept,  
+**so that** I can control my privacy in accordance with GDPR.
+
+**Acceptance Criteria:**
+- A `CookieBanner` appears on first visit for unauthenticated users and for users who have not yet made a choice
+- Banner offers: "Accept All" and "Reject Non-Essential" buttons
+- Accepting sets a `cookie_consent` key in `localStorage` with value `"accepted"`
+- Rejecting sets it to `"rejected"`
+- Once a choice is made, the banner does not appear again on subsequent visits
+- `ConsentAnalytics` component gates Vercel Analytics behind the user's consent choice — analytics only run if consent = `"accepted"`
+- Clicking "Manage Preferences" (optional) opens a granular cookie settings modal
+
+---
+
+## 22. Mobile Navigation
+
+### US-MOBILE-01: Navigate the app on mobile
+**As a** user on a small-screen device,  
+**I want to** access all navigation items without a cluttered layout,  
+**so that** I can use the app comfortably on my phone.
+
+**Acceptance Criteria:**
+- On screens narrower than `lg` breakpoint (< 1024px), the desktop sidebar is hidden
+- A hamburger menu button appears in the top-left of the dashboard layout
+- Tapping it opens a `MobileSidebar` (sheet/drawer sliding from the left)
+- The mobile sidebar contains all the same links as the desktop sidebar: Dashboard, Analyze, Reports, Monitors, Settings
+- Tapping any link navigates to the page and closes the drawer automatically
+- The `ThemeToggle` and credits badge are also accessible within the mobile sidebar
+
+---
+
+*Last updated: 2026-05-14 | Covers Sprints 1–8 + post-sprint additions*

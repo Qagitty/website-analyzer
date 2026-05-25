@@ -30,7 +30,7 @@ export default function DashboardError({
         <Button
           variant="outline"
           onClick={reset}
-          className="border-white/10 text-foreground hover:bg-white/5"
+          className="border-border text-foreground hover:bg-accent"
         >
           Try again
         </Button>

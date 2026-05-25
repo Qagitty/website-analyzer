@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
@@ -40,7 +40,16 @@ interface Props {
 export function AnalysisProgress({ analysisId, initialData }: Props) {
   const [state, setState] = useState<AnalysisState | null>(initialData ?? null);
   const [retrying, setRetrying] = useState(false);
+  const [timedOut, setTimedOut] = useState(false);
   const router = useRouter();
+  const guardRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Safety net: if the analysis hasn't reached a terminal state within 2 minutes,
+  // the worker likely timed out or the callback was lost — surface an error.
+  useEffect(() => {
+    guardRef.current = setTimeout(() => setTimedOut(true), 2 * 60 * 1000);
+    return () => { if (guardRef.current) clearTimeout(guardRef.current); };
+  }, []);
 
   const retry = async () => {
     if (!state?.url) return;
@@ -82,6 +91,9 @@ export function AnalysisProgress({ analysisId, initialData }: Props) {
           errorMessage: data.error_message,
         });
 
+        if (data.status === 'completed' || data.status === 'failed') {
+          if (guardRef.current) clearTimeout(guardRef.current);
+        }
         if (data.status === 'completed') {
           setTimeout(() => router.push(`/reports/${analysisId}`), 1200);
         }
@@ -96,7 +108,28 @@ export function AnalysisProgress({ analysisId, initialData }: Props) {
   }, [analysisId, router]);
 
   if (!state) {
-    return <div className="animate-pulse h-24 bg-[#13131A] rounded-lg" />;
+    return <div className="animate-pulse h-24 bg-card rounded-lg" />;
+  }
+
+  if (timedOut && !['completed', 'failed'].includes(state.status)) {
+    return (
+      <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-6 text-center space-y-4">
+        <div className="space-y-1">
+          <p className="text-red-400 font-medium">Analysis Timed Out</p>
+          <p className="text-red-400/70 text-sm mt-1">
+            The site did not respond within 2 minutes. It may be unreachable or blocking automated requests.
+          </p>
+        </div>
+        {state.url && (
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground truncate">{state.url}</p>
+            <Button onClick={retry} disabled={retrying} variant="destructive" size="sm">
+              {retrying ? 'Submitting…' : '↺ Try Again'}
+            </Button>
+          </div>
+        )}
+      </div>
+    );
   }
 
   if (state.status === 'failed') {
@@ -124,7 +157,7 @@ export function AnalysisProgress({ analysisId, initialData }: Props) {
     const base = 'text-xs font-medium px-2.5 py-0.5 rounded-full';
     if (state.status === 'completed') return `${base} bg-emerald-500/10 text-emerald-400 border border-emerald-500/20`;
     if (state.status === 'running')   return `${base} bg-indigo-500/10 text-indigo-300 border border-indigo-500/20`;
-    return `${base} bg-[#1C1C27] text-muted-foreground border border-white/10`;
+    return `${base} bg-secondary text-muted-foreground border border-border`;
   })();
 
   return (

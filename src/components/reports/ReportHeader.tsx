@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,20 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
   const [copied, setCopied] = useState(false);
   const [monitoring, setMonitoring] = useState(false);
   const [monitoringActive, setMonitoringActive] = useState(false);
+
+  // Check on mount whether this URL is already being monitored
+  useEffect(() => {
+    fetch('/api/monitors')
+      .then(r => r.ok ? r.json() : [])
+      .then((monitors: { url: string; status?: string }[]) => {
+        const exists = monitors.some(
+          m => m.url === analysis.url && m.status !== 'paused'
+        );
+        if (exists) setMonitoringActive(true);
+      })
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [analysis.url]);
 
   const duration = analysis.completed_at && analysis.started_at
     ? Math.round(
@@ -90,15 +104,15 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
     <div className="space-y-3">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="min-w-0">
-          <h1 className="text-2xl font-bold truncate text-white">{analysis.url}</h1>
-          <p className="text-[#94A3B8] text-sm mt-1">
+          <h1 className="text-2xl font-bold truncate text-foreground">{analysis.url}</h1>
+          <p className="text-muted-foreground text-sm mt-1">
             Analyzed {formatDistanceToNow(new Date(analysis.created_at), { addSuffix: true })}
             {duration && <> · {duration}s</>}
           </p>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Completed</Badge>
+          <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">Completed</Badge>
 
           {/* Share toggle */}
           <Button
@@ -108,7 +122,7 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
             disabled={loading}
             className={isPublic
               ? 'gap-1.5 bg-gradient-to-r from-indigo-500 to-violet-500 text-white border-0 hover:from-indigo-400 hover:to-violet-400'
-              : 'gap-1.5 border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/10'}
+              : 'gap-1.5 border-indigo-500/40 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-500/10'}
           >
             {isPublic ? (
               <Link2 className="h-3.5 w-3.5" />
@@ -124,10 +138,10 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
               variant="outline"
               size="sm"
               onClick={copyLink}
-              className="gap-1.5 border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/10"
+              className="gap-1.5 border-indigo-500/40 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-500/10"
             >
               {copied ? (
-                <><Check className="h-3.5 w-3.5 text-emerald-400" /> Copied</>
+                <><Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" /> Copied</>
               ) : (
                 'Copy link'
               )}
@@ -136,7 +150,7 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
 
           {/* Download PDF */}
           <a href={`/api/reports/${analysis.id}/pdf`} download>
-            <Button variant="outline" size="sm" className="gap-1.5 border-white/10 text-[#94A3B8] hover:bg-white/5 hover:text-white">
+            <Button variant="outline" size="sm" className="gap-1.5 border-border text-muted-foreground hover:bg-accent hover:text-foreground">
               <Download className="h-3.5 w-3.5" />
               PDF
             </Button>
@@ -144,7 +158,7 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
 
           {/* Monitor this site */}
           {monitoringActive ? (
-            <Badge className="gap-1.5 px-2.5 py-1 text-xs bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+            <Badge className="gap-1.5 px-2.5 py-1 text-xs bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
               <Activity className="h-3 w-3" />
               Monitoring active
             </Badge>
@@ -154,7 +168,7 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
               size="sm"
               onClick={createMonitor}
               disabled={monitoring}
-              className="gap-1.5 border-white/10 text-[#94A3B8] hover:bg-white/5 hover:text-white"
+              className="gap-1.5 border-border text-muted-foreground hover:bg-accent hover:text-foreground"
             >
               <Activity className="h-3.5 w-3.5" />
               {monitoring ? 'Setting up…' : 'Monitor this site'}
@@ -165,7 +179,7 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
 
       {/* Public badge */}
       {isPublic && (
-        <div className="flex items-center gap-2 rounded-md border border-indigo-500/20 bg-indigo-500/10 px-3 py-2 text-sm text-indigo-300">
+        <div className="flex items-center gap-2 rounded-md border border-indigo-500/20 bg-indigo-500/10 px-3 py-2 text-sm text-indigo-600 dark:text-indigo-300">
           <Link2 className="h-3.5 w-3.5 shrink-0" />
           <span>This report is public. </span>
           <a
@@ -180,7 +194,7 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
       )}
 
       {typeof analysis.ai_summary === 'string' && analysis.ai_summary.trim().length > 5 && (
-        <p className="text-[#94A3B8] leading-relaxed">{analysis.ai_summary}</p>
+        <p className="text-muted-foreground leading-relaxed">{analysis.ai_summary}</p>
       )}
     </div>
   );

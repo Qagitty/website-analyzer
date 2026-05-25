@@ -164,7 +164,7 @@ export function WebhooksForm({ initialWebhooks }: Props) {
               placeholder="https://hooks.slack.com/… or https://your-endpoint.com/webhook"
               value={newUrl}
               onChange={(e) => setNewUrl(e.target.value)}
-              className="flex-1 bg-[#0A0A0F] border-white/10 text-foreground placeholder:text-[#475569] focus:border-indigo-500/50 focus:ring-indigo-500/20"
+              className="flex-1 bg-background border-border text-foreground placeholder:text-muted-foreground/60 focus:border-indigo-500/50 focus:ring-indigo-500/20"
               aria-label="Webhook URL"
             />
             <Button
@@ -210,16 +210,16 @@ export function WebhooksForm({ initialWebhooks }: Props) {
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               Active webhooks ({webhooks.length}/5)
             </p>
-            <div className="rounded-lg border border-white/5">
+            <div className="rounded-lg border border-border">
               {webhooks.map((webhook) => (
                 <div
                   key={webhook.id}
-                  className="flex items-center gap-3 py-3 border-b border-white/5 last:border-0 px-3"
+                  className="flex items-center gap-3 py-3 border-b border-border last:border-0 px-3"
                 >
                   {/* Status dot */}
                   <span
                     className={`h-2 w-2 rounded-full shrink-0 ${
-                      webhook.active ? 'bg-emerald-400' : 'bg-[#475569]'
+                      webhook.active ? 'bg-emerald-400' : 'bg-slate-500'
                     }`}
                   />
 
@@ -250,7 +250,7 @@ export function WebhooksForm({ initialWebhooks }: Props) {
                       href={webhook.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-1.5 rounded hover:bg-white/5 transition-colors"
+                      className="p-1.5 rounded hover:bg-accent transition-colors"
                       title="Open URL"
                     >
                       <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
@@ -285,7 +285,7 @@ export function WebhooksForm({ initialWebhooks }: Props) {
             </div>
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground text-center py-4 border border-white/5 rounded-lg">
+          <p className="text-sm text-muted-foreground text-center py-4 border border-border rounded-lg">
             No webhooks configured yet.
           </p>
         )}

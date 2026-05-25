@@ -52,7 +52,7 @@ export function NotificationPrefs({ initial }: Props) {
       </CardHeader>
       <CardContent className="space-y-4">
         {PREFS.map(({ key, label }) => (
-          <label key={key} className="flex items-center justify-between py-3 border-b border-white/5 cursor-pointer group">
+          <label key={key} className="flex items-center justify-between py-3 border-b border-border cursor-pointer group">
             <span className="text-sm text-foreground">{label}</span>
             <button
               type="button"
@@ -60,7 +60,7 @@ export function NotificationPrefs({ initial }: Props) {
               aria-checked={prefs[key]}
               onClick={() => toggle(key)}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 ${
-                prefs[key] ? 'bg-indigo-500' : 'bg-[#1C1C27]'
+                prefs[key] ? 'bg-indigo-500' : 'bg-secondary'
               }`}
             >
               <span

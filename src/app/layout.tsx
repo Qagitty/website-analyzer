@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { Toaster } from 'sonner';
-import { Analytics } from '@vercel/analytics/react';
 import { ThemeProvider } from '@/components/shared/ThemeProvider';
 import { CookieBanner } from '@/components/shared/CookieBanner';
+import { ConsentAnalytics } from '@/components/shared/ConsentAnalytics';
+import { SupportChat } from '@/components/shared/SupportChat';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -25,13 +26,14 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
           {children}
           <CookieBanner />
+          <SupportChat />
           <Toaster richColors position="top-right" />
-          <Analytics />
+          <ConsentAnalytics />
         </ThemeProvider>
       </body>
     </html>

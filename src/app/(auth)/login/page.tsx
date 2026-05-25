@@ -9,10 +9,10 @@ export default function LoginPage() {
     <div className="space-y-6">
       <div className="text-center">
         <h1 className="text-2xl font-bold text-white">Welcome back</h1>
-        <p className="text-[#94A3B8] mt-1">Sign in to your account</p>
+        <p className="text-muted-foreground mt-1">Sign in to your account</p>
       </div>
       <LoginForm />
-      <p className="text-center text-sm text-[#94A3B8]">
+      <p className="text-center text-sm text-muted-foreground">
         Don&apos;t have an account?{' '}
         <Link href="/signup" className="font-medium text-indigo-400 hover:text-indigo-300 transition-colors">
           Sign up free

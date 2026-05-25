@@ -11,7 +11,7 @@ const PRIORITY_CLASS: Record<string, string> = {
   critical: 'bg-red-500/10 text-red-400 border border-red-500/20 text-xs font-medium px-2.5 py-0.5 rounded-full shrink-0',
   high: 'bg-red-500/10 text-red-400 border border-red-500/20 text-xs font-medium px-2.5 py-0.5 rounded-full shrink-0',
   medium: 'bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-medium px-2.5 py-0.5 rounded-full shrink-0',
-  low: 'bg-[#1C1C27] text-muted-foreground border border-white/10 text-xs font-medium px-2.5 py-0.5 rounded-full shrink-0',
+  low: 'bg-secondary text-muted-foreground border border-border text-xs font-medium px-2.5 py-0.5 rounded-full shrink-0',
 };
 
 const CATEGORY_ICONS: Record<AIInsight['category'], string> = {
@@ -20,6 +20,12 @@ const CATEGORY_ICONS: Record<AIInsight['category'], string> = {
   ux: '🎨',
   seo: '🔍',
   security: '🔒',
+};
+
+const EFFORT_COLORS: Record<'low' | 'medium' | 'high', string> = {
+  low: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+  medium: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
+  high: 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20',
 };
 
 function CodeBlock({ code }: { code: string }) {
@@ -37,23 +43,23 @@ function CodeBlock({ code }: { code: string }) {
   };
 
   return (
-    <div className="relative rounded-md bg-[#0A0A0F] border border-white/10">
-      <div className="flex items-center justify-between px-3 py-1.5 border-b border-white/10">
-        <span className="text-xs text-[#475569] font-medium">Suggested fix</span>
+    <div className="relative rounded-md bg-background border border-border">
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-border">
+        <span className="text-xs text-muted-foreground/60 font-medium">Suggested fix</span>
         <Button
           variant="ghost"
           size="sm"
           onClick={copy}
-          className="h-6 px-2 text-xs text-[#475569] hover:text-foreground hover:bg-white/5"
+          className="h-6 px-2 text-xs text-muted-foreground/60 hover:text-foreground hover:bg-accent"
         >
           {copied ? (
-            <><Check className="h-3 w-3 mr-1 text-emerald-400" />Copied</>
+            <><Check className="h-3 w-3 mr-1 text-emerald-600 dark:text-emerald-400" />Copied</>
           ) : (
             <><Copy className="h-3 w-3 mr-1" />Copy</>
           )}
         </Button>
       </div>
-      <pre className="overflow-x-auto p-3 text-xs text-[#94A3B8] font-mono leading-relaxed">
+      <pre className="overflow-x-auto p-3 text-xs text-muted-foreground font-mono leading-relaxed">
         <code>{code.trim()}</code>
       </pre>
     </div>
@@ -61,46 +67,186 @@ function CodeBlock({ code }: { code: string }) {
 }
 
 function InsightCard({ insight }: { insight: AIInsight }) {
-  const [expanded, setExpanded] = useState(false);
-  const hasCode = insight.codeExample && insight.codeExample.trim();
+  const [codeView, setCodeView] = useState<'before' | 'after'>('after');
+  const hasBefore = !!insight.beforeCode?.trim();
+  const hasAfter = !!(insight.afterCode ?? insight.codeExample)?.trim();
+  const hasCode = hasBefore || hasAfter;
+  const hasFramework = !!(
+    insight.frameworkNotes?.react ||
+    insight.frameworkNotes?.nextjs ||
+    insight.frameworkNotes?.vue
+  );
+  const [frameworkTab, setFrameworkTab] = useState<'html' | 'react' | 'nextjs' | 'vue'>('html');
+  const [codeExpanded, setCodeExpanded] = useState(false);
+
+  const activeCode = (() => {
+    if (codeView === 'before') return insight.beforeCode ?? '';
+    if (!hasFramework) return insight.afterCode ?? insight.codeExample ?? '';
+    if (frameworkTab === 'react') return insight.frameworkNotes?.react ?? insight.afterCode ?? insight.codeExample ?? '';
+    if (frameworkTab === 'nextjs') return insight.frameworkNotes?.nextjs ?? insight.afterCode ?? insight.codeExample ?? '';
+    if (frameworkTab === 'vue') return insight.frameworkNotes?.vue ?? insight.afterCode ?? insight.codeExample ?? '';
+    return insight.afterCode ?? insight.codeExample ?? '';
+  })();
 
   return (
-    <Card>
+    <Card className="bg-card border border-border">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-start justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
-            <span className="bg-[#1C1C27] rounded-lg p-1.5 flex items-center justify-center">{CATEGORY_ICONS[insight.category]}</span>
-            <CardTitle className="text-base">{insight.title}</CardTitle>
+            <span className="bg-secondary rounded-lg p-1.5 flex items-center justify-center">
+              {CATEGORY_ICONS[insight.category]}
+            </span>
+            <CardTitle className="text-base text-foreground">{insight.title}</CardTitle>
           </div>
-          <span className={PRIORITY_CLASS[insight.priority] ?? PRIORITY_CLASS.low}>{insight.priority}</span>
+          <span className={PRIORITY_CLASS[insight.priority] ?? PRIORITY_CLASS.low}>
+            {insight.priority}
+          </span>
         </div>
+
+        {(insight.effortLevel || insight.impactScore != null || insight.wcagReference) && (
+          <div className="flex items-center gap-3 mt-2 flex-wrap">
+            {insight.effortLevel && (
+              <span
+                className={`text-xs px-2 py-0.5 rounded-full border font-medium ${EFFORT_COLORS[insight.effortLevel]}`}
+              >
+                Effort: {insight.effortLevel}
+              </span>
+            )}
+            {insight.impactScore != null && (
+              <span className="text-xs text-muted-foreground">
+                Impact:{' '}
+                {'█'.repeat(Math.round(insight.impactScore / 2))}
+                {'░'.repeat(5 - Math.round(insight.impactScore / 2))}{' '}
+                {insight.impactScore}/10
+              </span>
+            )}
+            {insight.wcagReference && (
+              <span className="text-xs text-indigo-400 bg-indigo-500/5 border border-indigo-500/20 rounded px-2 py-0.5">
+                {insight.wcagReference}
+              </span>
+            )}
+          </div>
+        )}
       </CardHeader>
+
       <CardContent className="space-y-3">
         <p className="text-sm text-muted-foreground">{insight.description}</p>
 
-        <div className="bg-[#0A0A0F] rounded-lg p-3 border border-white/5">
-          <p className="text-xs font-medium mb-1">Recommendation:</p>
-          <p className="text-sm">{insight.recommendation}</p>
+        <div className="bg-background rounded-lg p-3 border border-border">
+          <p className="text-xs font-medium mb-1 text-foreground">Recommendation</p>
+          <p className="text-sm text-muted-foreground">{insight.recommendation}</p>
         </div>
 
         {hasCode && (
           <div>
             <button
-              onClick={() => setExpanded((v) => !v)}
-              className="flex items-center gap-1 text-[#475569] hover:text-muted-foreground text-xs"
+              onClick={() => setCodeExpanded((v) => !v)}
+              className="flex items-center gap-1 text-xs text-muted-foreground/60 hover:text-muted-foreground"
             >
-              {expanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-              {expanded ? 'Hide code' : 'Show code fix'}
+              {codeExpanded ? (
+                <ChevronUp className="h-3 w-3" />
+              ) : (
+                <ChevronDown className="h-3 w-3" />
+              )}
+              {codeExpanded ? 'Hide code' : 'Show code fix'}
             </button>
-            {expanded && (
-              <div className="mt-2">
-                <CodeBlock code={insight.codeExample!} />
+
+            {codeExpanded && (
+              <div className="mt-2 space-y-2">
+                {hasBefore && hasAfter && (
+                  <div className="flex gap-1 text-xs">
+                    <button
+                      onClick={() => setCodeView('before')}
+                      className={`px-2 py-1 rounded border ${
+                        codeView === 'before'
+                          ? 'bg-red-500/10 text-red-400 border-red-500/20'
+                          : 'text-muted-foreground border-border hover:bg-accent'
+                      }`}
+                    >
+                      ✗ Before
+                    </button>
+                    <button
+                      onClick={() => setCodeView('after')}
+                      className={`px-2 py-1 rounded border ${
+                        codeView === 'after'
+                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                          : 'text-muted-foreground border-border hover:bg-accent'
+                      }`}
+                    >
+                      ✓ After
+                    </button>
+                  </div>
+                )}
+
+                {hasFramework && codeView === 'after' && (
+                  <div className="flex gap-1 text-xs flex-wrap">
+                    <button
+                      onClick={() => setFrameworkTab('html')}
+                      className={`px-2 py-0.5 rounded border ${
+                        frameworkTab === 'html'
+                          ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+                          : 'text-muted-foreground border-border hover:bg-accent'
+                      }`}
+                    >
+                      HTML
+                    </button>
+                    {insight.frameworkNotes?.react && (
+                      <button
+                        onClick={() => setFrameworkTab('react')}
+                        className={`px-2 py-0.5 rounded border ${
+                          frameworkTab === 'react'
+                            ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+                            : 'text-muted-foreground border-border hover:bg-accent'
+                        }`}
+                      >
+                        React
+                      </button>
+                    )}
+                    {insight.frameworkNotes?.nextjs && (
+                      <button
+                        onClick={() => setFrameworkTab('nextjs')}
+                        className={`px-2 py-0.5 rounded border ${
+                          frameworkTab === 'nextjs'
+                            ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+                            : 'text-muted-foreground border-border hover:bg-accent'
+                        }`}
+                      >
+                        Next.js
+                      </button>
+                    )}
+                    {insight.frameworkNotes?.vue && (
+                      <button
+                        onClick={() => setFrameworkTab('vue')}
+                        className={`px-2 py-0.5 rounded border ${
+                          frameworkTab === 'vue'
+                            ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+                            : 'text-muted-foreground border-border hover:bg-accent'
+                        }`}
+                      >
+                        Vue
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {codeView === 'before' && hasBefore ? (
+                  <div className="relative rounded-md bg-red-500/5 border border-red-500/20">
+                    <div className="px-3 py-1.5 border-b border-red-500/20">
+                      <span className="text-xs text-red-400 font-medium">✗ Current (broken)</span>
+                    </div>
+                    <pre className="overflow-x-auto p-3 text-xs text-muted-foreground font-mono leading-relaxed">
+                      <code>{insight.beforeCode!.trim()}</code>
+                    </pre>
+                  </div>
+                ) : (
+                  activeCode.trim() ? <CodeBlock code={activeCode} /> : null
+                )}
               </div>
             )}
           </div>
         )}
 
-        <p className="text-xs text-[#475569]">
+        <p className="text-xs text-muted-foreground/60">
           Expected impact: {insight.estimatedImpact}
         </p>
       </CardContent>
@@ -109,6 +255,14 @@ function InsightCard({ insight }: { insight: AIInsight }) {
 }
 
 export function AIInsightsSection({ insights }: { insights: AIInsights }) {
+  const priorityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+
+  const sortedInsights = [...(insights.insights ?? [])].sort((a, b) => {
+    const byImpact = (b.impactScore ?? 5) - (a.impactScore ?? 5);
+    if (byImpact !== 0) return byImpact;
+    return (priorityOrder[a.priority] ?? 3) - (priorityOrder[b.priority] ?? 3);
+  });
+
   return (
     <section className="space-y-6">
       <h2 className="text-2xl font-bold">AI Insights</h2>
@@ -130,7 +284,7 @@ export function AIInsightsSection({ insights }: { insights: AIInsights }) {
             <ul className="space-y-2">
               {insights.quickWins.map((win, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <span className="text-emerald-400 mt-0.5 shrink-0">✓</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0">✓</span>
                   <span>{win}</span>
                 </li>
               ))}
@@ -139,7 +293,7 @@ export function AIInsightsSection({ insights }: { insights: AIInsights }) {
         </Card>
       )}
 
-      {insights.insights?.map((insight, i) => (
+      {sortedInsights.map((insight, i) => (
         <InsightCard key={i} insight={insight} />
       ))}
     </section>

@@ -11,6 +11,9 @@ import { DesignComparisonSection } from '@/components/reports/DesignComparisonSe
 import { ShareReportHeader } from '@/components/reports/ShareReportHeader';
 import { LLMReadinessSection } from '@/components/reports/LLMReadinessSection';
 import { CrawledPagesSection } from '@/components/reports/CrawledPagesSection';
+import { SecurityHeadersSection } from '@/components/reports/SecurityHeadersSection';
+import { ResourceAuditSection } from '@/components/reports/ResourceAuditSection';
+import { ScoreBreakdownSection } from '@/components/reports/ScoreBreakdownSection';
 import type { Analysis } from '@/types/analysis';
 
 export async function generateMetadata(
@@ -48,9 +51,9 @@ export default async function PublicReportPage({ params }: { params: { id: strin
   if (!analysis) notFound();
 
   return (
-    <div className="min-h-screen bg-[#0A0A0F]">
+    <div className="min-h-screen bg-background">
       {/* Public header */}
-      <header className="border-b border-white/5 bg-[#0A0A0F]/80 backdrop-blur sticky top-0 z-10">
+      <header className="border-b border-border bg-background/80 backdrop-blur sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 md:px-6 h-14 flex items-center justify-between">
           <span className="font-bold text-lg text-gradient">WebAnalyzer</span>
           <a
@@ -68,6 +71,19 @@ export default async function PublicReportPage({ params }: { params: { id: strin
         {analysis.lighthouse_scores && (
           <PerformanceSection scores={analysis.lighthouse_scores as any} />
         )}
+        {(analysis.lighthouse_scores as any)?.scoreBreakdown && (
+          <ScoreBreakdownSection
+            breakdown={(analysis.lighthouse_scores as any).scoreBreakdown}
+            scores={{
+              performance: (analysis.lighthouse_scores as any).performance,
+              bestPractices: (analysis.lighthouse_scores as any).bestPractices,
+              seo: (analysis.lighthouse_scores as any).seo,
+              accessibility: (analysis.lighthouse_scores as any).accessibility,
+            }}
+          />
+        )}
+        <SecurityHeadersSection securityHeaders={(analysis.lighthouse_scores as any)?.securityHeaders} />
+        <ResourceAuditSection resourceAudit={(analysis.network_requests as any)?.resourceAudit} />
         {analysis.accessibility_issues && (
           <EAAComplianceSection
             issues={(analysis.accessibility_issues as any) ?? []}
@@ -86,9 +102,9 @@ export default async function PublicReportPage({ params }: { params: { id: strin
         {analysis.ai_insights && (
           <AIInsightsSection insights={analysis.ai_insights as any} />
         )}
-        {analysis.design_comparison && (
+        {analysis.design_screenshot_url && (
           <DesignComparisonSection
-            comparison={analysis.design_comparison as any}
+            comparison={(analysis.design_comparison as any) ?? {}}
             designScreenshotUrl={analysis.design_screenshot_url ?? null}
             liveScreenshotUrl={analysis.screenshot_url ?? null}
           />
@@ -101,7 +117,7 @@ export default async function PublicReportPage({ params }: { params: { id: strin
         )}
 
         {/* CTA footer */}
-        <div className="bg-[#13131A] border border-white/5 rounded-xl p-6 md:p-8 text-center space-y-4">
+        <div className="bg-card border border-border rounded-xl p-6 md:p-8 text-center space-y-4">
           <p className="text-lg font-semibold text-foreground">
             Want a report like this for your site?
           </p>

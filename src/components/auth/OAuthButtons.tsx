@@ -20,7 +20,7 @@ export function OAuthButtons() {
   return (
     <Button
       variant="outline"
-      className="w-full border border-white/10 bg-[#1C1C27] text-foreground hover:bg-[#1C1C27]/80"
+      className="w-full border border-border bg-secondary text-foreground hover:bg-secondary/80"
       onClick={loginWithGoogle}
       type="button"
       disabled={loading}

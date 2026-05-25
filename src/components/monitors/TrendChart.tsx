@@ -76,14 +76,14 @@ export function TrendChart({ url }: TrendChartProps) {
 
   if (data.length === 0) {
     return (
-      <div className="flex h-[200px] items-center justify-center rounded-md border border-dashed border-white/10 text-[#475569] text-sm text-center py-8">
+      <div className="flex h-[200px] items-center justify-center rounded-md border border-dashed border-border text-muted-foreground/60 text-sm text-center py-8">
         No history yet — scores will appear after the first automated run.
       </div>
     );
   }
 
   return (
-    <ResponsiveContainer width="100%" height={200}>
+    <ResponsiveContainer width="99%" height={200}>
       <LineChart data={data} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
         <XAxis

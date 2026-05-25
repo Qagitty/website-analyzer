@@ -21,11 +21,11 @@ export function ConsoleErrorsSection({ errors }: { errors: ConsoleError[] }) {
       </div>
 
       {errors.length === 0 ? (
-        <p className="text-emerald-400 text-center py-4">No console errors found</p>
+        <p className="text-emerald-600 dark:text-emerald-400 text-center py-4">No console errors found</p>
       ) : (
         <div className="space-y-2">
           {errors.map((err, i) => (
-            <div key={i} className="bg-[#0A0A0F] rounded-lg p-3 border border-white/5 space-y-1">
+            <div key={i} className="bg-background rounded-lg p-3 border border-border space-y-1">
               <div className="flex items-start gap-3">
                 <span
                   className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium shrink-0 mt-0.5 ${
@@ -41,7 +41,7 @@ export function ConsoleErrorsSection({ errors }: { errors: ConsoleError[] }) {
                     {err.message}
                   </p>
                   {err.source && (
-                    <p className="text-[#475569] text-xs mt-1 truncate">
+                    <p className="text-muted-foreground/60 text-xs mt-1 truncate">
                       {err.source}{err.line ? `:${err.line}` : ''}
                     </p>
                   )}

@@ -44,11 +44,11 @@ export function CrawledPagesSection({ pages }: Props) {
       </div>
 
       {pages.length === 1 ? (
-        <p className="text-[#475569] text-sm text-center py-6 italic">
+        <p className="text-muted-foreground/60 text-sm text-center py-6 italic">
           Only the homepage was crawled — no internal links found.
         </p>
       ) : (
-        <div className="bg-[#1C1C27] rounded-xl p-4 flex gap-6">
+        <div className="bg-secondary rounded-xl p-4 flex gap-6">
           <span className="text-sm text-muted-foreground">
             Avg Performance:{' '}
             <span className={scoreClass(avgPerf)}>{avgPerf}</span>
@@ -67,17 +67,17 @@ export function CrawledPagesSection({ pages }: Props) {
         <CardContent className="p-0 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/5">
-                <th className="text-left px-4 py-2.5 text-[#475569] text-xs uppercase tracking-wider pb-2">Page</th>
-                <th className="text-right px-3 py-2.5 text-[#475569] text-xs uppercase tracking-wider pb-2">Perf</th>
-                <th className="text-right px-3 py-2.5 text-[#475569] text-xs uppercase tracking-wider pb-2">SEO</th>
-                <th className="text-right px-3 py-2.5 text-[#475569] text-xs uppercase tracking-wider pb-2">A11y</th>
-                <th className="text-right px-4 py-2.5 text-[#475569] text-xs uppercase tracking-wider pb-2">LLM</th>
+              <tr className="border-b border-border">
+                <th className="text-left px-4 py-2.5 text-muted-foreground/60 text-xs uppercase tracking-wider pb-2">Page</th>
+                <th className="text-right px-3 py-2.5 text-muted-foreground/60 text-xs uppercase tracking-wider pb-2">Perf</th>
+                <th className="text-right px-3 py-2.5 text-muted-foreground/60 text-xs uppercase tracking-wider pb-2">SEO</th>
+                <th className="text-right px-3 py-2.5 text-muted-foreground/60 text-xs uppercase tracking-wider pb-2">A11y</th>
+                <th className="text-right px-4 py-2.5 text-muted-foreground/60 text-xs uppercase tracking-wider pb-2">LLM</th>
               </tr>
             </thead>
             <tbody>
               {pages.map((page, i) => (
-                <tr key={i} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                <tr key={i} className="border-b border-border hover:bg-white/[0.02] transition-colors">
                   <td className="px-4 py-3">
                     <div className="text-sm text-muted-foreground font-mono truncate max-w-[200px]" title={page.url}>
                       {truncateUrl(page.url)}

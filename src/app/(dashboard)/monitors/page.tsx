@@ -25,7 +25,7 @@ export default async function MonitorsPage() {
       </div>
 
       {/* Content */}
-      <div className="bg-[#13131A] border border-white/5 rounded-xl p-6">
+      <div className="bg-card border border-border rounded-xl p-6">
         <MonitorsList initialMonitors={monitors} />
       </div>
     </div>

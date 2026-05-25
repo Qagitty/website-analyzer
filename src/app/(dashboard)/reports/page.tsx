@@ -18,9 +18,9 @@ function StatusBadge({ status }: { status: string }) {
     failed:    'bg-red-500/10 text-red-400',
     running:   'bg-indigo-500/10 text-indigo-400',
     queued:    'bg-amber-500/10 text-amber-400',
-    pending:   'bg-white/5 text-muted-foreground',
+    pending:   'bg-accent text-muted-foreground',
   };
-  const cls = styles[status] ?? 'bg-white/5 text-muted-foreground';
+  const cls = styles[status] ?? 'bg-accent text-muted-foreground';
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${cls}`}>
       {status}
@@ -56,7 +56,7 @@ export default async function ReportsPage() {
       <h1 className="text-3xl font-bold text-gradient">Reports</h1>
 
       {!analyses?.length ? (
-        <div className="bg-[#13131A] border border-dashed border-white/10 rounded-xl p-16 text-center space-y-4">
+        <div className="bg-card border border-dashed border-border rounded-xl p-16 text-center space-y-4">
           <div className="text-4xl opacity-20">📊</div>
           <p className="text-lg font-medium text-foreground">No analyses yet</p>
           <p className="text-sm text-muted-foreground">Run your first analysis to see results here.</p>
@@ -68,9 +68,9 @@ export default async function ReportsPage() {
           </a>
         </div>
       ) : (
-        <div className="bg-[#13131A] border border-white/5 rounded-xl overflow-hidden">
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
           {/* Table header */}
-          <div className="grid grid-cols-[1fr_auto_auto_auto] gap-4 px-4 py-3 border-b border-white/5 text-xs font-medium text-[#475569] uppercase tracking-wider">
+          <div className="grid grid-cols-[1fr_auto_auto_auto] gap-4 px-4 py-3 border-b border-border text-xs font-medium text-muted-foreground/60 uppercase tracking-wider">
             <span>URL</span>
             <span className="text-right">Score</span>
             <span className="text-right">Status</span>
@@ -94,7 +94,7 @@ export default async function ReportsPage() {
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">{analysis.url}</p>
                     {(analysis as any).user_id !== user!.id && (
-                      <span className="text-xs text-[#475569]">Team</span>
+                      <span className="text-xs text-muted-foreground/60">Team</span>
                     )}
                   </div>
 
@@ -104,7 +104,7 @@ export default async function ReportsPage() {
                         {perf}
                       </span>
                     ) : (
-                      <span className="text-sm text-[#475569]">—</span>
+                      <span className="text-sm text-muted-foreground/60">—</span>
                     )}
                   </div>
 
@@ -116,7 +116,7 @@ export default async function ReportsPage() {
                   </div>
 
                   <div className="text-right">
-                    <span className="text-xs text-[#475569] whitespace-nowrap">
+                    <span className="text-xs text-muted-foreground/60 whitespace-nowrap">
                       {formatDistanceToNow(new Date(analysis.created_at), { addSuffix: true })}
                     </span>
                   </div>

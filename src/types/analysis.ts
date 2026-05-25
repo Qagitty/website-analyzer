@@ -1,4 +1,17 @@
 export type AnalysisStatus = 'pending' | 'queued' | 'running' | 'completed' | 'failed';
+
+export interface ScoreCheckItem {
+  label: string;
+  passed: boolean;
+  details?: string;
+}
+
+export interface ScoreBreakdown {
+  performance: ScoreCheckItem[];
+  bestPractices: ScoreCheckItem[];
+  seo: ScoreCheckItem[];
+  accessibility: ScoreCheckItem[];
+}
 export type MonitorFrequency = 'daily' | 'weekly';
 
 export interface Monitor {
@@ -31,6 +44,8 @@ export interface LighthouseScores {
   llmReadiness?: number;
   llmChecks?: Record<string, boolean>;
   llmSignals?: string[];
+  securityHeaders?: SecurityHeaderResult[];
+  scoreBreakdown?: ScoreBreakdown;
 }
 
 export interface CrawledPage {
@@ -61,11 +76,51 @@ export interface AccessibilityIssue {
   wcagCriteria: string[];
 }
 
+export interface ResourceAuditItem {
+  url: string;
+  type: 'script' | 'stylesheet';
+}
+export interface ImageAuditItem {
+  src: string;
+  issues: string[];
+}
+export interface ThirdPartyGroup {
+  domain: string;
+  count: number;
+  types: string[];
+}
+export interface MixedContentItem {
+  url: string;
+  tag: string;
+}
+export interface ResourceAudit {
+  renderBlocking: ResourceAuditItem[];
+  imageIssues: ImageAuditItem[];
+  thirdParty: ThirdPartyGroup[];
+  mixedContent: MixedContentItem[];
+  totalScripts: number;
+  asyncScripts: number;
+  deferScripts: number;
+  totalStylesheets: number;
+  totalImages: number;
+  lazyImages: number;
+  inlineScriptCount: number;
+}
+export interface SecurityHeaderResult {
+  header: string;
+  present: boolean;
+  value: string | null;
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  description: string;
+  recommendation: string;
+}
+
 export interface NetworkSummary {
   totalRequests: number;
   totalBytes: number;
   failedRequests: number;
   slowRequests: number;
+  resourceAudit?: ResourceAudit;
 }
 
 export interface AIInsight {
@@ -75,6 +130,16 @@ export interface AIInsight {
   description: string;
   recommendation: string;
   codeExample?: string | null;
+  beforeCode?: string | null;
+  afterCode?: string | null;
+  effortLevel?: 'low' | 'medium' | 'high';
+  impactScore?: number;
+  frameworkNotes?: {
+    react?: string;
+    nextjs?: string;
+    vue?: string;
+  } | null;
+  wcagReference?: string | null;
   estimatedImpact: string;
 }
 

@@ -6,7 +6,7 @@ import type { DesignComparison, DesignMismatch } from '@/types/analysis';
 const SEVERITY_CLASS: Record<DesignMismatch['severity'], string> = {
   critical: 'border-l-2 border-red-500 bg-red-500/5 rounded-r-lg p-3',
   major: 'border-l-2 border-amber-500 bg-amber-500/5 rounded-r-lg p-3',
-  minor: 'border-l-2 border-white/10 bg-[#1C1C27] rounded-r-lg p-3',
+  minor: 'border-l-2 border-border bg-secondary rounded-r-lg p-3',
 };
 
 
@@ -18,9 +18,22 @@ interface Props {
 }
 
 export function DesignComparisonSection({ comparison, designScreenshotUrl, liveScreenshotUrl }: Props) {
-  const criticalCount = comparison.mismatches.filter((m) => m.severity === 'critical').length;
-  const majorCount = comparison.mismatches.filter((m) => m.severity === 'major').length;
-  const minorCount = comparison.mismatches.filter((m) => m.severity === 'minor').length;
+  const mismatches = comparison.mismatches ?? [];
+  const matchingAreas = comparison.matchingAreas ?? [];
+  const criticalCount = mismatches.filter((m) => m.severity === 'critical').length;
+  const majorCount = mismatches.filter((m) => m.severity === 'major').length;
+  const minorCount = mismatches.filter((m) => m.severity === 'minor').length;
+
+  if (!comparison.fidelityScore && mismatches.length === 0 && !comparison.summary) {
+    return (
+      <section className="space-y-4">
+        <h2 className="text-2xl font-bold">Design Comparison</h2>
+        <div className="rounded-xl border border-border bg-card p-6 text-center text-muted-foreground text-sm">
+          Design comparison could not be generated. This usually means the analysis finished before the design screenshot was processed — try re-running the analysis with your design file attached.
+        </div>
+      </section>
+    );
+  }
 
   const scoreColor =
     comparison.fidelityScore >= 80 ? 'text-emerald-400' :
@@ -76,7 +89,7 @@ export function DesignComparisonSection({ comparison, designScreenshotUrl, liveS
                     <span className="font-medium text-muted-foreground">{minorCount} minor</span>
                   </div>
                 )}
-                {comparison.mismatches.length === 0 && (
+                {mismatches.length === 0 && (
                   <span className="text-sm text-emerald-400 font-medium">✓ No mismatches found</span>
                 )}
               </div>
@@ -90,7 +103,7 @@ export function DesignComparisonSection({ comparison, designScreenshotUrl, liveS
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {designScreenshotUrl && (
             <div>
-              <div className="rounded-xl overflow-hidden border border-white/10">
+              <div className="rounded-xl overflow-hidden border border-border">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={designScreenshotUrl}
@@ -98,12 +111,12 @@ export function DesignComparisonSection({ comparison, designScreenshotUrl, liveS
                   className="w-full object-cover"
                 />
               </div>
-              <p className="text-xs text-[#475569] text-center mt-2">Design mockup</p>
+              <p className="text-xs text-muted-foreground/60 text-center mt-2">Design mockup</p>
             </div>
           )}
           {liveScreenshotUrl && (
             <div>
-              <div className="rounded-xl overflow-hidden border border-white/10">
+              <div className="rounded-xl overflow-hidden border border-border">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={liveScreenshotUrl}
@@ -111,18 +124,18 @@ export function DesignComparisonSection({ comparison, designScreenshotUrl, liveS
                   className="w-full object-cover"
                 />
               </div>
-              <p className="text-xs text-[#475569] text-center mt-2">Live site</p>
+              <p className="text-xs text-muted-foreground/60 text-center mt-2">Live site</p>
             </div>
           )}
         </div>
       )}
 
       {/* Matching areas */}
-      {comparison.matchingAreas.length > 0 && (
+      {matchingAreas.length > 0 && (
         <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-4">
           <p className="text-base font-semibold text-emerald-400 mb-3">✓ Matching areas</p>
           <ul className="space-y-1.5">
-            {comparison.matchingAreas.map((area, i) => (
+            {matchingAreas.map((area, i) => (
               <li key={i} className="flex items-start gap-2 text-emerald-400 text-sm">
                 <span className="mt-0.5 shrink-0">✓</span>
                 <span>{area}</span>
@@ -133,12 +146,12 @@ export function DesignComparisonSection({ comparison, designScreenshotUrl, liveS
       )}
 
       {/* Mismatches */}
-      {comparison.mismatches.length > 0 && (
+      {mismatches.length > 0 && (
         <div className="space-y-3">
           <h3 className="text-lg font-semibold">Issues Found</h3>
-          {comparison.mismatches.map((mismatch, i) => (
+          {mismatches.map((mismatch, i) => (
             <div key={i} className={SEVERITY_CLASS[mismatch.severity]}>
-              <p className="text-xs font-mono text-[#475569] mb-1">{mismatch.area}</p>
+              <p className="text-xs font-mono text-muted-foreground/60 mb-1">{mismatch.area}</p>
               <p className="text-sm text-foreground">{mismatch.designExpected}</p>
               <p className="text-xs text-muted-foreground mt-1">{mismatch.suggestion}</p>
             </div>

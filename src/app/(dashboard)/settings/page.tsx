@@ -15,7 +15,7 @@ function SettingsSection({ title, children }: { title: string; children: React.R
   return (
     <section className="space-y-4">
       <h2 className="text-lg font-semibold text-foreground">{title}</h2>
-      <div className="bg-[#13131A] border border-white/5 rounded-xl p-6">
+      <div className="bg-card border border-border rounded-xl p-6">
         {children}
       </div>
     </section>

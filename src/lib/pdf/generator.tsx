@@ -638,8 +638,24 @@ function AIInsightsPage({
   brandColor: string;
 }) {
   const aiInsights = analysis.ai_insights!;
-  const quickWins = (aiInsights.quickWins ?? []).slice(0, 5);
-  const insights = (aiInsights.insights ?? []).slice(0, 4);
+
+  // Fall back to accessibility prioritised fixes when quickWins is empty (e.g. no screenshot)
+  const rawQuickWins: string[] = aiInsights.quickWins ?? [];
+  const quickWins: string[] = (rawQuickWins.length > 0
+    ? rawQuickWins
+    : (aiInsights.accessibility?.prioritizedFixes ?? []) as string[]
+  ).slice(0, 5);
+
+  // Fall back to accessibility interpretedIssues when insights is empty
+  const rawInsights: any[] = aiInsights.insights ?? [];
+  const insights: { priority: string; title: string; recommendation: string }[] = (rawInsights.length > 0
+    ? rawInsights
+    : (aiInsights.accessibility?.interpretedIssues ?? []).map((issue: any) => ({
+        priority: issue.wcagLevel === 'A' ? 'high' : 'medium',
+        title: (issue.originalId ?? '').replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
+        recommendation: issue.plainEnglish ?? '',
+      }))
+  ).slice(0, 4);
 
   return (
     <Page size="A4" style={styles.page}>

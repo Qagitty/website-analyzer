@@ -10,7 +10,7 @@ export function RecentAnalyses({ analyses }: { analyses: any[] }) {
       </CardHeader>
       <CardContent>
         {analyses.length === 0 ? (
-          <p className="text-[#475569] text-center py-8 text-sm">
+          <p className="text-muted-foreground/60 text-center py-8 text-sm">
             No analyses yet.{' '}
             <Link href="/analyze" className="text-indigo-400 hover:text-indigo-300">
               Analyze your first site
@@ -29,11 +29,11 @@ export function RecentAnalyses({ analyses }: { analyses: any[] }) {
                 <Link
                   key={a.id}
                   href={a.status === 'completed' ? `/reports/${a.id}` : `/analyze/${a.id}`}
-                  className="flex items-center justify-between py-3 border-b border-white/5 last:border-0 hover:bg-white/[0.02] px-1 rounded-lg transition-colors"
+                  className="flex items-center justify-between py-3 border-b border-border last:border-0 hover:bg-white/[0.02] px-1 rounded-lg transition-colors"
                 >
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">{a.url}</p>
-                    <p className="text-xs text-[#475569] shrink-0">
+                    <p className="text-xs text-muted-foreground/60 shrink-0">
                       {formatDistanceToNow(new Date(a.created_at), { addSuffix: true })}
                     </p>
                   </div>

@@ -32,9 +32,9 @@ const CHECK_ORDER = [
 ];
 
 function scoreBadgeClass(score: number): string {
-  if (score >= 80) return 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
-  if (score >= 50) return 'bg-amber-500/10 text-amber-400 border border-amber-500/20';
-  return 'bg-red-500/10 text-red-400 border border-red-500/20';
+  if (score >= 80) return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20';
+  if (score >= 50) return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20';
+  return 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20';
 }
 
 export function LLMReadinessSection({ scores }: Props) {
@@ -61,13 +61,13 @@ export function LLMReadinessSection({ scores }: Props) {
           <CardTitle className="text-base">Readiness Checks</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <ul className="divide-y divide-white/5">
+          <ul className="divide-y divide-border">
             {CHECK_ORDER.map((key) => {
               const passing = checksToRender[key] ?? false;
               return (
-                <li key={key} className="flex items-center gap-3 hover:bg-white/[0.03] rounded-lg px-3 py-2 transition-colors">
+                <li key={key} className="flex items-center gap-3 hover:bg-muted/50 rounded-lg px-3 py-2 transition-colors">
                   {passing ? (
-                    <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0" />
+                    <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                   ) : (
                     <XCircle className="h-5 w-5 text-red-400/40 shrink-0" />
                   )}
@@ -76,7 +76,7 @@ export function LLMReadinessSection({ scores }: Props) {
                   </span>
                   <span className="ml-auto text-xs font-medium">
                     {passing ? (
-                      <span className="text-emerald-400">Pass</span>
+                      <span className="text-emerald-600 dark:text-emerald-400">Pass</span>
                     ) : (
                       <span className="text-muted-foreground">Fail</span>
                     )}
@@ -89,15 +89,15 @@ export function LLMReadinessSection({ scores }: Props) {
       </Card>
 
       {llmSignals && llmSignals.length > 0 && (
-        <div className="bg-[#1C1C27] border border-indigo-500/20 rounded-xl p-4">
+        <div className="bg-secondary border border-indigo-500/20 rounded-xl p-4">
           <div className="flex items-center gap-2 mb-3">
-            <Lightbulb className="h-4 w-4 text-indigo-400" />
+            <Lightbulb className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
             <span className="text-base font-semibold text-foreground">How to improve</span>
           </div>
           <ul className="space-y-2">
             {llmSignals.map((tip, i) => (
               <li key={i} className="flex items-start gap-2 text-sm">
-                <span className="text-indigo-400 mt-0.5 shrink-0">•</span>
+                <span className="text-indigo-600 dark:text-indigo-400 mt-0.5 shrink-0">•</span>
                 <span className="text-muted-foreground">{tip}</span>
               </li>
             ))}

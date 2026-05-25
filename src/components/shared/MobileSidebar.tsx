@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
@@ -31,6 +31,7 @@ export function MobileSidebar() {
         </button>
       </SheetTrigger>
       <SheetContent side="left" className="w-56 p-0">
+        <SheetTitle className="sr-only">Navigation</SheetTitle>
         <div className="p-4 border-b font-bold text-lg">
           <Link href="/dashboard" onClick={() => setOpen(false)}>
             WebAnalyzer

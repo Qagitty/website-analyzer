@@ -79,17 +79,17 @@ export function BrandingForm({
         {/* Brand color */}
         <div className="space-y-1.5">
           <Label htmlFor="brandColor">Brand Color</Label>
-          <div className="flex items-center gap-3 p-3 bg-[#0A0A0F] border border-white/10 rounded-lg">
+          <div className="flex items-center gap-3 p-3 bg-background border border-border rounded-lg">
             <input
               id="brandColor"
               type="color"
               value={brandColor}
               onChange={(e) => setBrandColor(e.target.value)}
-              className="h-10 w-10 cursor-pointer rounded border border-white/10 bg-[#0A0A0F] p-0.5"
+              className="h-10 w-10 cursor-pointer rounded border border-border bg-background p-0.5"
               title="Pick brand color"
             />
             <div
-              className="h-10 w-24 rounded border border-white/10"
+              className="h-10 w-24 rounded border border-border"
               style={{ backgroundColor: brandColor }}
               aria-label={`Color preview: ${brandColor}`}
             />

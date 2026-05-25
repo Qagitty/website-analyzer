@@ -25,7 +25,7 @@ export default async function AnalyzePage() {
       </div>
 
       {/* Input card */}
-      <div className="bg-[#13131A] border border-white/5 rounded-xl p-6">
+      <div className="bg-card border border-border rounded-xl p-6">
         <URLInput credits={settings?.credits ?? 0} />
       </div>
 
@@ -38,7 +38,7 @@ export default async function AnalyzePage() {
         ].map((item) => (
           <div
             key={item.label}
-            className="bg-[#13131A] border border-white/5 rounded-xl p-4 space-y-1"
+            className="bg-card border border-border rounded-xl p-4 space-y-1"
           >
             <div className="text-xl">{item.icon}</div>
             <p className="text-sm font-semibold text-foreground">{item.label}</p>

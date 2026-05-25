@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
-import { generateApiKey } from '@/lib/api-keys/generate';
+import { generateApiKey, encryptApiKey } from '@/lib/api-keys/generate';
 import { z } from 'zod';
 
 const createSchema = z.object({
@@ -42,10 +42,11 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
 
   const { raw, hash, prefix } = generateApiKey();
+  const encrypted = encryptApiKey(raw);
 
   const { data, error } = await (supabase as any)
     .from('api_keys')
-    .insert({ user_id: user.id, name: parsed.data.name, key_hash: hash, key_prefix: prefix })
+    .insert({ user_id: user.id, name: parsed.data.name, key_hash: hash, key_prefix: prefix, key_encrypted: encrypted })
     .select('id, name, key_prefix, created_at')
     .single();
 

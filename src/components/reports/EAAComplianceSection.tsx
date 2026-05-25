@@ -106,7 +106,7 @@ export function EAAComplianceSection({ issues, accessibilityScore }: Props) {
           {/* Stats row */}
           <div className="grid grid-cols-3 gap-3">
             {/* Critical issues */}
-            <div className="bg-[#0A0A0F] rounded-lg p-3 text-center">
+            <div className="bg-background rounded-lg p-3 text-center">
               <p
                 className={`text-2xl font-bold ${critical > 0 ? 'text-red-400' : 'text-foreground'}`}
               >
@@ -116,13 +116,13 @@ export function EAAComplianceSection({ issues, accessibilityScore }: Props) {
             </div>
 
             {/* Moderate issues */}
-            <div className="bg-[#0A0A0F] rounded-lg p-3 text-center">
+            <div className="bg-background rounded-lg p-3 text-center">
               <p className="text-2xl font-bold text-amber-400">{moderate}</p>
               <p className="text-xs text-muted-foreground mt-0.5">Moderate issues</p>
             </div>
 
             {/* Accessibility score */}
-            <div className="bg-[#0A0A0F] rounded-lg p-3 text-center">
+            <div className="bg-background rounded-lg p-3 text-center">
               <p className={`text-2xl font-bold ${score >= 90 ? 'text-emerald-400' : score >= 70 ? 'text-amber-400' : 'text-red-400'}`}>{score}</p>
               <p className="text-xs text-muted-foreground mt-0.5">Score / 100</p>
             </div>
@@ -141,7 +141,7 @@ export function EAAComplianceSection({ issues, accessibilityScore }: Props) {
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {allWcagTags.map((tag) => (
-                  <span key={tag} className="bg-[#1C1C27] text-[#475569] text-xs px-2 py-0.5 rounded font-mono border border-white/5">
+                  <span key={tag} className="bg-secondary text-muted-foreground/60 text-xs px-2 py-0.5 rounded font-mono border border-border">
                     {tag}
                   </span>
                 ))}

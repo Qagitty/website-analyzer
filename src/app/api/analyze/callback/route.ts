@@ -82,6 +82,14 @@ export async function POST(req: NextRequest) {
       designComparisonPromise,
     ]);
 
+    // Only save design_comparison if Claude returned a well-formed result
+    const validDesignComparison =
+      designComparison &&
+      typeof designComparison.fidelityScore === 'number' &&
+      Array.isArray(designComparison.mismatches)
+        ? designComparison
+        : null;
+
     await (supabase as any)
       .from('analyses')
       .update({
@@ -94,7 +102,7 @@ export async function POST(req: NextRequest) {
         ai_insights: aiInsights,
         ai_summary: aiInsights.summary,
         crawl_pages: crawledPages ?? null,
-        ...(designComparison && { design_comparison: designComparison }),
+        ...(validDesignComparison && { design_comparison: validDesignComparison }),
         completed_at: new Date().toISOString(),
       })
       .eq('id', analysisId);

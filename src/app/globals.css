@@ -4,41 +4,41 @@
 
 @layer base {
   :root {
+    --background: 0 0% 98%;             /* #FAFAFA */
+    --foreground: 222 47% 11%;          /* #0F172A */
+    --card: 0 0% 100%;                  /* #FFFFFF */
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 239 84% 67%;             /* #6366F1 indigo-500 */
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;           /* #F1F5F9 */
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;    /* #64748B */
+    --accent: 210 40% 96%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214 32% 91%;              /* #E2E8F0 */
+    --input: 214 32% 91%;
+    --ring: 239 84% 67%;
+    --radius: 0.75rem;
+  }
+
+  .dark {
     --background: 240 10% 4%;           /* #0A0A0F */
     --foreground: 210 40% 98%;          /* #F8FAFC */
     --card: 240 8% 9%;                  /* #13131A */
     --card-foreground: 210 40% 98%;
     --popover: 240 8% 9%;
     --popover-foreground: 210 40% 98%;
-    --primary: 239 84% 67%;             /* #6366F1 indigo-500 */
+    --primary: 239 84% 67%;
     --primary-foreground: 210 40% 98%;
     --secondary: 240 6% 14%;            /* #1C1C27 */
     --secondary-foreground: 210 40% 98%;
     --muted: 240 6% 14%;
     --muted-foreground: 215 16% 58%;    /* #94A3B8 */
-    --accent: 240 6% 14%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 240 6% 20%;              /* subtle dark border */
-    --input: 240 6% 14%;
-    --ring: 239 84% 67%;
-    --radius: 0.75rem;
-  }
-
-  .dark {
-    --background: 240 10% 4%;
-    --foreground: 210 40% 98%;
-    --card: 240 8% 9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 240 8% 9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 239 84% 67%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 240 6% 14%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 240 6% 14%;
-    --muted-foreground: 215 16% 58%;
     --accent: 240 6% 14%;
     --accent-foreground: 210 40% 98%;
     --destructive: 0 62.8% 50%;

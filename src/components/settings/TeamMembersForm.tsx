@@ -40,8 +40,8 @@ export function TeamMembersForm({ isPro, initialMembers, ownerEmail }: Props) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="bg-[#1C1C27] border border-white/5 rounded-xl p-8 flex flex-col items-center gap-4 text-center">
-            <Lock className="h-8 w-8 text-[#475569]" />
+          <div className="bg-secondary border border-border rounded-xl p-8 flex flex-col items-center gap-4 text-center">
+            <Lock className="h-8 w-8 text-muted-foreground/60" />
             <div>
               <p className="font-medium text-foreground">Team seats require the Agency plan</p>
               <p className="text-sm text-muted-foreground mt-1">
@@ -110,7 +110,7 @@ export function TeamMembersForm({ isPro, initialMembers, ownerEmail }: Props) {
         <CardTitle className="flex items-center gap-2">
           <Users className="h-5 w-5" />
           Team Members
-          <span className="ml-1 bg-[#1C1C27] text-muted-foreground border border-white/10 text-xs font-medium px-2.5 py-0.5 rounded-full">
+          <span className="ml-1 bg-secondary text-muted-foreground border border-border text-xs font-medium px-2.5 py-0.5 rounded-full">
             {members.length} / 10
           </span>
         </CardTitle>
@@ -123,7 +123,7 @@ export function TeamMembersForm({ isPro, initialMembers, ownerEmail }: Props) {
             placeholder="colleague@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="flex-1 bg-[#0A0A0F] border-white/10 text-foreground placeholder:text-[#475569] focus:border-indigo-500/50 focus:ring-indigo-500/20"
+            className="flex-1 bg-background border-border text-foreground placeholder:text-muted-foreground/60 focus:border-indigo-500/50 focus:ring-indigo-500/20"
             aria-label="Invite by email"
             disabled={inviting || members.length >= 10}
           />
@@ -145,7 +145,7 @@ export function TeamMembersForm({ isPro, initialMembers, ownerEmail }: Props) {
 
         {/* Members list */}
         {members.length === 0 ? (
-          <p className="text-sm text-[#475569] py-4 text-center">
+          <p className="text-sm text-muted-foreground/60 py-4 text-center">
             No team members yet. Invite collaborators above.
           </p>
         ) : (
@@ -160,7 +160,7 @@ export function TeamMembersForm({ isPro, initialMembers, ownerEmail }: Props) {
               return (
                 <div
                   key={member.id}
-                  className="flex items-center justify-between py-3 border-b border-white/5 gap-3"
+                  className="flex items-center justify-between py-3 border-b border-border gap-3"
                 >
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">{member.member_email}</p>
@@ -173,7 +173,7 @@ export function TeamMembersForm({ isPro, initialMembers, ownerEmail }: Props) {
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <span className={statusClass}>{member.status}</span>
-                    <span className="bg-[#1C1C27] text-muted-foreground border border-white/10 text-xs px-2 py-0.5 rounded-full capitalize">
+                    <span className="bg-secondary text-muted-foreground border border-border text-xs px-2 py-0.5 rounded-full capitalize">
                       {member.role}
                     </span>
                     <button

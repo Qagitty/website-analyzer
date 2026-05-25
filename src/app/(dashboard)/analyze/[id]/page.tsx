@@ -33,7 +33,7 @@ export default async function AnalysisStatusPage({ params }: { params: { id: str
       </div>
 
       {/* Progress card */}
-      <div className="bg-[#13131A] border border-white/5 rounded-xl p-6">
+      <div className="bg-card border border-border rounded-xl p-6">
         <AnalysisProgress analysisId={params.id} initialData={initialData} />
       </div>
     </div>

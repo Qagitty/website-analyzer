@@ -17,9 +17,9 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden md:flex w-56 shrink-0 border-r border-white/5 bg-[#0A0A0F] flex-col">
-      <div className="p-4 border-b border-white/5">
-        <Link href="/dashboard" className="flex items-center gap-2 font-bold text-base text-[#F8FAFC]">
+    <aside className="hidden md:flex w-56 shrink-0 border-r border-border bg-background flex-col">
+      <div className="h-14 flex items-center px-4 border-b border-border shrink-0">
+        <Link href="/dashboard" className="flex items-center gap-2 font-bold text-base text-foreground">
           <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center shrink-0">
             <Zap className="h-4 w-4 text-white" />
           </div>
@@ -34,8 +34,8 @@ export function Sidebar() {
             className={cn(
               'block px-3 py-2 rounded-md text-sm font-medium transition-colors',
               pathname.startsWith(item.href)
-                ? 'bg-indigo-500/10 text-indigo-300 border-l-2 border-indigo-500 pl-[10px]'
-                : 'text-[#94A3B8] hover:bg-white/5 hover:text-white'
+                ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 border-l-2 border-indigo-500 pl-[10px]'
+                : 'text-muted-foreground hover:bg-accent hover:text-foreground'
             )}
           >
             {item.label}
@@ -46,8 +46,8 @@ export function Sidebar() {
           className={cn(
             'flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors',
             pathname.startsWith('/docs')
-              ? 'bg-indigo-500/10 text-indigo-300 border-l-2 border-indigo-500 pl-[10px]'
-              : 'text-[#94A3B8] hover:bg-white/5 hover:text-white'
+              ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 border-l-2 border-indigo-500 pl-[10px]'
+              : 'text-muted-foreground hover:bg-accent hover:text-foreground'
           )}
         >
           <Code2 className="h-4 w-4" />

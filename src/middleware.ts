@@ -7,8 +7,10 @@ const AUTH_ROUTES = ['/login', '/signup'];
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Start with a pass-through response; setAll rebuilds it when cookies change.
-  let response = NextResponse.next({ request });
+  // Pass current pathname to server layouts via header (used to allow public /docs)
+  let response = NextResponse.next({
+    request: { headers: new Headers({ ...Object.fromEntries(request.headers), 'x-pathname': pathname }) },
+  });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

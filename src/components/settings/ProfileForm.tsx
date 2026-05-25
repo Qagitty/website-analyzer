@@ -88,7 +88,7 @@ export function ProfileForm({ email, initialName }: Props) {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <label className="text-sm text-muted-foreground">Email</label>
-            <p className="font-medium mt-0.5 text-[#475569]">{email}</p>
+            <p className="font-medium mt-0.5 text-muted-foreground/60">{email}</p>
           </div>
           <div>
             <label className="text-sm text-muted-foreground" htmlFor="displayName">
@@ -97,7 +97,7 @@ export function ProfileForm({ email, initialName }: Props) {
             <Input
               id="displayName"
               placeholder="Your name"
-              className="mt-1 bg-[#0A0A0F] border-white/10 text-foreground placeholder:text-[#475569] focus:border-indigo-500/50 focus:ring-indigo-500/20"
+              className="mt-1 bg-background border-border text-foreground placeholder:text-muted-foreground/60 focus:border-indigo-500/50 focus:ring-indigo-500/20"
               {...register('displayName')}
             />
             {errors.displayName && (
@@ -120,7 +120,7 @@ export function ProfileForm({ email, initialName }: Props) {
         <CardTitle>Change Password</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <p className="text-sm text-[#94A3B8]">
+        <p className="text-sm text-muted-foreground">
           We&apos;ll send a password reset link to <strong className="text-white">{email}</strong>.
         </p>
         {resetSent ? (
@@ -133,7 +133,7 @@ export function ProfileForm({ email, initialName }: Props) {
             variant="outline"
             onClick={handlePasswordReset}
             disabled={resetLoading}
-            className="border-white/10 hover:bg-white/5"
+            className="border-border hover:bg-accent"
           >
             {resetLoading ? 'Sending…' : 'Send password reset email'}
           </Button>

@@ -10,6 +10,8 @@ Focus on:
 5. Trust signals (professional appearance, clear branding)
 6. Content clarity and information architecture
 
+For beforeCode and afterCode: always write realistic, specific snippets — not pseudo-code. For accessibility issues show the specific broken element pattern and the fixed version. For frameworkNotes only include react/nextjs when the fix differs from plain HTML.
+
 Return ONLY valid JSON in this exact format:
 {
   "overallUXScore": <0-100>,
@@ -20,7 +22,14 @@ Return ONLY valid JSON in this exact format:
       "title": "<short issue title>",
       "description": "<what is wrong and where>",
       "recommendation": "<specific actionable fix>",
-      "codeExample": "<ready-to-use HTML/CSS/JS snippet that implements the fix, or null if not applicable>",
+      "effortLevel": "low" | "medium" | "high",
+      "impactScore": <1-10>,
+      "beforeCode": "<problematic HTML/CSS snippet (representative example), or null>",
+      "afterCode": "<fixed HTML/CSS snippet, or null>",
+      "frameworkNotes": {
+        "react": "<React JSX version of the fix if it differs from plain HTML, otherwise omit>",
+        "nextjs": "<Next.js specific fix if applicable, otherwise omit>"
+      },
       "estimatedImpact": "<expected improvement if fixed>"
     }
   ],
@@ -40,6 +49,9 @@ Return ONLY valid JSON in this exact format:
       totalBytes: number;
       failedRequests: number;
       slowRequests: number;
+      renderBlockingCount?: number;
+      imageIssuesCount?: number;
+      thirdPartyCount?: number;
     };
   }) => `
 You are a web performance expert. Analyze these Lighthouse metrics and provide actionable recommendations.
@@ -53,7 +65,7 @@ Metrics:
 - Total network requests: ${data.networkSummary.totalRequests}
 - Total page weight: ${Math.round(data.networkSummary.totalBytes / 1024)}KB
 - Failed requests: ${data.networkSummary.failedRequests}
-- Slow requests (>3s): ${data.networkSummary.slowRequests}
+- Slow requests (>3s): ${data.networkSummary.slowRequests}${data.networkSummary.renderBlockingCount != null ? `\n- Render-blocking resources: ${data.networkSummary.renderBlockingCount}` : ''}${data.networkSummary.imageIssuesCount != null ? `\n- Images with issues (missing dimensions, no lazy-load, etc.): ${data.networkSummary.imageIssuesCount}` : ''}${data.networkSummary.thirdPartyCount != null ? `\n- Third-party script domains: ${data.networkSummary.thirdPartyCount}` : ''}
 
 Return ONLY valid JSON:
 {
@@ -64,7 +76,10 @@ Return ONLY valid JSON:
       "currentValue": "<current>",
       "targetValue": "<target>",
       "fix": "<specific technical recommendation>",
-      "codeExample": "<ready-to-use code snippet, config change, or CLI command that implements the fix, or null>",
+      "effortLevel": "low" | "medium" | "high",
+      "impactScore": <1-10>,
+      "beforeCode": "<problematic pattern, e.g. render-blocking script or unoptimised image tag>",
+      "afterCode": "<fixed version with async/defer/preload/loading=lazy etc.>",
       "expectedImprovement": "<e.g., reduce LCP by ~30%>"
     }
   ],
@@ -80,26 +95,54 @@ Return ONLY valid JSON:
     nodes: string[];
     wcagCriteria: string[];
   }>) => `
-You are an accessibility expert. Interpret these WCAG violations for a developer who may not know accessibility rules well.
+You are a senior accessibility engineer with deep WCAG 2.1 expertise. Your task is to interpret these accessibility violations for a frontend developer and produce specific, actionable fixes.
 
-Issues found:
+Issues found (${issues.length} total):
 ${JSON.stringify(issues, null, 2)}
 
-Return ONLY valid JSON:
+Rules for beforeCode / afterCode:
+- Reconstruct a realistic HTML snippet from the node selector and issue type — do NOT write generic examples.
+- For 'image-alt' with node 'img.product-photo': beforeCode='<img class="product-photo" src="product.jpg">' afterCode='<img class="product-photo" src="product.jpg" alt="Blue leather wallet, front view">'
+- For 'button-name' with node 'button.close-modal': beforeCode='<button class="close-modal"><svg>...</svg></button>' afterCode='<button class="close-modal" aria-label="Close dialog"><svg aria-hidden="true">...</svg></button>'
+- For 'label' with node 'input#email': beforeCode='<input id="email" type="email" placeholder="Email">' afterCode='<label for="email">Email address</label><input id="email" type="email" placeholder="user@example.com">'
+- For 'aria-hidden-focus' with node 'button.nav-toggle': beforeCode='<button class="nav-toggle" aria-hidden="true">Menu</button>' afterCode='<button class="nav-toggle">Menu</button>'
+- For 'color-contrast': show an actual CSS/HTML example with the specific problematic color, then the fix with a compliant value.
+- For 'focus-outline-removed': beforeCode='.btn { outline: none; }' afterCode='.btn:focus-visible { outline: 2px solid #4f46e5; outline-offset: 2px; }'
+- For 'tabindex-positive': beforeCode='<button tabindex="3">Submit</button>' afterCode='<button>Submit</button> <!-- remove tabindex or set to 0 -->'
+
+Severity tiers for impactScore:
+- critical (image-alt missing, button-name, label, aria-hidden-focus, meta-viewport, video-caption): impactScore 8-10
+- serious (html-has-lang, select-label, link-name-empty, aria-label-empty, tabindex-positive, focus-outline-removed, click-events-have-key-events, iframe missing title, table headers): impactScore 6-8
+- moderate (skip-link, heading structure, landmark-main, color-contrast, svg-img-alt, th-no-scope): impactScore 4-6
+- minor (image-alt-empty, link-new-tab, landmark-nav, label-placeholder, audio, autoplay): impactScore 2-4
+
+Return ONLY valid JSON (no markdown, no comments):
 {
   "overallAccessibilityLevel": "A" | "AA" | "AAA" | "non-compliant",
-  "criticalCount": <number>,
+  "criticalCount": <number of critical+serious issues>,
   "interpretedIssues": [
     {
-      "originalId": "<axe rule id>",
-      "plainEnglish": "<explanation without jargon>",
-      "affectedUsers": "<who this impacts>",
-      "codeExample": "<complete before/after HTML/CSS snippet showing the exact fix>",
+      "originalId": "<issue id from input>",
+      "plainEnglish": "<1-2 sentence explanation without WCAG jargon — what is broken and why it matters>",
+      "affectedUsers": "<specific user group: e.g., 'Screen reader users and voice control users who cannot see the image'>",
+      "beforeCode": "<specific broken HTML/CSS snippet>",
+      "afterCode": "<complete corrected snippet with all attributes>",
+      "wcagReference": "WCAG 2.1 <A|AA|AAA> — <criterion number> <criterion name>",
       "wcagLevel": "A" | "AA" | "AAA",
-      "estimatedFixTime": "<e.g., 5 minutes, 1 hour>"
+      "effortLevel": "low" | "medium" | "high",
+      "impactScore": <1-10>,
+      "frameworkNotes": {
+        "react": "<JSX equivalent of afterCode — use className, htmlFor, etc.>",
+        "nextjs": "<Next.js specific note if relevant, e.g. using next/image which requires alt prop>"
+      },
+      "estimatedFixTime": "<e.g., 2 minutes per instance, 30 minutes for all instances>"
     }
   ],
-  "prioritizedFixes": ["<ordered list: fix these first>"]
+  "prioritizedFixes": [
+    "<Fix 1: most critical — one sentence action>",
+    "<Fix 2>",
+    "<Fix 3>"
+  ]
 }
 `,
 
@@ -126,6 +169,10 @@ Return ONLY valid JSON:
       "plainExplanation": "<what this error means in plain English>",
       "likelyRootCause": "<why this is probably happening>",
       "fixSuggestion": "<specific code or config fix>",
+      "effortLevel": "low" | "medium" | "high",
+      "impactScore": <1-10>,
+      "beforeCode": "<problematic JS pattern if identifiable, or null>",
+      "afterCode": "<fixed JS pattern, or null>",
       "affectsUsers": true | false
     }
   ],

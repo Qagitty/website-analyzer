@@ -24,7 +24,7 @@ export function QuickActions({ credits }: { credits: number }) {
             <Link href="/settings">Upgrade Plan</Link>
           </Button>
         )}
-        <p className="text-xs text-center text-[#475569]">
+        <p className="text-xs text-center text-muted-foreground/60">
           {credits} credit{credits !== 1 ? 's' : ''} remaining
         </p>
       </CardContent>

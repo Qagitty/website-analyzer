@@ -148,6 +148,69 @@ export async function sendMonitorSummary({
   });
 }
 
+export async function sendSupportMessage({
+  name,
+  email,
+  phone,
+  message,
+}: {
+  name: string;
+  email: string;
+  phone: string;
+  message: string;
+}): Promise<void> {
+  const to = process.env.SUPPORT_EMAIL ?? 'lagmax.88@gmail.com';
+
+  if (!resend) {
+    console.log('[email] RESEND_API_KEY not set — support message from', email, ':', message);
+    return;
+  }
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8" /></head>
+<body style="font-family:system-ui,sans-serif;background:#f9fafb;margin:0;padding:24px;">
+  <div style="max-width:520px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;">
+    <div style="background:#4f46e5;padding:20px 24px;">
+      <h1 style="margin:0;color:#fff;font-size:18px;">💬 New Support Message</h1>
+    </div>
+    <div style="padding:24px;space-y:16px;">
+      <table style="width:100%;border-collapse:collapse;margin-bottom:20px;font-size:14px;">
+        <tr>
+          <td style="padding:8px 0;color:#6b7280;width:90px;">Name</td>
+          <td style="padding:8px 0;color:#111827;font-weight:600;">${name}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 0;color:#6b7280;">Email</td>
+          <td style="padding:8px 0;"><a href="mailto:${email}" style="color:#4f46e5;">${email}</a></td>
+        </tr>
+        <tr>
+          <td style="padding:8px 0;color:#6b7280;">Phone</td>
+          <td style="padding:8px 0;color:#111827;">${phone}</td>
+        </tr>
+      </table>
+      <div style="background:#f9fafb;border-radius:8px;padding:14px;font-size:14px;color:#374151;line-height:1.6;">
+        ${message.replace(/\n/g, '<br/>')}
+      </div>
+    </div>
+    <div style="padding:12px 24px;border-top:1px solid #e5e7eb;font-size:12px;color:#9ca3af;">
+      Sent from the WebAnalyzer support chat widget.
+      <a href="mailto:${email}" style="color:#6366f1;margin-left:8px;">Reply to ${name}</a>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    replyTo: email,
+    subject: `💬 Support: ${name} — ${message.slice(0, 60)}${message.length > 60 ? '…' : ''}`,
+    html,
+  });
+}
+
 export async function sendTeamInvite({
   to,
   inviterEmail,

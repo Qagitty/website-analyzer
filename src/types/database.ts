@@ -134,6 +134,30 @@ type SubscriptionUpdate = {
   updated_at?: string;
 };
 
+type SupportMessageRow = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  message: string;
+  read: boolean;
+  created_at: string;
+};
+
+type SupportMessageInsert = {
+  id?: string;
+  name: string;
+  email: string;
+  phone?: string;
+  message: string;
+  read?: boolean;
+  created_at?: string;
+};
+
+type SupportMessageUpdate = {
+  read?: boolean;
+};
+
 // ── Main Database type ───────────────────────────────────────────────────────
 
 export interface Database {
@@ -155,6 +179,12 @@ export interface Database {
         Row: SubscriptionRow;
         Insert: SubscriptionInsert;
         Update: SubscriptionUpdate;
+        Relationships: [];
+      };
+      support_messages: {
+        Row: SupportMessageRow;
+        Insert: SupportMessageInsert;
+        Update: SupportMessageUpdate;
         Relationships: [];
       };
     };

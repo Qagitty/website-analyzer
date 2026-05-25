@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { Eye, EyeOff } from 'lucide-react';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +14,8 @@ export default function UpdatePasswordPage() {
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const router = useRouter();
   const supabase = createBrowserClient();
 
@@ -61,41 +64,59 @@ export default function UpdatePasswordPage() {
 
   if (!ready) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0A0A0F] p-4">
-        <div className="w-full max-w-md bg-[#13131A] border border-white/5 rounded-xl shadow-2xl p-8 text-center">
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="w-full max-w-md bg-card border border-border rounded-xl shadow-2xl p-8 text-center">
           <div className="h-8 w-8 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin mx-auto mb-4" />
-          <p className="text-[#94A3B8] text-sm">Verifying reset link…</p>
+          <p className="text-muted-foreground text-sm">Verifying reset link…</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0A0A0F] p-4">
-      <div className="w-full max-w-md bg-[#13131A] border border-white/5 rounded-xl shadow-2xl p-8 space-y-6">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="w-full max-w-md bg-card border border-border rounded-xl shadow-2xl p-8 space-y-6">
         <div>
           <h1 className="text-2xl font-bold mb-1">Set a new password</h1>
-          <p className="text-sm text-[#94A3B8]">Enter your new password below.</p>
+          <p className="text-sm text-muted-foreground">Enter your new password below.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
+          <div className="relative">
             <Input
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               placeholder="New password (8+ characters)"
               value={password}
               onChange={e => setPassword(e.target.value)}
+              className="pr-10"
               required
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+            >
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
           </div>
-          <div>
+          <div className="relative">
             <Input
-              type="password"
+              type={showConfirm ? 'text' : 'password'}
               placeholder="Confirm new password"
               value={confirmPassword}
               onChange={e => setConfirmPassword(e.target.value)}
+              className="pr-10"
               required
             />
+            <button
+              type="button"
+              onClick={() => setShowConfirm((v) => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              aria-label={showConfirm ? 'Hide password' : 'Show password'}
+            >
+              {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
           </div>
 
           {error && <p className="text-sm text-red-400">{error}</p>}

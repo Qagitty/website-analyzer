@@ -8,68 +8,91 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-[#0A0A0F] text-[#F8FAFC]">
+    <div className="min-h-screen bg-background text-foreground">
       <div className="max-w-3xl mx-auto px-4 py-12">
-        <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-[#94A3B8] hover:text-white transition-colors mb-8">
+        <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8">
           <ArrowLeft className="h-4 w-4" />
           Back
         </Link>
 
         <h1 className="text-4xl font-bold mb-2">Terms of Service</h1>
-        <p className="text-sm text-[#94A3B8] mb-10">Last updated: May 2026</p>
+        <p className="text-sm text-muted-foreground mb-10">Last updated: May 2026</p>
 
-        <div className="space-y-10 text-[#94A3B8] leading-relaxed">
+        <div className="space-y-10 text-muted-foreground leading-relaxed">
+
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">1. Acceptance</h2>
-            <p>By accessing or using Website Analyzer (&quot;the Service&quot;), you agree to be bound by these Terms of Service. If you do not agree to all of these terms, you may not use the Service. We reserve the right to update these terms at any time, with notice provided via email or in-app notification.</p>
+            <h2 className="text-xl font-semibold text-foreground mb-3">1. Acceptance</h2>
+            <p>By accessing or using Website Analyzer ("the Service"), you agree to be bound by these Terms of Service. If you do not agree to all of these terms, you may not use the Service. We reserve the right to update these terms at any time; material changes will be communicated via email or in-app notification. Continued use of the Service after such notice constitutes acceptance of the updated terms.</p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">2. Service Description</h2>
-            <p>Website Analyzer is a SaaS platform that analyzes publicly accessible websites for performance, accessibility, SEO quality, and AI-readiness. Analysis results are generated using automated tools and AI models. Results are provided for informational purposes only and do not constitute professional advice.</p>
+            <h2 className="text-xl font-semibold text-foreground mb-3">2. Service Description</h2>
+            <p>Website Analyzer is a SaaS platform that analyzes publicly accessible websites for performance, accessibility, SEO quality, and AI-readiness. Analysis results are generated using automated tools and AI models and may occasionally contain inaccuracies or false positives. Results are provided for informational purposes only and do not constitute professional, legal, or technical advice. You should independently verify any results before acting on them.</p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">3. User Accounts</h2>
-            <p>You are responsible for maintaining the security of your account credentials. You must not share your account with others. You are responsible for all activity that occurs under your account. You must provide accurate information when creating an account and keep it up to date.</p>
+            <h2 className="text-xl font-semibold text-foreground mb-3">3. User Accounts</h2>
+            <p>You are responsible for maintaining the security of your account credentials. You must not share your account or API keys with others or allow third parties to use your credits. You are responsible for all activity that occurs under your account. You must provide accurate information when creating an account and keep it up to date.</p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">4. Acceptable Use</h2>
+            <h2 className="text-xl font-semibold text-foreground mb-3">4. Acceptable Use</h2>
             <p className="mb-3">You agree not to use the Service to:</p>
             <ul className="list-disc list-inside space-y-1.5 ml-2">
-              <li>Analyze websites without authorization from their owners</li>
+              <li>Analyze websites in violation of applicable laws, their terms of service, or access restrictions — you are responsible for ensuring your use complies with applicable law and the rights of third parties</li>
               <li>Conduct denial-of-service attacks or deliberately overload the analysis system</li>
-              <li>Circumvent rate limits or access controls</li>
-              <li>Resell API access without our express written permission</li>
-              <li>Use the Service for any unlawful purpose</li>
+              <li>Circumvent rate limits, access controls, or usage quotas by any means, including automated account creation</li>
+              <li>Scrape, crawl, or systematically extract content from the Service beyond normal API usage</li>
+              <li>Reverse-engineer, decompile, or attempt to derive source code from the Service</li>
+              <li>Resell or sub-license API access without our express written permission</li>
+              <li>Use the Service for any unlawful purpose or in a way that could harm WebAnalyzer or other users</li>
             </ul>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">5. Credits & Billing</h2>
-            <p>The Free plan includes 3 analysis credits per month. Paid plans include additional credits as described on the pricing page. Credits are consumed when an analysis is submitted. Credits that are not used within a billing period do not roll over. Subscriptions are billed monthly in advance. You may cancel your subscription at any time; cancellation takes effect at the end of the current billing period.</p>
+            <h2 className="text-xl font-semibold text-foreground mb-3">5. Credits, Billing & Refunds</h2>
+            <p className="mb-3">The Free plan includes 3 analysis credits per month. Paid plans include additional credits as described on the pricing page. Credits are consumed when an analysis is submitted and do not roll over between billing periods.</p>
+            <p className="mb-3">Subscriptions are billed monthly in advance via Stripe. You may cancel your subscription at any time; cancellation takes effect at the end of the current billing period and you retain access until that date.</p>
+            <p>All fees are non-refundable except where required by applicable law (including applicable EU consumer protection regulations). If you believe you have been charged in error, contact us at <a href="mailto:support@websiteanalyzer.dev" className="text-indigo-600 dark:text-indigo-400 hover:underline">support@websiteanalyzer.dev</a> within 14 days of the charge.</p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">6. Intellectual Property</h2>
-            <p>The Service and its original content, features, and functionality are owned by WebAnalyzer and are protected by applicable intellectual property laws. Analysis reports generated by the Service may be used freely by the account holder for their own purposes. You retain ownership of any content you submit to the Service.</p>
+            <h2 className="text-xl font-semibold text-foreground mb-3">6. Intellectual Property</h2>
+            <p>The Service and its original content, features, and functionality are owned by WebAnalyzer and are protected by applicable intellectual property laws. Analysis reports generated by the Service may be used by the account holder for lawful business or personal purposes. You retain full ownership of any URLs, content, or data you submit to the Service. You grant us a limited licence to process that data solely for the purpose of delivering the Service.</p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">7. Limitation of Liability</h2>
-            <p>The Service is provided &quot;as is&quot; without warranties of any kind. We do not guarantee that analysis results are accurate, complete, or suitable for any particular purpose. To the maximum extent permitted by law, we shall not be liable for any indirect, incidental, special, or consequential damages arising out of your use of the Service.</p>
+            <h2 className="text-xl font-semibold text-foreground mb-3">7. Availability</h2>
+            <p>We aim to provide a reliable service but do not guarantee uninterrupted or error-free availability. The Service may be temporarily unavailable due to maintenance, updates, or circumstances beyond our control. We will make reasonable efforts to notify users of planned downtime in advance.</p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">8. Termination</h2>
-            <p>We may suspend or terminate your account immediately if you violate these Terms. You may delete your account at any time from the Settings page. Upon termination, your data will be deleted in accordance with our Privacy Policy.</p>
+            <h2 className="text-xl font-semibold text-foreground mb-3">8. Limitation of Liability</h2>
+            <p className="mb-3">The Service is provided "as is" without warranties of any kind, express or implied. We do not warrant that analysis results are accurate, complete, or fit for any particular purpose.</p>
+            <p className="mb-3">To the maximum extent permitted by law, WebAnalyzer shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising out of your use of or inability to use the Service.</p>
+            <p>In any case, our total liability to you for any claim arising under or related to these Terms shall not exceed the amount you paid to us in the 12 months preceding the event giving rise to the claim.</p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">9. Governing Law</h2>
-            <p>These Terms are governed by and construed in accordance with applicable law. Any disputes arising under these Terms shall be subject to the exclusive jurisdiction of the competent courts.</p>
+            <h2 className="text-xl font-semibold text-foreground mb-3">9. Force Majeure</h2>
+            <p>We shall not be liable for any failure or delay in performance caused by circumstances beyond our reasonable control, including but not limited to acts of God, internet or infrastructure outages, third-party provider failures (such as cloud hosting or AI API outages), or changes in applicable law.</p>
           </section>
+
+          <section>
+            <h2 className="text-xl font-semibold text-foreground mb-3">10. Termination</h2>
+            <p>We may suspend or terminate your account immediately if you violate these Terms or engage in conduct that we reasonably believe is harmful to the Service or other users. You may delete your account at any time from the Settings page. Upon termination, your data will be deleted in accordance with our <Link href="/privacy" className="text-indigo-600 dark:text-indigo-400 hover:underline">Privacy Policy</Link>.</p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold text-foreground mb-3">11. Governing Law</h2>
+            <p>These Terms are governed by and construed in accordance with the laws of the Republic of Bulgaria. Any disputes arising under or in connection with these Terms that cannot be resolved amicably shall be subject to the exclusive jurisdiction of the competent courts of Bulgaria. If you are a consumer resident in the EU, you may also have rights under the mandatory consumer protection laws of your country of residence.</p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold text-foreground mb-3">12. Contact</h2>
+            <p>For questions about these Terms, please contact us at <a href="mailto:support@websiteanalyzer.dev" className="text-indigo-600 dark:text-indigo-400 hover:underline">support@websiteanalyzer.dev</a>.</p>
+          </section>
+
         </div>
       </div>
     </div>

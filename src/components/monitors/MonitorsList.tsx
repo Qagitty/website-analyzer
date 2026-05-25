@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -79,7 +79,7 @@ function CreateMonitorForm({ onCreated }: { onCreated: (m: Monitor) => void }) {
 
           <div className="flex flex-wrap gap-3 items-center">
             {/* Frequency */}
-            <div className="flex rounded-md border border-white/10 overflow-hidden text-sm">
+            <div className="flex rounded-md border border-border overflow-hidden text-sm">
               {(['daily', 'weekly'] as const).map((f) => (
                 <button
                   key={f}
@@ -88,7 +88,7 @@ function CreateMonitorForm({ onCreated }: { onCreated: (m: Monitor) => void }) {
                   className={`px-3 py-1.5 capitalize transition-colors ${
                     frequency === f
                       ? 'bg-gradient-to-r from-indigo-500 to-violet-500 text-white'
-                      : 'bg-[#13131A] hover:bg-white/5 text-muted-foreground'
+                      : 'bg-card hover:bg-accent text-muted-foreground'
                   }`}
                 >
                   {f}
@@ -101,7 +101,7 @@ function CreateMonitorForm({ onCreated }: { onCreated: (m: Monitor) => void }) {
               type="button"
               onClick={() => setNotify((v) => !v)}
               className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-colors ${
-                notify ? 'border-indigo-500/50 text-indigo-300' : 'border-white/10 text-[#475569]'
+                notify ? 'border-indigo-500/50 text-indigo-300' : 'border-border text-muted-foreground/60'
               }`}
             >
               {notify ? <Bell className="h-3.5 w-3.5" /> : <BellOff className="h-3.5 w-3.5" />}
@@ -145,6 +145,8 @@ function MonitorCard({
   onDelete: (id: string) => void;
 }) {
   const [busy, setBusy] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   const toggle = async () => {
     setBusy(true);
@@ -183,7 +185,7 @@ function MonitorCard({
   const scores = monitor.last_scores;
 
   return (
-    <div className={`bg-[#13131A] border border-white/5 rounded-xl hover:border-indigo-500/20 transition-colors p-4 space-y-3 ${monitor.is_active ? '' : 'opacity-60'}`}>
+    <div className={`bg-card border border-border rounded-xl hover:border-indigo-500/20 transition-colors p-4 space-y-3 ${monitor.is_active ? '' : 'opacity-60'}`}>
         {/* URL + status */}
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2 min-w-0">
@@ -200,16 +202,16 @@ function MonitorCard({
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <div className="flex items-center gap-1.5">
-              <span className={`h-2 w-2 rounded-full ${monitor.is_active ? 'bg-emerald-400 animate-pulse' : 'bg-[#475569]'}`} />
+              <span className={`h-2 w-2 rounded-full ${monitor.is_active ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
               <span className="text-xs text-muted-foreground">{monitor.is_active ? 'Active' : 'Paused'}</span>
             </div>
-            <span className="bg-[#1C1C27] text-muted-foreground border border-white/10 text-xs px-2 py-0.5 rounded-full capitalize">{monitor.frequency}</span>
+            <span className="bg-secondary text-muted-foreground border border-border text-xs px-2 py-0.5 rounded-full capitalize">{monitor.frequency}</span>
           </div>
         </div>
 
         {/* Last scores */}
         {scores && (
-          <div className="bg-[#0A0A0F] rounded-lg p-3 border border-white/5 flex flex-wrap gap-4">
+          <div className="bg-background rounded-lg p-3 border border-border flex flex-wrap gap-4">
             {(['performance', 'accessibility', 'seo'] as const).map((k) => {
               const v = (scores as any)[k];
               if (v == null) return null;
@@ -217,7 +219,7 @@ function MonitorCard({
               return (
                 <div key={k} className="text-center">
                   <div className={`text-lg font-bold leading-none ${color}`}>{v}</div>
-                  <div className="text-xs text-[#475569] capitalize mt-0.5">{k}</div>
+                  <div className="text-xs text-muted-foreground/60 capitalize mt-0.5">{k}</div>
                 </div>
               );
             })}
@@ -229,9 +231,9 @@ function MonitorCard({
           <TrendChart url={monitor.url} monitorId={monitor.id} />
         )}
 
-        {/* Timing */}
-        <div className="flex items-center gap-4 text-xs text-[#475569] flex-wrap">
-          {monitor.last_run_at && (
+        {/* Timing — rendered only on client to avoid SSR/timezone hydration mismatch */}
+        <div className="flex items-center gap-4 text-xs text-muted-foreground/60 flex-wrap">
+          {mounted && monitor.last_run_at && (
             <span className="flex items-center gap-1">
               <Clock className="h-3 w-3" />
               Last run {formatDistanceToNow(new Date(monitor.last_run_at), { addSuffix: true })}
@@ -239,7 +241,7 @@ function MonitorCard({
           )}
           <span className="flex items-center gap-1">
             <Clock className="h-3 w-3" />
-            Next run {format(new Date(monitor.next_run_at), 'MMM d, HH:mm')}
+            Next run {mounted ? format(new Date(monitor.next_run_at), 'MMM d, HH:mm') : '—'}
           </span>
           {monitor.notify_on_score_drop && (
             <span className="flex items-center gap-1">
@@ -265,7 +267,7 @@ function MonitorCard({
             type="button"
             onClick={toggle}
             disabled={busy}
-            className="text-[#475569] hover:text-muted-foreground text-xs flex items-center gap-1"
+            className="text-muted-foreground/60 hover:text-muted-foreground text-xs flex items-center gap-1"
           >
             {monitor.is_active
               ? <><Pause className="h-3 w-3" /> Pause</>
@@ -299,7 +301,7 @@ export function MonitorsList({ initialMonitors }: { initialMonitors: Monitor[] }
       <CreateMonitorForm onCreated={handleCreated} />
 
       {monitors.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-white/10 p-10 text-[#475569] text-center text-sm py-12">
+        <div className="rounded-lg border border-dashed border-border p-10 text-muted-foreground/60 text-center text-sm py-12">
           No monitors yet. Create one above to start tracking your sites automatically.
         </div>
       ) : (

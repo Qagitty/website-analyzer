@@ -5,15 +5,18 @@ import { z } from 'zod';
 
 const ACCEPTED_MIME = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
 
+function normalizeUrl(value: string): string {
+  const trimmed = value.trim();
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+}
+
 const schema = z.object({
   url: z
     .string()
     .trim()
-    .url('Invalid URL')
-    .refine(
-      (url) => url.startsWith('http://') || url.startsWith('https://'),
-      'URL must start with http:// or https://'
-    ),
+    .transform(normalizeUrl)
+    .pipe(z.string().url('Invalid URL')),
   designScreenshotBase64: z.string().optional(),
   designMimeType: z
     .string()
