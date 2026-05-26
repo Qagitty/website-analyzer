@@ -99,14 +99,17 @@ describe('POST /api/analyze', () => {
     expect(body.error).toBe('Unauthorized');
   });
 
-  it('returns 400 for invalid URL', async () => {
+  it('returns 422 for a non-existent domain (post URL-normalization)', async () => {
+    // 'not-a-url' gets normalized to 'https://not-a-url', which passes Zod
+    // validation but then fails the DoH reachability check → 422
     const req = new NextRequest('http://localhost/api/analyze', {
       method: 'POST',
       body: JSON.stringify({ url: 'not-a-url' }),
       headers: { 'Content-Type': 'application/json' },
     });
     const res = await analyzePost(req);
-    expect(res.status).toBe(400);
+    // Zod normalises to https://not-a-url; DoH confirms NXDOMAIN → 422
+    expect(res.status).toBe(422);
   });
 
   it('returns 400 for missing url field', async () => {

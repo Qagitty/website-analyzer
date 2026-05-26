@@ -1,3 +1,175 @@
+// ─── URL Pre-Validation ──────────────────────────────────────────────────────
+
+type UrlValidationResult = {
+  isValid: boolean;
+  reason?: string;
+  statusCode?: number;
+  finalUrl?: string;
+  errorType?:
+    | 'http_error'
+    | 'navigation_error'
+    | 'empty_page'
+    | 'browser_error_page'
+    | 'unknown';
+};
+
+/** HTTP status codes that indicate a broken/unavailable page. */
+const HTTP_ERROR_STATUSES = new Set([404, 410, 500, 502, 503, 504]);
+
+/**
+ * Lowercase text patterns that appear in browser / CDN error pages.
+ * We check these against a stripped copy of the HTML body.
+ */
+const BROWSER_ERROR_PATTERNS: readonly string[] = [
+  '404 not found',
+  'page not found',
+  "this site can't be reached",
+  'server not found',
+  'dns_probe_finished_nxdomain',
+  'dns probe finished nxdomain',
+  'site unavailable',
+  'the requested url was not found',
+  'service unavailable',
+  'bad gateway',
+  'gateway timeout',
+  'err_name_not_resolved',
+];
+
+/**
+ * Substrings found in fetch() error messages that indicate a navigation /
+ * DNS / TLS failure rather than a normal HTTP error response.
+ */
+const NAVIGATION_ERROR_FRAGMENTS: readonly string[] = [
+  'err_name_not_resolved',
+  'err_connection_refused',
+  'err_connection_timed_out',
+  'err_ssl_protocol_error',
+  'err_cert_authority_invalid',
+  'net::err_',
+  'dns_probe_finished_nxdomain',
+  'failed to fetch',
+  'networkerror',
+  'getaddrinfo',
+  'enotfound',
+  'etimedout',
+  'econnrefused',
+];
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- available for structured logging
+function workerLog(
+  level: 'info' | 'warn' | 'error',
+  message: string,
+  data?: Record<string, unknown>,
+): void {
+  const entry = JSON.stringify({ level, ts: new Date().toISOString(), message, ...data });
+  if (level === 'error') console.error(entry);
+  else if (level === 'warn') console.warn(entry);
+  else console.log(entry);
+}
+
+function httpStatusText(code: number): string {
+  const map: Record<number, string> = {
+    404: 'Not Found',
+    410: 'Gone',
+    500: 'Internal Server Error',
+    502: 'Bad Gateway',
+    503: 'Service Unavailable',
+    504: 'Gateway Timeout',
+  };
+  return map[code] ?? 'HTTP Error';
+}
+
+/**
+ * Pre-validate a URL before spending analysis credits.
+ *
+ * Checks (in order):
+ *  1. Navigation reachability — fetch must not throw (DNS, TLS, timeout)
+ *  2. HTTP status          — blocks 404 / 410 / 500 / 502 / 503 / 504
+ *  3. Empty page           — body < 500 bytes or < 50 visible chars
+ *  4. Browser error page   — known error-page text in thin content (< 400 chars)
+ *
+ * NOTE: console errors, CSP warnings, and failed analytics requests do NOT
+ * cause a validation failure — many healthy sites have those.
+ */
+async function validateWebsiteUrl(url: string): Promise<UrlValidationResult> {
+  workerLog('info', 'Validating URL before analysis', { url });
+
+  // ── 1. Navigation reachability ──────────────────────────────────────────
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 15_000);
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: 'GET',
+      redirect: 'follow',
+      signal: ctrl.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; WebsiteAnalyzer/1.0)',
+        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+      },
+    });
+  } catch (err: unknown) {
+    const isAbort = err instanceof Error && err.name === 'AbortError';
+    const msg = err instanceof Error ? err.message : String(err);
+    const reason = isAbort
+      ? 'Connection timed out — the site may be down or very slow.'
+      : `Navigation failed: ${msg}`;
+    workerLog('warn', 'URL validation failed — navigation error', { url, reason });
+    return { isValid: false, reason, errorType: 'navigation_error', finalUrl: url };
+  } finally {
+    clearTimeout(timer);
+  }
+
+  const finalUrl = response.url || url;
+  const statusCode = response.status;
+
+  // ── 2. HTTP error status ────────────────────────────────────────────────
+  if (HTTP_ERROR_STATUSES.has(statusCode)) {
+    const reason = `HTTP ${statusCode} — ${httpStatusText(statusCode)}`;
+    workerLog('warn', 'URL validation failed — HTTP error', { url, finalUrl, statusCode });
+    return { isValid: false, reason, statusCode, finalUrl, errorType: 'http_error' };
+  }
+
+  // Read body once for the remaining checks
+  let html: string;
+  try {
+    html = await response.text();
+  } catch {
+    workerLog('warn', 'URL validation failed — could not read response body', { url, finalUrl, statusCode });
+    return { isValid: false, reason: 'Could not read page content', statusCode, finalUrl, errorType: 'unknown' };
+  }
+
+  const visibleText = html.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+
+  // ── 3. Browser / server error page detection ────────────────────────────
+  // Checked BEFORE the empty-page guard so that short-but-identifiable error
+  // pages (e.g. "Page Not Found", "This site can't be reached") get the more
+  // descriptive error type.
+  // We only flag when visible content is thin (< 400 chars) to avoid false
+  // positives on legitimate pages that merely mention error strings in prose.
+  const bodyLower = html.toLowerCase();
+  const matchedPattern = BROWSER_ERROR_PATTERNS.find(p => bodyLower.includes(p));
+  if (matchedPattern && visibleText.length < 400) {
+    const reason = `Detected error page (matched: "${matchedPattern}")`;
+    workerLog('warn', 'URL validation failed — browser error page', { url, finalUrl, statusCode, matchedPattern });
+    return { isValid: false, reason, statusCode, finalUrl, errorType: 'browser_error_page' };
+  }
+
+  // ── 4. Empty / near-empty page ──────────────────────────────────────────
+  if (html.length < 500 || visibleText.length < 50) {
+    const reason = `Page appears empty — ${html.length} bytes HTML, ${visibleText.length} visible chars`;
+    workerLog('warn', 'URL validation failed — empty page', { url, finalUrl, statusCode, htmlBytes: html.length, visibleChars: visibleText.length });
+    return { isValid: false, reason, statusCode, finalUrl, errorType: 'empty_page' };
+  }
+
+  workerLog('info', 'URL validation passed', { url, finalUrl, statusCode });
+  return { isValid: true, statusCode, finalUrl };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 interface Env {
   WORKER_AUTH_TOKEN: string;
   WORKER_CALLBACK_SECRET: string;
@@ -37,6 +209,26 @@ export default {
 
 async function runAnalysis(req: AnalysisRequest): Promise<void> {
   const startTime = Date.now();
+
+  // ── Step 0: Pre-validate the URL ─────────────────────────────────────────
+  // Abort early (before spending a credit-worth of work) if the URL is broken,
+  // returns an HTTP error, or renders an error page.
+  const validation = await validateWebsiteUrl(req.url);
+  if (!validation.isValid) {
+    await sendCallback(req.callbackUrl, req.authToken, {
+      analysisId: req.analysisId,
+      error:
+        'The provided URL is unavailable, broken, or points to a non-existing page. ' +
+        'Please verify the link and try again.',
+      validationDebug: {
+        statusCode: validation.statusCode,
+        finalUrl:   validation.finalUrl,
+        errorType:  validation.errorType,
+        reason:     validation.reason,
+      },
+    });
+    return;
+  }
 
   try {
     // Run 3 TTFB measurements for stability
