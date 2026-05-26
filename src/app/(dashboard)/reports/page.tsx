@@ -69,11 +69,12 @@ export default async function ReportsPage() {
         </div>
       ) : (
         <div className="bg-card border border-border rounded-xl overflow-hidden">
-          {/* Table header */}
-          <div className="grid grid-cols-[1fr_auto_auto_auto] gap-4 px-4 py-3 border-b border-border text-xs font-medium text-muted-foreground/60 uppercase tracking-wider">
+          {/* Table header — 5 columns: URL | Score | Status | (Retry) | Age */}
+          <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 px-4 py-3 border-b border-border text-xs font-medium text-muted-foreground/60 uppercase tracking-wider">
             <span>URL</span>
             <span className="text-right">Score</span>
             <span className="text-right">Status</span>
+            <span /> {/* Retry column — no header label */}
             <span className="text-right">Age</span>
           </div>
 
@@ -89,8 +90,9 @@ export default async function ReportsPage() {
                 <Link
                   key={analysis.id}
                   href={href}
-                  className="grid grid-cols-[1fr_auto_auto_auto] gap-4 px-4 py-3.5 items-center hover:bg-white/[0.02] transition-colors cursor-pointer"
+                  className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 px-4 py-3.5 items-center hover:bg-white/[0.02] transition-colors cursor-pointer"
                 >
+                  {/* URL */}
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">{analysis.url}</p>
                     {(analysis as any).user_id !== user!.id && (
@@ -98,6 +100,7 @@ export default async function ReportsPage() {
                     )}
                   </div>
 
+                  {/* Score */}
                   <div className="text-right">
                     {perf != null ? (
                       <span className={`text-sm font-semibold tabular-nums ${scoreColor(perf)}`}>
@@ -108,13 +111,19 @@ export default async function ReportsPage() {
                     )}
                   </div>
 
-                  <div className="text-right flex items-center justify-end gap-2">
+                  {/* Status badge */}
+                  <div className="text-right">
                     <StatusBadge status={analysis.status} />
+                  </div>
+
+                  {/* Retry (only for failed — empty cell otherwise keeps columns aligned) */}
+                  <div className="flex items-center justify-end">
                     {analysis.status === 'failed' && (
                       <RetryButton url={analysis.url} />
                     )}
                   </div>
 
+                  {/* Age */}
                   <div className="text-right">
                     <span className="text-xs text-muted-foreground/60 whitespace-nowrap">
                       {formatDistanceToNow(new Date(analysis.created_at), { addSuffix: true })}
