@@ -33,9 +33,31 @@ export function SignupForm() {
     resolver: zodResolver(schema),
   });
 
+  const [emailError, setEmailError] = useState('');
+
   const onSubmit = async (data: FormData) => {
     setLoading(true);
+    setEmailError('');
     try {
+      // ── Step 1: server-side email uniqueness check ─────────────────────
+      const checkRes = await fetch('/api/auth/check-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: data.email }),
+      });
+
+      if (checkRes.status === 409) {
+        const { error } = await checkRes.json();
+        setEmailError(error ?? 'This email is already registered.');
+        return;
+      }
+
+      if (!checkRes.ok) {
+        const { error } = await checkRes.json().catch(() => ({}));
+        throw new Error(error ?? 'Validation failed');
+      }
+
+      // ── Step 2: proceed with Supabase signup ───────────────────────────
       const { error } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
@@ -64,8 +86,20 @@ export function SignupForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div>
-        <Input type="email" placeholder="Email address" {...register('email')} />
-        {errors.email && <p className="mt-1 text-sm text-red-400">{errors.email.message}</p>}
+        <Input
+          type="email"
+          placeholder="Email address"
+          {...register('email')}
+          onChange={(e) => {
+            register('email').onChange(e);
+            if (emailError) setEmailError('');
+          }}
+        />
+        {(errors.email || emailError) && (
+          <p className="mt-1 text-sm text-red-400">
+            {emailError || errors.email?.message}
+          </p>
+        )}
       </div>
       <div>
         <div className="relative">
