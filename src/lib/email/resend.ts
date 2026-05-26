@@ -15,6 +15,144 @@ interface ScoreDropAlert {
   drops: Array<{ metric: string; previous: number; current: number; delta: number }>;
 }
 
+export async function sendWelcomeEmail({
+  to,
+  name,
+}: {
+  to: string;
+  name?: string | null;
+}): Promise<void> {
+  if (!resend) {
+    console.log('[email] RESEND_API_KEY not set — skipping welcome email for', to);
+    return;
+  }
+
+  const displayName = name?.split(' ')[0] || 'there';
+  const analyzeUrl = `${APP_URL}/analyze`;
+  const dashboardUrl = `${APP_URL}/dashboard`;
+
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Welcome to WebAnalyzer</title>
+</head>
+<body style="margin:0;padding:0;background:#0d0d14;font-family:system-ui,-apple-system,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0d0d14;padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table width="520" cellpadding="0" cellspacing="0" style="max-width:520px;width:100%;">
+
+          <!-- Logo header -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);border-radius:16px 16px 0 0;padding:28px 32px;text-align:center;">
+              <div style="font-size:28px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">
+                🌐 WebAnalyzer
+              </div>
+              <div style="font-size:13px;color:#c4b5fd;margin-top:4px;letter-spacing:0.5px;">
+                Website Performance &amp; Quality Analysis
+              </div>
+            </td>
+          </tr>
+
+          <!-- Main content -->
+          <tr>
+            <td style="background:#16161f;padding:32px;border-left:1px solid #2d2d3d;border-right:1px solid #2d2d3d;">
+
+              <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#f1f0ff;">
+                Welcome, ${displayName}! 🎉
+              </h1>
+              <p style="margin:0 0 24px;font-size:15px;color:#a09fbb;line-height:1.6;">
+                Your account is ready. You have <strong style="color:#818cf8;">3 free analyses</strong> to get started — no credit card needed.
+              </p>
+
+              <!-- Feature list -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
+                <tr>
+                  <td style="padding:10px 0;border-bottom:1px solid #2d2d3d;">
+                    <span style="color:#818cf8;font-size:16px;">⚡</span>
+                    <span style="color:#c4c3db;font-size:14px;margin-left:10px;">
+                      <strong style="color:#f1f0ff;">Performance scores</strong> — Lighthouse metrics, Core Web Vitals, TTFB
+                    </span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 0;border-bottom:1px solid #2d2d3d;">
+                    <span style="color:#818cf8;font-size:16px;">♿</span>
+                    <span style="color:#c4c3db;font-size:14px;margin-left:10px;">
+                      <strong style="color:#f1f0ff;">Accessibility audit</strong> — WCAG compliance checks, EAA readiness
+                    </span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 0;border-bottom:1px solid #2d2d3d;">
+                    <span style="color:#818cf8;font-size:16px;">🤖</span>
+                    <span style="color:#c4c3db;font-size:14px;margin-left:10px;">
+                      <strong style="color:#f1f0ff;">AI insights</strong> — Claude-powered recommendations tailored to your site
+                    </span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 0;">
+                    <span style="color:#818cf8;font-size:16px;">📄</span>
+                    <span style="color:#c4c3db;font-size:14px;margin-left:10px;">
+                      <strong style="color:#f1f0ff;">PDF reports</strong> — shareable, professional-grade reports for clients
+                    </span>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Primary CTA -->
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center" style="padding-bottom:12px;">
+                    <a href="${analyzeUrl}"
+                       style="display:inline-block;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#ffffff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;letter-spacing:0.2px;">
+                      Analyze Your First Site →
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center">
+                    <a href="${dashboardUrl}"
+                       style="color:#818cf8;font-size:13px;text-decoration:none;">
+                      Go to your dashboard
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background:#0d0d14;border:1px solid #2d2d3d;border-top:none;border-radius:0 0 16px 16px;padding:16px 32px;text-align:center;">
+              <p style="margin:0;font-size:12px;color:#5c5b73;line-height:1.6;">
+                You're receiving this because you just created an account on
+                <a href="${APP_URL}" style="color:#6366f1;text-decoration:none;">WebAnalyzer</a>.
+                <br />Questions? Just reply to this email.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Welcome to WebAnalyzer, ${displayName}! 🎉`,
+    html,
+  });
+}
+
 export async function sendScoreDropAlert({
   to,
   url,
