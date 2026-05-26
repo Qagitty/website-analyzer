@@ -28,31 +28,57 @@ const schema = z.object({
 });
 
 // DNS status codes per RFC 1035
-const DNS_NXDOMAIN = 3; // Name does not exist
+const DNS_NXDOMAIN = 3;   // Domain does not exist
+const DNS_NOERROR  = 0;   // Name found
 
 // Check domain existence via DNS-over-HTTPS (DoH).
-// Node.js dns/Resolver targets port-53 UDP which AWS VPCs intercept and
-// route through their own resolver — making even "8.8.8.8" unreliable.
-// DoH is a plain HTTPS request to dns.google (port 443) which bypasses
-// VPC DNS interception entirely.
+//
+// WHY DoH and not Node's dns/Resolver:
+//   Vercel/AWS VPCs intercept outbound UDP port 53 and route it through
+//   their own resolver, so setServers(['8.8.8.8']) still hits the VPC
+//   resolver which can resolve names that appear as NXDOMAIN everywhere else.
+//   DoH is a plain HTTPS request (port 443) that bypasses this entirely.
+//
+// Strategy: query Google DoH and Cloudflare DoH in parallel.
+//   - NXDOMAIN from either  → domain is confirmed dead → block.
+//   - NOERROR + Answer from either → domain is alive → allow.
+//   - Both APIs unreachable  → fail open (never block real sites due to
+//     transient DoH outage).
 async function domainExistsViaDoh(hostname: string): Promise<boolean> {
-  const check = async (type: 'A' | 'AAAA'): Promise<boolean> => {
+  type DoHResult = 'exists' | 'nxdomain' | 'unavailable';
+
+  const query = async (baseUrl: string, type: 'A' | 'AAAA'): Promise<DoHResult> => {
     try {
       const res = await fetch(
-        `https://dns.google/resolve?name=${encodeURIComponent(hostname)}&type=${type}`,
+        `${baseUrl}?name=${encodeURIComponent(hostname)}&type=${type}`,
         { headers: { Accept: 'application/dns-json' }, signal: AbortSignal.timeout(5_000) }
       );
-      if (!res.ok) return true; // DoH API error → fail open, don't block
-      const data = await res.json();
-      return data.Status !== DNS_NXDOMAIN && Array.isArray(data.Answer) && data.Answer.length > 0;
+      if (!res.ok) return 'unavailable';
+      const data: { Status: number; Answer?: unknown[] } = await res.json();
+      if (data.Status === DNS_NXDOMAIN) return 'nxdomain';
+      if (data.Status === DNS_NOERROR && Array.isArray(data.Answer) && data.Answer.length > 0) return 'exists';
+      return 'unavailable'; // NOERROR but no records for this type — try AAAA next
     } catch {
-      return true; // Timeout or network error → fail open
+      return 'unavailable';
     }
   };
 
-  // Check A first; fall back to AAAA for IPv6-only sites
-  if (await check('A')) return true;
-  return check('AAAA');
+  const resolvers = [
+    'https://dns.google/resolve',
+    'https://1.1.1.1/dns-query',  // Cloudflare DoH fallback
+  ];
+
+  for (const type of ['A', 'AAAA'] as const) {
+    // Query both resolvers in parallel for this record type
+    const results = await Promise.all(resolvers.map((r) => query(r, type)));
+
+    if (results.some((r) => r === 'nxdomain')) return false; // At least one confirmed dead
+    if (results.some((r) => r === 'exists'))   return true;  // At least one confirmed alive
+    // Both unavailable for this type → try AAAA
+  }
+
+  // Couldn't get a definitive answer from either resolver → fail open
+  return true;
 }
 
 // Verify the URL resolves and a server responds before consuming a credit.
