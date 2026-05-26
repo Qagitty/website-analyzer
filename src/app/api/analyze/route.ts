@@ -81,9 +81,46 @@ async function domainExistsViaDoh(hostname: string): Promise<boolean> {
   return true;
 }
 
-// Verify the URL resolves and a server responds before consuming a credit.
-// Step 1: DoH DNS check — domain must exist per Google's authoritative resolver.
-// Step 2: HTTP reachability — any HTTP response (even 4xx/5xx) means the host is up.
+// HTTP status codes that indicate a broken / unavailable page.
+const HTTP_ERROR_STATUSES_SET = new Set([404, 410, 500, 502, 503, 504]);
+
+// Text patterns found in browser-generated error pages, CDN error pages (e.g.
+// Cloudflare "Error 1016 — Origin DNS error"), and domain parking pages.
+// These are checked against a lowercase copy of the response body, but ONLY
+// when the visible text is thin (< 400 chars) to avoid false positives on
+// legitimate pages that mention error phrases in their content.
+const PAGE_ERROR_PATTERNS = [
+  'error 1016',
+  'origin dns error',
+  'dns_probe_finished_nxdomain',
+  'this site can\'t be reached',
+  'server not found',
+  'page not found',
+  '404 not found',
+  'the requested url was not found',
+  'domain for sale',
+  'buy this domain',
+  'this domain is parked',
+  'domain parking',
+  'this domain has expired',
+  'site unavailable',
+  'bad gateway',
+  'gateway timeout',
+  'service unavailable',
+];
+
+// Verify the URL is reachable AND serves real content before consuming a credit.
+//
+// Strategy (three layers):
+//   1. DoH DNS check   — fast, catches definitive NXDOMAIN.
+//   2. HTTP GET        — catches domains whose DNS is hijacked to a parking/CDN
+//                        error page; reads the body to validate actual content.
+//   3. Content check   — rejects CDN error pages (Cloudflare 1016), parking
+//                        pages ("domain for sale"), and near-empty responses.
+//
+// NOTE: "any 4xx/5xx = host is up" is intentionally NOT used here because
+// Cloudflare Workers (where the real analysis runs) return a 200 OK with an
+// error-page body for NXDOMAIN domains — defeating a status-only check.
 async function checkUrlReachable(url: string): Promise<{ ok: boolean; error?: string }> {
   let hostname: string;
   try {
@@ -92,6 +129,7 @@ async function checkUrlReachable(url: string): Promise<{ ok: boolean; error?: st
     return { ok: false, error: 'Invalid URL.' };
   }
 
+  // ── Layer 1: DoH DNS check ──────────────────────────────────────────────
   const exists = await domainExistsViaDoh(hostname);
   if (!exists) {
     return {
@@ -100,31 +138,24 @@ async function checkUrlReachable(url: string): Promise<{ ok: boolean; error?: st
     };
   }
 
-  // HTTP reachability check — HEAD first (fast), fall back to GET
-  const attempt = async (method: 'HEAD' | 'GET'): Promise<boolean> => {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 10_000);
-    try {
-      await fetch(url, { method, redirect: 'follow', signal: ctrl.signal });
-      return true;
-    } catch (err: any) {
-      if (err?.name === 'AbortError') throw err;
-      return false;
-    } finally {
-      clearTimeout(timer);
-    }
-  };
+  // ── Layer 2: HTTP GET with body ─────────────────────────────────────────
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 15_000);
 
+  let response: Response;
   try {
-    const headOk = await attempt('HEAD');
-    if (headOk) return { ok: true };
-    const getOk = await attempt('GET');
-    if (getOk) return { ok: true };
-    return {
-      ok: false,
-      error: 'The URL could not be reached. Please check that the domain exists and the site is online.',
-    };
+    response = await fetch(url, {
+      method: 'GET',
+      redirect: 'follow',
+      signal: ctrl.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; WebsiteAnalyzer/1.0)',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+      },
+    });
   } catch (err: any) {
+    clearTimeout(timer);
     if (err?.name === 'AbortError') {
       return {
         ok: false,
@@ -135,7 +166,48 @@ async function checkUrlReachable(url: string): Promise<{ ok: boolean; error?: st
       ok: false,
       error: 'The URL could not be reached. Please check that the domain exists and the site is online.',
     };
+  } finally {
+    clearTimeout(timer);
   }
+
+  // HTTP error statuses
+  if (HTTP_ERROR_STATUSES_SET.has(response.status)) {
+    return {
+      ok: false,
+      error: `The URL returned HTTP ${response.status}. Please check the link is correct.`,
+    };
+  }
+
+  // ── Layer 3: Content check ──────────────────────────────────────────────
+  let html: string;
+  try {
+    html = await response.text();
+  } catch {
+    // Can't read body — assume reachable (e.g. binary/non-text content-type)
+    return { ok: true };
+  }
+
+  const visibleText = html.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+
+  // Check for CDN/parking error pages (only when content is thin)
+  const bodyLower = html.toLowerCase();
+  const matchedPattern = PAGE_ERROR_PATTERNS.find(p => bodyLower.includes(p));
+  if (matchedPattern && visibleText.length < 400) {
+    return {
+      ok: false,
+      error: 'The URL appears to point to an error or parking page. Please verify the link.',
+    };
+  }
+
+  // Near-empty page
+  if (html.length < 500 || visibleText.length < 50) {
+    return {
+      ok: false,
+      error: 'The URL returns an empty or near-empty page. Please verify the link.',
+    };
+  }
+
+  return { ok: true };
 }
 
 export async function POST(req: NextRequest) {
