@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Resolver } from 'dns/promises';
 import { createServerClient } from '@/lib/supabase/server';
 import { uploadDesignScreenshot } from '@/lib/supabase/storage';
 import { z } from 'zod';
@@ -28,9 +27,37 @@ const schema = z.object({
     ),
 });
 
+// DNS status codes per RFC 1035
+const DNS_NXDOMAIN = 3; // Name does not exist
+
+// Check domain existence via DNS-over-HTTPS (DoH).
+// Node.js dns/Resolver targets port-53 UDP which AWS VPCs intercept and
+// route through their own resolver — making even "8.8.8.8" unreliable.
+// DoH is a plain HTTPS request to dns.google (port 443) which bypasses
+// VPC DNS interception entirely.
+async function domainExistsViaDoh(hostname: string): Promise<boolean> {
+  const check = async (type: 'A' | 'AAAA'): Promise<boolean> => {
+    try {
+      const res = await fetch(
+        `https://dns.google/resolve?name=${encodeURIComponent(hostname)}&type=${type}`,
+        { headers: { Accept: 'application/dns-json' }, signal: AbortSignal.timeout(5_000) }
+      );
+      if (!res.ok) return true; // DoH API error → fail open, don't block
+      const data = await res.json();
+      return data.Status !== DNS_NXDOMAIN && Array.isArray(data.Answer) && data.Answer.length > 0;
+    } catch {
+      return true; // Timeout or network error → fail open
+    }
+  };
+
+  // Check A first; fall back to AAAA for IPv6-only sites
+  if (await check('A')) return true;
+  return check('AAAA');
+}
+
 // Verify the URL resolves and a server responds before consuming a credit.
-// Step 1: explicit DNS lookup — catches NXDOMAIN definitively regardless of Vercel's network.
-// Step 2: HTTP reachability — any response (even 4xx/5xx) means the host is up.
+// Step 1: DoH DNS check — domain must exist per Google's authoritative resolver.
+// Step 2: HTTP reachability — any HTTP response (even 4xx/5xx) means the host is up.
 async function checkUrlReachable(url: string): Promise<{ ok: boolean; error?: string }> {
   let hostname: string;
   try {
@@ -39,21 +66,12 @@ async function checkUrlReachable(url: string): Promise<{ ok: boolean; error?: st
     return { ok: false, error: 'Invalid URL.' };
   }
 
-  // DNS check using public resolvers (Google + Cloudflare) instead of Vercel's system
-  // resolver, which may have quirks with certain TLDs and incorrectly resolve NXDOMAIN.
-  const resolver = new Resolver();
-  resolver.setServers(['8.8.8.8', '1.1.1.1', '9.9.9.9']);
-  try {
-    await resolver.resolve4(hostname);
-  } catch (err: any) {
-    const dnsError = err?.code as string | undefined;
-    if (dnsError === 'ENOTFOUND' || dnsError === 'ENODATA' || dnsError === 'EAI_NONAME' || dnsError === 'EAI_AGAIN') {
-      return {
-        ok: false,
-        error: 'This domain does not exist. Please check the URL for typos.',
-      };
-    }
-    // Unknown DNS error — fall through and let the HTTP check decide
+  const exists = await domainExistsViaDoh(hostname);
+  if (!exists) {
+    return {
+      ok: false,
+      error: 'This domain does not exist. Please check the URL for typos.',
+    };
   }
 
   // HTTP reachability check — HEAD first (fast), fall back to GET
