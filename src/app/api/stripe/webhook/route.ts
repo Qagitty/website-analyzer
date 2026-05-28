@@ -1,14 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { PLAN_CREDITS } from '@/lib/stripe/plans';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-
-const PLAN_CREDITS: Record<string, number> = {
-  free: 3,
-  pro: 100,
-  agency: 99999,
-};
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
@@ -51,7 +46,7 @@ export async function POST(req: NextRequest) {
 
         await supabase
           .from('user_settings')
-          .update({ credits: PLAN_CREDITS[plan] ?? 100 })
+          .update({ credits: PLAN_CREDITS[plan as keyof typeof PLAN_CREDITS] ?? PLAN_CREDITS.pro })
           .eq('user_id', subscription.user_id);
       }
       break;
@@ -59,10 +54,20 @@ export async function POST(req: NextRequest) {
 
     case 'customer.subscription.deleted': {
       const sub = event.data.object as Stripe.Subscription;
-      await supabase
+      const { data: canceled } = await supabase
         .from('subscriptions')
         .update({ plan: 'free', status: 'canceled' })
-        .eq('stripe_subscription_id', sub.id);
+        .eq('stripe_subscription_id', sub.id)
+        .select('user_id')
+        .single();
+
+      // Reset credits to free tier — user kept paid credits after cancellation otherwise
+      if (canceled?.user_id) {
+        await supabase
+          .from('user_settings')
+          .update({ credits: PLAN_CREDITS.free })
+          .eq('user_id', canceled.user_id);
+      }
       break;
     }
   }

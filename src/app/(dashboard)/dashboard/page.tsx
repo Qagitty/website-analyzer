@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
 import { createServerClient } from '@/lib/supabase/server';
 import { StatsOverview } from '@/components/dashboard/StatsOverview';
 import { RecentAnalyses } from '@/components/dashboard/RecentAnalyses';
@@ -11,17 +12,19 @@ export default async function DashboardPage() {
   const supabase = createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
 
+  if (!user) redirect('/login');
+
   const [{ data: analyses }, { data: settings }] = await Promise.all([
     supabase
       .from('analyses')
       .select('id, url, status, lighthouse_scores, created_at')
-      .eq('user_id', user!.id)
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(10),
     supabase
       .from('user_settings')
       .select('credits, credits_used')
-      .eq('user_id', user!.id)
+      .eq('user_id', user.id)
       .single(),
   ]);
 

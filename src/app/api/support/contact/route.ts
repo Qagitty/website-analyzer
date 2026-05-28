@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { sendSupportMessage } from '@/lib/email/resend';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { checkWebRateLimit } from '@/lib/rate-limit/web';
 
 const schema = z.object({
   name: z.string().min(1, 'Name is required').max(100),
@@ -11,6 +12,16 @@ const schema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  // Rate limit: 3 requests per 10 minutes per IP — prevents contact form spam
+  const limited = await checkWebRateLimit(req, 'support-contact', 3, 600);
+  if (limited) return limited;
+
+  // Reject oversized bodies (max 10 KB — well above the 5 000-char message limit)
+  const contentLength = Number(req.headers.get('content-length') ?? 0);
+  if (contentLength > 10_240) {
+    return NextResponse.json({ error: 'Request body too large.' }, { status: 413 });
+  }
+
   const body = await req.json().catch(() => ({}));
   const parsed = schema.safeParse(body);
 

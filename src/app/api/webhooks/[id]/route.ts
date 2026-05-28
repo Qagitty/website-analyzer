@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import { isSsrfUrl } from '@/lib/webhooks/deliver';
 import { z } from 'zod';
 
 const patchSchema = z.object({
-  url: z.string().url('Must be a valid URL').optional(),
+  url: z
+    .string()
+    .url('Must be a valid URL')
+    .refine((u) => !isSsrfUrl(u), 'Webhook URL must be a public HTTPS URL')
+    .optional(),
   active: z.boolean().optional(),
   events: z
     .array(z.enum(['analysis.completed', 'score.dropped']))

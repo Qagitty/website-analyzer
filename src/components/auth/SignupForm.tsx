@@ -13,7 +13,13 @@ import { toast } from 'sonner';
 
 const schema = z.object({
   email: z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
+  password: z
+    .string()
+    .min(12, 'Password must be at least 12 characters')
+    .refine(
+      (p) => /[A-Z]/.test(p) && /[a-z]/.test(p) && /[0-9]/.test(p),
+      'Password must contain uppercase, lowercase, and a number'
+    ),
   confirmPassword: z.string(),
 }).refine((d) => d.password === d.confirmPassword, {
   message: "Passwords don't match",
@@ -103,7 +109,7 @@ export function SignupForm() {
       </div>
       <div>
         <div className="relative">
-          <Input type={showPassword ? 'text' : 'password'} placeholder="Password (8+ characters)" className="pr-10" {...register('password')} />
+          <Input type={showPassword ? 'text' : 'password'} placeholder="Password (12+ chars, A-Z, 0-9)" className="pr-10" {...register('password')} />
           <button
             type="button"
             onClick={() => setShowPassword((v) => !v)}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { generateApiKey, encryptApiKey } from '@/lib/api-keys/generate';
+import { checkWebRateLimit } from '@/lib/rate-limit/web';
 import { z } from 'zod';
 
 const createSchema = z.object({
@@ -25,6 +26,10 @@ export async function POST(req: NextRequest) {
   const supabase = createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  // Rate limit: 5 key creations per hour per user
+  const limited = await checkWebRateLimit(req, 'api-key-create', 5, 3600, user.id);
+  if (limited) return limited;
 
   // Max 5 active keys per user
   const { count } = await (supabase as any)

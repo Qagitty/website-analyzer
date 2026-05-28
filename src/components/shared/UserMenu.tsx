@@ -106,14 +106,14 @@ export function UserMenu() {
               Settings
             </button>
             <button
-              onClick={() => navigate('/settings#notifications')}
+              onClick={() => navigate('/settings/notifications')}
               className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors text-left"
             >
               <Bell className="h-4 w-4 shrink-0" />
               Notification preferences
             </button>
             <button
-              onClick={() => navigate('/settings#billing')}
+              onClick={() => navigate('/settings/billing')}
               className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors text-left"
             >
               <CreditCard className="h-4 w-4 shrink-0" />

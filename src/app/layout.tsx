@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
+import { headers } from 'next/headers';
 import { Toaster } from 'sonner';
 import { ThemeProvider } from '@/components/shared/ThemeProvider';
 import { CookieBanner } from '@/components/shared/CookieBanner';
@@ -25,6 +26,12 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // Read the per-request nonce set by middleware.  Next.js uses this header
+  // internally to stamp its own hydration <script> tags, enabling the
+  // nonce-based CSP in middleware.ts to work without 'unsafe-inline'.
+  // Pass `nonce` to any <Script nonce={nonce}> components added in the future.
+  const nonce = headers().get('x-nonce') ?? undefined;
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>

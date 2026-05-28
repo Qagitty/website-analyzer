@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { getSignedUrlOrNull } from '@/lib/supabase/storage';
 import { PerformanceSection } from '@/components/reports/PerformanceSection';
 import { EAAComplianceSection } from '@/components/reports/EAAComplianceSection';
 import { AccessibilitySection } from '@/components/reports/AccessibilitySection';
@@ -35,6 +36,9 @@ export async function generateMetadata(
   };
 }
 
+// Cache public reports for 1 hour — they are immutable once created
+export const revalidate = 3600;
+
 export default async function PublicReportPage({ params }: { params: { id: string } }) {
   // Use service role so RLS doesn't block — we manually check is_public
   const supabase = createServiceRoleClient();
@@ -49,6 +53,13 @@ export default async function PublicReportPage({ params }: { params: { id: strin
 
   const analysis = raw as unknown as Analysis | null;
   if (!analysis) notFound();
+
+  // Resolve storage paths → time-limited signed URLs (1 h).
+  // Service role client can sign files in the private screenshots bucket.
+  const [screenshotSignedUrl, designSignedUrl] = await Promise.all([
+    getSignedUrlOrNull(supabase, analysis.screenshot_url),
+    getSignedUrlOrNull(supabase, analysis.design_screenshot_url),
+  ]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -67,7 +78,7 @@ export default async function PublicReportPage({ params }: { params: { id: strin
 
       <main className="max-w-4xl mx-auto px-4 md:px-6 py-8 space-y-6 md:space-y-10">
         <ShareReportHeader analysis={analysis} />
-        <ScreenshotViewer url={analysis.screenshot_url} siteUrl={analysis.url} />
+        <ScreenshotViewer url={screenshotSignedUrl} siteUrl={analysis.url} />
         {analysis.lighthouse_scores && (
           <PerformanceSection scores={analysis.lighthouse_scores as any} />
         )}
@@ -86,8 +97,7 @@ export default async function PublicReportPage({ params }: { params: { id: strin
         <ResourceAuditSection resourceAudit={(analysis.network_requests as any)?.resourceAudit} />
         {analysis.accessibility_issues && (
           <EAAComplianceSection
-            issues={(analysis.accessibility_issues as any) ?? []}
-            accessibilityScore={(analysis.lighthouse_scores as any)?.accessibility ?? null}
+            accessibilityIssues={(analysis.accessibility_issues as any) ?? undefined}
           />
         )}
         {analysis.accessibility_issues && (
@@ -102,18 +112,18 @@ export default async function PublicReportPage({ params }: { params: { id: strin
         {analysis.ai_insights && (
           <AIInsightsSection insights={analysis.ai_insights as any} />
         )}
-        {analysis.design_screenshot_url && (
+        {designSignedUrl && (
           <DesignComparisonSection
-            comparison={(analysis.design_comparison as any) ?? {}}
-            designScreenshotUrl={analysis.design_screenshot_url ?? null}
-            liveScreenshotUrl={analysis.screenshot_url ?? null}
+            designComparison={(analysis.design_comparison as any) ?? undefined}
+            designScreenshotUrl={designSignedUrl}
+            screenshotUrl={screenshotSignedUrl ?? undefined}
           />
         )}
         {analysis.lighthouse_scores && (
           <LLMReadinessSection scores={analysis.lighthouse_scores as any} />
         )}
         {analysis.crawl_pages && (
-          <CrawledPagesSection pages={analysis.crawl_pages as any} />
+          <CrawledPagesSection crawledPages={analysis.crawl_pages as any} />
         )}
 
         {/* CTA footer */}

@@ -26,6 +26,7 @@ Return ONLY valid JSON in this exact format:
       "impactScore": <1-10>,
       "beforeCode": "<problematic HTML/CSS snippet (representative example), or null>",
       "afterCode": "<fixed HTML/CSS snippet, or null>",
+      "codeExample": "<complete ready-to-paste snippet combining before + after into a single diff-style block, or null>",
       "frameworkNotes": {
         "react": "<React JSX version of the fix if it differs from plain HTML, otherwise omit>",
         "nextjs": "<Next.js specific fix if applicable, otherwise omit>"
@@ -80,6 +81,7 @@ Return ONLY valid JSON:
       "impactScore": <1-10>,
       "beforeCode": "<problematic pattern, e.g. render-blocking script or unoptimised image tag>",
       "afterCode": "<fixed version with async/defer/preload/loading=lazy etc.>",
+      "codeExample": "<complete diff-style snippet: old line then new line, ready to paste>",
       "expectedImprovement": "<e.g., reduce LCP by ~30%>"
     }
   ],
@@ -127,6 +129,7 @@ Return ONLY valid JSON (no markdown, no comments):
       "affectedUsers": "<specific user group: e.g., 'Screen reader users and voice control users who cannot see the image'>",
       "beforeCode": "<specific broken HTML/CSS snippet>",
       "afterCode": "<complete corrected snippet with all attributes>",
+      "codeExample": "<single ready-to-paste snippet showing the fix in context>",
       "wcagReference": "WCAG 2.1 <A|AA|AAA> — <criterion number> <criterion name>",
       "wcagLevel": "A" | "AA" | "AAA",
       "effortLevel": "low" | "medium" | "high",

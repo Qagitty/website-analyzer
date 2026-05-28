@@ -1,5 +1,14 @@
 export type PlanId = 'free' | 'pro' | 'agency';
 
+/** Credits granted when a subscription is created/updated or reset on cancellation. */
+export const PLAN_CREDITS: Record<PlanId, number> = {
+  free:   3,
+  pro:    100,
+  // Agency is "unlimited" — represented as a large sentinel value.
+  // Using 99_999 (not Infinity) because it's stored as a PostgreSQL INTEGER.
+  agency: 99_999,
+};
+
 export interface Plan {
   id: PlanId;
   name: string;
@@ -36,7 +45,7 @@ export const PLANS: Record<PlanId, Plan> = {
     id: 'agency',
     name: 'Agency',
     price: 99,
-    credits: 99999,
+    credits: 99_999,
     stripePriceId: process.env.STRIPE_AGENCY_PRICE_ID ?? null,
     features: ['Unlimited analyses', 'Everything in Pro', 'API access', 'Priority support'],
   },

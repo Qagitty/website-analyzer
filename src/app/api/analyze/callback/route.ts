@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { analyzeWithAI, compareWithDesign } from '@/lib/ai/claude';
-import { uploadScreenshot } from '@/lib/supabase/storage';
+import { uploadScreenshot, getSignedUrlOrNull } from '@/lib/supabase/storage';
 import { sendScoreDropAlert, sendMonitorSummary } from '@/lib/email/resend';
 import { fireWebhooksForAnalysis } from '@/lib/webhooks/deliver';
 import * as Sentry from '@sentry/nextjs';
@@ -12,6 +12,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Guard against oversized payloads from a buggy or compromised worker.
+  // A full-page screenshot is ~2-4 MB as base64; 20 MB gives ample headroom.
+  const contentLength = Number(req.headers.get('content-length') ?? 0);
+  if (contentLength > 20 * 1024 * 1024) {
+    return NextResponse.json({ error: 'Payload too large' }, { status: 413 });
+  }
+
   const supabase = createServiceRoleClient();
   const body = await req.json();
   const {
@@ -19,10 +26,11 @@ export async function POST(req: NextRequest) {
     error: workerError,
     // Multi-page crawl results
     crawledPages,
-    // Monitor context (present only for scheduled runs)
+    // Monitor context (present only for scheduled runs).
+    // NOTE: monitorUserEmail is intentionally absent — we look it up from the
+    // DB here so user emails never travel through Cloudflare Worker bodies.
     monitorId,
     monitorUserId,
-    monitorUserEmail,
     monitorLastScores,
     monitorNotify,
     monitorThreshold,
@@ -43,12 +51,30 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // Fetch the analysis record to get design screenshot URL, user ID, and URL for webhooks
+    // Fetch the analysis record — also serves as the idempotency check.
+    // If the analysis is already completed or failed (e.g. a worker retry), skip
+    // all processing to prevent duplicate webhooks, emails, and AI calls.
     const { data: analysisRecord } = await (supabase as any)
       .from('analyses')
-      .select('design_screenshot_url, user_id, url')
+      .select('status, design_screenshot_url, user_id, url')
       .eq('id', analysisId)
       .single();
+
+    if (!analysisRecord) {
+      return NextResponse.json({ received: true, status: 'not_found' });
+    }
+
+    if (analysisRecord.status === 'completed' || analysisRecord.status === 'failed') {
+      return NextResponse.json({ received: true, status: 'already_processed' });
+    }
+
+    // Mark as running and record when processing actually started.
+    // started_at was never populated before — now it reflects the moment
+    // the callback begins AI analysis, giving accurate duration metrics.
+    await supabase
+      .from('analyses')
+      .update({ status: 'running', started_at: new Date().toISOString() })
+      .eq('id', analysisId);
 
     let screenshotUrl: string | null = null;
     if (results.screenshotBase64) {
@@ -60,8 +86,13 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Run AI analysis and (optionally) design comparison in parallel
-    const designScreenshotUrl: string | null = (analysisRecord as any)?.design_screenshot_url ?? null;
+    // Run AI analysis and (optionally) design comparison in parallel.
+    // Design screenshot is stored as a path in a PRIVATE bucket — generate a
+    // short-lived signed URL so runDesignComparison can fetch it over HTTPS.
+    const designStoragePath: string | null = (analysisRecord as any)?.design_screenshot_url ?? null;
+    const designSignedUrl = designStoragePath
+      ? await getSignedUrlOrNull(supabase, designStoragePath, 300) // 5-min TTL is enough
+      : null;
 
     const aiInsightsPromise = analyzeWithAI({
       screenshotBase64: results.screenshotBase64,
@@ -73,8 +104,8 @@ export async function POST(req: NextRequest) {
 
     // Run design comparison only when we have both a design upload and a live screenshot
     const designComparisonPromise =
-      designScreenshotUrl && results.screenshotBase64
-        ? runDesignComparison(designScreenshotUrl, results.screenshotBase64)
+      designSignedUrl && results.screenshotBase64
+        ? runDesignComparison(designSignedUrl, results.screenshotBase64)
         : Promise.resolve(null);
 
     const [aiInsights, designComparison] = await Promise.all([
@@ -138,33 +169,40 @@ export async function POST(req: NextRequest) {
         .update({ last_scores: newScores, last_analysis_id: analysisId })
         .eq('id', monitorId);
 
-      // Check for score drops and send alert
-      if (monitorNotify && monitorLastScores && monitorUserEmail) {
-        const SCORE_KEYS = ['performance', 'accessibility', 'seo', 'bestPractices'] as const;
-        const drops = SCORE_KEYS
-          .map((key) => {
-            const prev = monitorLastScores[key] ?? 0;
-            const curr = newScores[key] ?? 0;
-            const delta = prev - curr;
-            return { metric: key, previous: prev, current: curr, delta };
-          })
-          .filter((d) => d.delta >= (monitorThreshold ?? 10));
+      // Check for score drops and send alert.
+      // Resolve email from DB here — it is intentionally not passed through
+      // the Worker body to avoid sending PII over Cloudflare infrastructure.
+      if (monitorNotify && monitorLastScores && monitorUserId) {
+        const { data: userData } = await supabase.auth.admin.getUserById(monitorUserId);
+        const resolvedEmail = userData?.user?.email;
 
-        if (drops.length > 0) {
-          sendScoreDropAlert({
-            to: monitorUserEmail,
-            url: results.url ?? analysisId,
-            analysisId,
-            drops,
-          }).catch((e) => console.error('[callback] score drop email failed:', e));
-        } else {
-          // Send regular completion summary
-          sendMonitorSummary({
-            to: monitorUserEmail,
-            url: results.url ?? analysisId,
-            analysisId,
-            scores: newScores,
-          }).catch((e) => console.error('[callback] summary email failed:', e));
+        if (resolvedEmail) {
+          const SCORE_KEYS = ['performance', 'accessibility', 'seo', 'bestPractices'] as const;
+          const drops = SCORE_KEYS
+            .map((key) => {
+              const prev = monitorLastScores[key] ?? 0;
+              const curr = newScores[key] ?? 0;
+              const delta = prev - curr;
+              return { metric: key, previous: prev, current: curr, delta };
+            })
+            .filter((d) => d.delta >= (monitorThreshold ?? 10));
+
+          if (drops.length > 0) {
+            sendScoreDropAlert({
+              to: resolvedEmail,
+              url: results.url ?? analysisId,
+              analysisId,
+              drops,
+            }).catch((e) => console.error('[callback] score drop email failed:', e));
+          } else {
+            // Send regular completion summary
+            sendMonitorSummary({
+              to: resolvedEmail,
+              url: results.url ?? analysisId,
+              analysisId,
+              scores: newScores,
+            }).catch((e) => console.error('[callback] summary email failed:', e));
+          }
         }
       }
     }

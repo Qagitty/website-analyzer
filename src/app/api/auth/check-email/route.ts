@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { checkWebRateLimit, getClientIp } from '@/lib/rate-limit/web';
 
 const schema = z.object({
   email: z.string().email('Invalid email address'),
@@ -15,6 +16,16 @@ const schema = z.object({
 // 409 { error: '...' }      — email already registered
 // 400 { error: '...' }      — validation error
 export async function POST(req: NextRequest) {
+  // Rate limit: 5 requests per minute per IP — prevents email enumeration at scale
+  const limited = await checkWebRateLimit(req, 'check-email', 5, 60);
+  if (limited) return limited;
+
+  // Reject oversized bodies (max 1 KB — only an email address is expected)
+  const contentLength = Number(req.headers.get('content-length') ?? 0);
+  if (contentLength > 1024) {
+    return NextResponse.json({ error: 'Request body too large.' }, { status: 413 });
+  }
+
   const body = await req.json().catch(() => ({}));
   const parsed = schema.safeParse(body);
 

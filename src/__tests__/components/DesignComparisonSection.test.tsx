@@ -137,7 +137,8 @@ describe('DesignComparisonSection', () => {
         screenshotUrl="https://example.com/screenshot.png"
       />
     );
-    expect(screen.getByText(/minor/i)).toBeInTheDocument();
+    // Use getAllByText because the mock summary also contains "minor"
+    expect(screen.getAllByText(/minor/i).length).toBeGreaterThan(0);
   });
 
   it('shows CSS fix code block', () => {

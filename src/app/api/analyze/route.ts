@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { uploadDesignScreenshot } from '@/lib/supabase/storage';
+import { checkWebRateLimit } from '@/lib/rate-limit/web';
 import { z } from 'zod';
 
 const ACCEPTED_MIME = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
@@ -216,6 +217,16 @@ export async function POST(req: NextRequest) {
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Rate limit: 10 analysis submissions per minute per user
+  const limited = await checkWebRateLimit(req, 'analyze-submit', 10, 60, user.id);
+  if (limited) return limited;
+
+  // Reject oversized bodies — 6 MB covers a base64-encoded design screenshot (~4 MB image)
+  const contentLength = Number(req.headers.get('content-length') ?? 0);
+  if (contentLength > 6 * 1024 * 1024) {
+    return NextResponse.json({ error: 'Request body too large (max 6 MB).' }, { status: 413 });
   }
 
   const body = await req.json().catch(() => ({}));

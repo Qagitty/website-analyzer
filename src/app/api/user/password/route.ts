@@ -1,12 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createServerClient, createServiceRoleClient } from '@/lib/supabase/server';
+import {
+  checkWebRateLimit,
+  checkAccountLockout,
+  recordAuthFailure,
+  clearAuthFailures,
+} from '@/lib/rate-limit/web';
 
+// Top-100 most commonly used passwords. Checked case-insensitively.
+// Keeping this inline avoids a runtime file read in the serverless function.
+const COMMON_PASSWORDS = new Set([
+  'password', 'password1', 'password12', 'password123', 'password1234',
+  '123456789', '1234567890', '12345678901', '123456789012',
+  'iloveyou', 'sunshine', 'princess', 'welcome', 'shadow', 'monkey',
+  'dragon', 'master', 'abc123456', 'passw0rd', 'passw0rd1',
+  'letmein1', 'football', 'baseball', 'soccer', 'hockey', 'basketball',
+  'superman', 'batman', 'spiderman', 'starwars', 'trustno1',
+  'admin123', 'admin1234', 'login123', 'welcome1', 'welcome12',
+  'qwerty123', 'qwerty1234', 'qwertyuiop', 'asdfghjkl', 'zxcvbnm',
+  'changeme', 'changeme1', 'letmein12', 'hello123', 'hello1234',
+  'summer123', 'winter123', 'spring123', 'autumn123', 'monday123',
+  'january1', 'february1', 'march1234', 'april123', 'november1',
+  'december1', 'birthday1', 'chocolate', 'computer1', 'internet1',
+  'freedom12', 'liberty12', 'justice12', 'america12', 'michael12',
+  'jessica12', 'charlie12', 'thomas123', 'george123', 'jordan123',
+  'hunter123', 'ranger123', 'hunter12!', 'pass@word1', 'p@ssword1',
+  'p@ssw0rd1', 'abc@12345', 'test@1234', 'demo@1234', 'user@1234',
+]);
+
+// Min 12 chars with at least one uppercase, one lowercase, and one digit.
+// Using a regex refine rather than separate zod .regex() calls to give a single
+// clear error message instead of confusing multiple failures.
 const schema = z.object({
   currentPassword: z.string().min(1, 'Current password is required'),
   newPassword: z
     .string()
-    .min(8, 'New password must be at least 8 characters'),
+    .min(12, 'New password must be at least 12 characters')
+    .refine(
+      (p) => /[A-Z]/.test(p) && /[a-z]/.test(p) && /[0-9]/.test(p),
+      'New password must contain at least one uppercase letter, one lowercase letter, and one number'
+    ),
 });
 
 // PATCH /api/user/password
@@ -20,6 +54,14 @@ export async function PATCH(req: NextRequest) {
   if (authError || !user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  // Rate limit: 5 attempts per 15 minutes per user — brute-force protection
+  const limited = await checkWebRateLimit(req, 'password-change', 5, 900, user.id);
+  if (limited) return limited;
+
+  // Account lockout: block after 10 consecutive failures for 30 minutes
+  const locked = await checkAccountLockout('password-change', user.id);
+  if (locked) return locked;
 
   if (!user.email) {
     return NextResponse.json(
@@ -46,6 +88,13 @@ export async function PATCH(req: NextRequest) {
     );
   }
 
+  if (COMMON_PASSWORDS.has(newPassword.toLowerCase())) {
+    return NextResponse.json(
+      { error: 'This password is too common. Please choose a more unique password.' },
+      { status: 400 }
+    );
+  }
+
   // ── Step 1: verify current password ──────────────────────────────────────
   // Supabase Admin SDK has no "verifyPassword" method, so we hit the Auth
   // token endpoint directly. Any non-200 means the password is wrong.
@@ -62,6 +111,10 @@ export async function PATCH(req: NextRequest) {
   );
 
   if (!verifyRes.ok) {
+    // Track consecutive failures — locks account after 10 bad attempts for 30 min.
+    await recordAuthFailure('password-change', user.id, 10, 1800);
+    // Artificial delay on failure to slow timing-based brute force (200–400 ms).
+    await new Promise((r) => setTimeout(r, 200 + Math.random() * 200));
     return NextResponse.json(
       { error: 'Current password is incorrect.' },
       { status: 400 }
@@ -83,5 +136,7 @@ export async function PATCH(req: NextRequest) {
     );
   }
 
+  // Clear failure counter on successful password change.
+  await clearAuthFailures('password-change', user.id);
   return NextResponse.json({ success: true });
 }

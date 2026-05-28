@@ -155,11 +155,20 @@ export interface AIInsights {
 }
 
 export interface DesignMismatch {
-  area: string;           // e.g. "Hero section", "Navigation"
+  area: string;                  // e.g. "Hero section", "Navigation"
   severity: 'critical' | 'major' | 'minor';
-  designExpected: string; // what the design shows
-  liveSite: string;       // what the live site shows
-  suggestion: string;     // how to fix it
+  /** What the design mockup shows (preferred) */
+  designExpects?: string;
+  /** What the live site shows (preferred) */
+  liveSiteShows?: string;
+  /** CSS / code fix suggestion (preferred) */
+  cssFix?: string;
+  /** @deprecated use designExpects */
+  designExpected?: string;
+  /** @deprecated use liveSiteShows */
+  liveSite?: string;
+  /** @deprecated use cssFix */
+  suggestion?: string;
 }
 
 export interface DesignComparison {

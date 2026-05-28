@@ -53,6 +53,7 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (!analysis) {
+    await supabase.rpc('refund_credit', { p_user_id: auth.userId });
     return NextResponse.json({ error: 'Failed to create analysis' }, { status: 500 });
   }
 

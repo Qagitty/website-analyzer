@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import { isSsrfUrl } from '@/lib/webhooks/deliver';
 import { z } from 'zod';
 
 const schema = z.object({
-  url: z.string().url('Must be a valid URL'),
+  url: z
+    .string()
+    .url('Must be a valid URL')
+    .refine((u) => !isSsrfUrl(u), 'Webhook URL must be a public HTTPS URL'),
   events: z
     .array(z.enum(['analysis.completed', 'score.dropped']))
     .min(1, 'Select at least one event'),
@@ -17,9 +21,11 @@ export async function GET(_req: NextRequest) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  // Omit 'secret' from the list — it is only returned once at creation time.
+  // Users who need to rotate it can delete and recreate the webhook.
   const { data } = await (supabase as any)
     .from('webhooks')
-    .select('*')
+    .select('id, url, events, active, created_at, updated_at')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 

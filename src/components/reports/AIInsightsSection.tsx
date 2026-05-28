@@ -254,7 +254,9 @@ function InsightCard({ insight }: { insight: AIInsight }) {
   );
 }
 
-export function AIInsightsSection({ insights }: { insights: AIInsights }) {
+export function AIInsightsSection({ insights }: { insights: AIInsights | undefined | null }) {
+  if (!insights) return null;
+
   const priorityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
 
   const sortedInsights = [...(insights.insights ?? [])].sort((a, b) => {

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { createServerClient } from '@/lib/supabase/server';
+import { getSignedUrlOrNull } from '@/lib/supabase/storage';
 import { ReportHeader } from '@/components/reports/ReportHeader';
 import { PerformanceSection } from '@/components/reports/PerformanceSection';
 import { EAAComplianceSection } from '@/components/reports/EAAComplianceSection';
@@ -22,20 +23,34 @@ export default async function ReportPage({ params }: { params: { id: string } })
   const supabase = createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
 
+  if (!user) redirect('/login');
+
   const { data: raw } = await supabase
     .from('analyses')
-    .select('*')
+    .select(
+      'id, url, status, screenshot_url, design_screenshot_url, design_comparison, ' +
+      'lighthouse_scores, console_errors, accessibility_issues, network_requests, ' +
+      'ai_insights, ai_summary, is_public, error_message, created_at, completed_at, crawl_pages'
+    )
     .eq('id', params.id)
-    .eq('user_id', user!.id)
+    .eq('user_id', user.id)
     .single();
 
   const analysis = raw as unknown as Analysis | null;
-  if (!analysis || analysis.status !== 'completed') notFound();
+  if (!analysis) notFound();
+  if (analysis.status !== 'completed') redirect(`/analyze/${params.id}`);
+
+  // Resolve storage paths → time-limited signed URLs (1 h).
+  // Screenshots are in a PRIVATE bucket — never served as public URLs.
+  const [screenshotSignedUrl, designSignedUrl] = await Promise.all([
+    getSignedUrlOrNull(supabase, analysis.screenshot_url),
+    getSignedUrlOrNull(supabase, analysis.design_screenshot_url),
+  ]);
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 md:space-y-10">
       <ReportHeader analysis={analysis} />
-      <ScreenshotViewer url={analysis.screenshot_url} siteUrl={analysis.url} />
+      <ScreenshotViewer url={screenshotSignedUrl} siteUrl={analysis.url} />
       {analysis.lighthouse_scores && (
         <PerformanceSection scores={analysis.lighthouse_scores as any} />
       )}
@@ -52,12 +67,9 @@ export default async function ReportPage({ params }: { params: { id: string } })
       )}
       <SecurityHeadersSection securityHeaders={(analysis.lighthouse_scores as any)?.securityHeaders} />
       <ResourceAuditSection resourceAudit={(analysis.network_requests as any)?.resourceAudit} />
-      {analysis.accessibility_issues && (
-        <EAAComplianceSection
-          issues={(analysis.accessibility_issues as any) ?? []}
-          accessibilityScore={(analysis.lighthouse_scores as any)?.accessibility ?? null}
-        />
-      )}
+      <EAAComplianceSection
+        accessibilityIssues={(analysis.accessibility_issues as any) ?? undefined}
+      />
       {analysis.accessibility_issues && (
         <AccessibilitySection
           issues={analysis.accessibility_issues as any}
@@ -70,19 +82,15 @@ export default async function ReportPage({ params }: { params: { id: string } })
       {analysis.ai_insights && (
         <AIInsightsSection insights={analysis.ai_insights as any} />
       )}
-      {analysis.design_screenshot_url && (
-        <DesignComparisonSection
-          comparison={(analysis.design_comparison as any) ?? {}}
-          designScreenshotUrl={analysis.design_screenshot_url ?? null}
-          liveScreenshotUrl={analysis.screenshot_url ?? null}
-        />
-      )}
+      <DesignComparisonSection
+        designComparison={(analysis.design_comparison as any) ?? undefined}
+        designScreenshotUrl={designSignedUrl ?? undefined}
+        screenshotUrl={screenshotSignedUrl ?? undefined}
+      />
       {analysis.lighthouse_scores && (
         <LLMReadinessSection scores={analysis.lighthouse_scores as any} />
       )}
-      {analysis.crawl_pages && (
-        <CrawledPagesSection pages={analysis.crawl_pages as any} />
-      )}
+      <CrawledPagesSection crawledPages={analysis.crawl_pages as any} />
     </div>
   );
 }

@@ -55,7 +55,6 @@ const NAVIGATION_ERROR_FRAGMENTS: readonly string[] = [
   'econnrefused',
 ];
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- available for structured logging
 function workerLog(
   level: 'info' | 'warn' | 'error',
   message: string,

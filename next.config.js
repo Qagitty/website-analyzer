@@ -1,20 +1,8 @@
 const { withSentryConfig } = require("@sentry/nextjs");
 
-// Domains that the app is allowed to connect to / load resources from
-const SUPABASE_HOST = process.env.NEXT_PUBLIC_SUPABASE_URL
-  ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).host
-  : '*.supabase.co';
-
-const ContentSecurityPolicy = `
-  default-src 'self';
-  script-src 'self' 'unsafe-inline' 'unsafe-eval';
-  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-  font-src 'self' https://fonts.gstatic.com;
-  img-src 'self' data: blob: https://*.supabase.co;
-  connect-src 'self' https://${SUPABASE_HOST} https://api.anthropic.com https://api.stripe.com wss://${SUPABASE_HOST};
-  frame-src https://js.stripe.com https://hooks.stripe.com;
-  script-src-elem 'self' 'unsafe-inline' https://js.stripe.com;
-`.replace(/\n/g, ' ').trim();
+// Content-Security-Policy is now set dynamically in src/middleware.ts so that
+// a unique nonce can be embedded per request, eliminating 'unsafe-inline' from
+// script-src.  Only the static, non-nonce security headers live here.
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -35,12 +23,13 @@ const nextConfig = {
       {
         source: '/(.*)',
         headers: [
-          { key: 'Content-Security-Policy', value: ContentSecurityPolicy },
-          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+          // CSP omitted here — middleware sets it dynamically with a per-request nonce.
+          { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
-          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), payment=()' },
+          { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
         ],
       },
     ];

@@ -17,9 +17,11 @@ export async function GET(req: NextRequest) {
   const supabase = createServiceRoleClient();
   const now = new Date().toISOString();
 
-  // Find all active monitors that are due
+  // Find all active monitors that are due.
+  // Do NOT join auth.users here — user emails are PII and should not travel
+  // through the Cloudflare Worker. The callback resolves the email itself.
   const { data: dueMonitors, error } = await (supabase as any).from('monitors')
-    .select('*, auth_users:user_id(email)')
+    .select('id, user_id, url, frequency, notify_on_score_drop, score_drop_threshold, last_scores')
     .eq('is_active', true)
     .lte('next_run_at', now)
     .limit(50); // process max 50 per cron tick
@@ -98,10 +100,11 @@ export async function GET(req: NextRequest) {
           url: monitor.url,
           callbackUrl,
           authToken: process.env.WORKER_CALLBACK_SECRET,
-          // Pass monitor context so callback can compare scores + send alert
+          // Monitor context — callback uses these to update scores and send alerts.
+          // NOTE: no email here — callback resolves it from the DB to avoid
+          // passing PII through Cloudflare Worker infrastructure.
           monitorId: monitor.id,
           monitorUserId: monitor.user_id,
-          monitorUserEmail: monitor.auth_users?.email,
           monitorLastScores: monitor.last_scores,
           monitorNotify: monitor.notify_on_score_drop,
           monitorThreshold: monitor.score_drop_threshold,
