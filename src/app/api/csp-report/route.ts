@@ -7,8 +7,11 @@ import * as Sentry from '@sentry/nextjs';
 // to Sentry as breadcrumbs so they appear alongside error traces.
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json().catch(() => null);
-    if (!body) return new NextResponse(null, { status: 204 });
+    // Browsers send CSP reports as application/csp-report (JSON-encoded), not
+    // application/json, so we read the raw text and parse manually.
+    const text = await req.text().catch(() => '');
+    if (!text) return new NextResponse(null, { status: 204 });
+    const body = JSON.parse(text);
 
     const report = body['csp-report'] ?? body;
 

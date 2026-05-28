@@ -36,15 +36,20 @@ const BLOCKED_IPS: Set<string> = new Set(
 // 'unsafe-inline' is still present in style-src — removing it requires
 // auditing all Tailwind/shadcn inline styles and is deferred.
 function buildCsp(nonce: string): string {
+  // 'unsafe-inline' is required as a fallback for Next.js's own inline
+  // hydration scripts which do not carry a nonce attribute in Next.js 14.
+  // In CSP3-capable browsers 'strict-dynamic' takes precedence and makes
+  // 'unsafe-inline' a no-op, so nonce-less inline scripts are still blocked
+  // there.  'script-src-elem' is intentionally omitted — it would override
+  // 'script-src' without 'strict-dynamic' and break webpack chunk loading.
   return [
     `default-src 'self'`,
-    `script-src 'nonce-${nonce}' 'strict-dynamic'`,
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'unsafe-inline' https://js.stripe.com`,
     `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
     `font-src 'self' https://fonts.gstatic.com`,
     `img-src 'self' data: blob: https://*.supabase.co`,
     `connect-src 'self' https://${SUPABASE_HOST} https://api.stripe.com wss://${SUPABASE_HOST}`,
     `frame-src https://js.stripe.com https://hooks.stripe.com`,
-    `script-src-elem 'nonce-${nonce}' https://js.stripe.com`,
     `object-src 'none'`,
     `base-uri 'self'`,
     `form-action 'self'`,
@@ -103,7 +108,8 @@ export async function middleware(request: NextRequest) {
       const ct = request.headers.get('content-type') ?? '';
       if (ct && !ct.startsWith('application/json') &&
           !ct.startsWith('multipart/form-data') &&
-          !ct.startsWith('text/plain')) {
+          !ct.startsWith('text/plain') &&
+          !ct.startsWith('application/csp-report')) {
         return NextResponse.json({ error: 'Unsupported Content-Type.' }, { status: 415 });
       }
     }
