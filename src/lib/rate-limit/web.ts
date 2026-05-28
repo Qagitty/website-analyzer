@@ -115,7 +115,7 @@ const SQL_PATTERNS = [
   /\b0x[0-9a-f]+\b/i,
   /\bor\s+['"]?\d+['"]?\s*=\s*['"]?\d+['"]?/i,
   /\band\s+['"]?\d+['"]?\s*=\s*['"]?\d+['"]?/i,
-  /\/\*.*?\*\//s,
+  /\/\*[\s\S]*?\*\//,
   /\bxp_\w+/i,
   /\bwaitfor\s+delay\b/i,
   /\bbenchmark\s*\(/i,
