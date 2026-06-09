@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { QueuePosition } from '@/components/analyze/QueuePosition';
 import { toast } from 'sonner';
 
-type Status = 'pending' | 'queued' | 'running' | 'completed' | 'failed';
+type Status = 'pending' | 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
 
 interface AnalysisState {
   status: Status;
@@ -17,20 +17,24 @@ interface AnalysisState {
 }
 
 const STATUS_MESSAGES: Record<Status, string> = {
-  pending: 'Initializing...',
-  queued: 'Waiting in queue',
-  running: 'Analyzing your website',
+  pending:   'Initializing...',
+  queued:    'Waiting in queue',
+  running:   'Analyzing your website',
   completed: 'Analysis complete!',
-  failed: 'Analysis failed',
+  failed:    'Analysis failed',
+  cancelled: 'Analysis cancelled',
 };
 
 const STATUS_PROGRESS: Record<Status, number> = {
-  pending: 5,
-  queued: 15,
-  running: 60,
+  pending:   5,
+  queued:    15,
+  running:   60,
   completed: 100,
-  failed: 0,
+  failed:    0,
+  cancelled: 0,
 };
+
+const CANCELLABLE: Set<Status> = new Set(['pending', 'queued', 'running']);
 
 interface Props {
   analysisId: string;
@@ -38,14 +42,13 @@ interface Props {
 }
 
 export function AnalysisProgress({ analysisId, initialData }: Props) {
-  const [state, setState] = useState<AnalysisState | null>(initialData ?? null);
+  const [state, setState]       = useState<AnalysisState | null>(initialData ?? null);
   const [retrying, setRetrying] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [timedOut, setTimedOut] = useState(false);
-  const router = useRouter();
+  const router   = useRouter();
   const guardRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Safety net: if the analysis hasn't reached a terminal state within 2 minutes,
-  // the worker likely timed out or the callback was lost — surface an error.
   useEffect(() => {
     guardRef.current = setTimeout(() => setTimedOut(true), 2 * 60 * 1000);
     return () => { if (guardRef.current) clearTimeout(guardRef.current); };
@@ -61,16 +64,29 @@ export function AnalysisProgress({ analysisId, initialData }: Props) {
         body: JSON.stringify({ url: state.url }),
       });
       const data = await res.json();
-      if (res.status === 402) {
-        toast.error('No credits remaining. Please upgrade your plan.');
-        return;
-      }
+      if (res.status === 402) { toast.error('No credits remaining. Please upgrade your plan.'); return; }
       if (!res.ok) throw new Error(data.error ?? 'Failed to start analysis');
       router.push(`/analyze/${data.analysisId}`);
     } catch (err: any) {
       toast.error(err.message);
     } finally {
       setRetrying(false);
+    }
+  };
+
+  const cancel = async () => {
+    setCancelling(true);
+    try {
+      const res = await fetch(`/api/analyze/${analysisId}/cancel`, { method: 'POST' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? 'Could not cancel');
+      }
+      toast.success('Analysis cancelled — your credit has been refunded.');
+      router.push('/analyze');
+    } catch (err: any) {
+      toast.error(err.message);
+      setCancelling(false);
     }
   };
 
@@ -85,13 +101,13 @@ export function AnalysisProgress({ analysisId, initialData }: Props) {
 
         const data = await res.json();
         setState({
-          status: data.status,
+          status:        data.status,
           queuePosition: data.queue_position,
-          url: data.url,
-          errorMessage: data.error_message,
+          url:           data.url,
+          errorMessage:  data.error_message,
         });
 
-        if (data.status === 'completed' || data.status === 'failed') {
+        if (['completed', 'failed', 'cancelled'].includes(data.status)) {
           if (guardRef.current) clearTimeout(guardRef.current);
         }
         if (data.status === 'completed') {
@@ -111,7 +127,7 @@ export function AnalysisProgress({ analysisId, initialData }: Props) {
     return <div className="animate-pulse h-24 bg-card rounded-lg" />;
   }
 
-  if (timedOut && !['completed', 'failed'].includes(state.status)) {
+  if (timedOut && !['completed', 'failed', 'cancelled'].includes(state.status)) {
     return (
       <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-6 text-center space-y-4">
         <div className="space-y-1">
@@ -128,6 +144,18 @@ export function AnalysisProgress({ analysisId, initialData }: Props) {
             </Button>
           </div>
         )}
+      </div>
+    );
+  }
+
+  if (state.status === 'cancelled') {
+    return (
+      <div className="bg-secondary/50 border border-border rounded-xl p-6 text-center space-y-4">
+        <p className="text-muted-foreground font-medium">Analysis cancelled</p>
+        <p className="text-sm text-muted-foreground/70">Your credit has been refunded.</p>
+        <Button onClick={() => router.push('/analyze')} variant="outline" size="sm">
+          ← Analyze another site
+        </Button>
       </div>
     );
   }
@@ -172,9 +200,24 @@ export function AnalysisProgress({ analysisId, initialData }: Props) {
       <p className="text-sm text-muted-foreground text-center">
         {STATUS_MESSAGES[state.status]}
       </p>
+
       {state.status === 'queued' && state.queuePosition && (
         <div className="flex justify-center">
           <QueuePosition position={state.queuePosition} />
+        </div>
+      )}
+
+      {CANCELLABLE.has(state.status) && (
+        <div className="flex justify-center pt-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={cancel}
+            disabled={cancelling}
+            className="text-muted-foreground hover:text-red-400 hover:bg-red-500/10 text-xs"
+          >
+            {cancelling ? 'Cancelling…' : '✕ Cancel analysis'}
+          </Button>
         </div>
       )}
     </div>

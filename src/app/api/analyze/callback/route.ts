@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true, status: 'not_found' });
     }
 
-    if (analysisRecord.status === 'completed' || analysisRecord.status === 'failed') {
+    if (['completed', 'failed', 'cancelled'].includes(analysisRecord.status)) {
       return NextResponse.json({ received: true, status: 'already_processed' });
     }
 
