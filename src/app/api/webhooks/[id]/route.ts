@@ -16,7 +16,8 @@ const patchSchema = z.object({
     .optional(),
 });
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const supabase = createServerClient();
   const {
     data: { user },
@@ -29,7 +30,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
   }
 
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('webhooks')
     .update(parsed.data)
     .eq('id', params.id)
@@ -41,14 +42,15 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   return NextResponse.json(data);
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const supabase = createServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  await (supabase as any)
+  await supabase
     .from('webhooks')
     .delete()
     .eq('id', params.id)

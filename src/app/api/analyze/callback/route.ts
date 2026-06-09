@@ -38,14 +38,21 @@ export async function POST(req: NextRequest) {
   } = body;
 
   if (workerError) {
-    await supabase
+    const { data: failedRecord } = await supabase
       .from('analyses')
       .update({
         status: 'failed',
         error_message: workerError,
         completed_at: new Date().toISOString(),
       })
-      .eq('id', analysisId);
+      .eq('id', analysisId)
+      .select('user_id')
+      .single();
+
+    // Refund the credit — the worker failed before producing a usable result
+    if (failedRecord?.user_id) {
+      await supabase.rpc('refund_credit', { p_user_id: failedRecord.user_id });
+    }
 
     return NextResponse.json({ received: true });
   }
@@ -54,7 +61,7 @@ export async function POST(req: NextRequest) {
     // Fetch the analysis record — also serves as the idempotency check.
     // If the analysis is already completed or failed (e.g. a worker retry), skip
     // all processing to prevent duplicate webhooks, emails, and AI calls.
-    const { data: analysisRecord } = await (supabase as any)
+    const { data: analysisRecord } = await supabase
       .from('analyses')
       .select('status, design_screenshot_url, user_id, url')
       .eq('id', analysisId)
@@ -121,7 +128,7 @@ export async function POST(req: NextRequest) {
         ? designComparison
         : null;
 
-    await (supabase as any)
+    await supabase
       .from('analyses')
       .update({
         status: 'completed',
@@ -165,7 +172,7 @@ export async function POST(req: NextRequest) {
       const newScores = results.lighthouseScores;
 
       // Update monitor with latest scores
-      await (supabase as any).from('monitors')
+      await supabase.from('monitors')
         .update({ last_scores: newScores, last_analysis_id: analysisId })
         .eq('id', monitorId);
 
@@ -212,14 +219,22 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error('Callback processing error:', err);
     Sentry.captureException(err);
-    await supabase
+
+    const { data: failedRecord } = await supabase
       .from('analyses')
       .update({
         status: 'failed',
         error_message: 'Failed to process analysis results',
         completed_at: new Date().toISOString(),
       })
-      .eq('id', analysisId);
+      .eq('id', analysisId)
+      .select('user_id')
+      .single();
+
+    // Refund the credit — server-side failure, user shouldn't be penalized
+    if (failedRecord?.user_id) {
+      await supabase.rpc('refund_credit', { p_user_id: failedRecord.user_id });
+    }
 
     return NextResponse.json({ received: true, status: 'failed' });
   }

@@ -1,0 +1,8 @@
+name = "website-analyzer"
+main = "src/workers/analyzer/index.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+account_id = "6566b492e1535aed1f935ca61948911e"
+
+[vars]
+ENVIRONMENT = "production"

@@ -17,20 +17,30 @@ export const metadata: Metadata = {
   },
   description:
     'Automatically analyze your website for performance, accessibility, SEO, and get AI-powered recommendations.',
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'https://webanalyzer.app'),
   openGraph: {
     type: 'website',
     locale: 'en_US',
     url: process.env.NEXT_PUBLIC_APP_URL,
     siteName: 'Website Analyzer',
+    title: 'Website Analyzer — Automatic Site Analysis',
+    description:
+      'Automatically analyze your website for performance, accessibility, SEO, and get AI-powered recommendations.',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Website Analyzer — Automatic Site Analysis',
+    description:
+      'Automatically analyze your website for performance, accessibility, SEO, and get AI-powered recommendations.',
   },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // Read the per-request nonce set by middleware.  Next.js uses this header
   // internally to stamp its own hydration <script> tags, enabling the
   // nonce-based CSP in middleware.ts to work without 'unsafe-inline'.
   // Pass `nonce` to any <Script nonce={nonce}> components added in the future.
-  const nonce = headers().get('x-nonce') ?? undefined;
+  const nonce = (await headers()).get('x-nonce') ?? undefined;
 
   return (
     <html lang="en" suppressHydrationWarning>

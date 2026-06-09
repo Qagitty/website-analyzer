@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { data: analysis } = await (supabase as any)
+  const { data: analysis } = await supabase
     .from('analyses')
     .insert({ user_id: auth.userId, url: parsed.data.url, status: 'pending' })
     .select('id')

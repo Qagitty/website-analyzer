@@ -195,7 +195,7 @@ describe('GET /api/reports/[id]', () => {
   it('returns 401 when unauthenticated', async () => {
     setUnauthenticated();
     const req = new NextRequest('http://localhost/api/reports/abc');
-    const res = await reportGet(req, { params: { id: 'abc' } });
+    const res = await reportGet(req, { params: Promise.resolve({ id: 'abc' }) });
     expect(res.status).toBe(401);
   });
 
@@ -203,7 +203,7 @@ describe('GET /api/reports/[id]', () => {
     mockSelectData = null;
     mockSelectError = { message: 'Not found' };
     const req = new NextRequest('http://localhost/api/reports/nonexistent');
-    const res = await reportGet(req, { params: { id: 'nonexistent' } });
+    const res = await reportGet(req, { params: Promise.resolve({ id: 'nonexistent' }) });
     expect(res.status).toBe(404);
     const body = await res.json();
     expect(body.error).toBe('Report not found');
@@ -217,7 +217,7 @@ describe('GET /api/reports/[id]', () => {
       status: 'completed',
     };
     const req = new NextRequest('http://localhost/api/reports/analysis-123');
-    const res = await reportGet(req, { params: { id: 'analysis-123' } });
+    const res = await reportGet(req, { params: Promise.resolve({ id: 'analysis-123' }) });
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.id).toBe('analysis-123');

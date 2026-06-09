@@ -69,6 +69,7 @@ All issues identified in Phases 2–7 have been remediated in this session. The 
 | 31 | No hardcoded secrets or credentials | — | Full codebase | ✅ Not an issue |
 | 32 | HMAC-SHA256 webhook signatures | — | `lib/webhooks/deliver.ts` | ✅ Not an issue |
 | 33 | AES-256-GCM API key encryption at rest | — | `lib/api-keys/generate.ts` | ✅ Not an issue |
+| 34 | No CSRF protection on credit-deducting mutation routes | **Low** | `api/analyze/route.ts`, `api/monitors/route.ts` | ✅ Fixed — `checkCsrfOrigin()` validates `Origin` header; mismatched origin → 403 |
 
 ---
 
@@ -125,6 +126,7 @@ Endpoint                    Limit       Window    Subject
 /api/user/password          5 req       900 s     User ID
 /api/api-keys (POST)        5 req       3600 s    User ID
 /api/v1/* (public API)      plan-based  86400 s   API Key ID  ← pre-existing
+/api/widget/analyze         10 req      3600 s    Widget Key  ← Sprint 5 addition
 ```
 
 The rate limiter **fails open** when Redis is unavailable (network error, unconfigured env). This is intentional: a Redis outage should not block legitimate users. Monitor Redis availability separately.
@@ -209,4 +211,45 @@ The following files were checked for hardcoded secrets, connection strings, and 
 
 ---
 
-*Updated: 2026-05-27 (session 2) | Next.js 14.2.29 + Supabase + Cloudflare Workers + Upstash Redis*
+---
+
+## Files Changed — 2026-06-03 (CSP revert)
+
+| File | Change |
+|------|--------|
+| `src/middleware.ts` | **Reverted nonce-based CSP** — removed `generateNonce()`, `buildCsp(nonce)` with nonce param, and `x-nonce` header. Root cause: `'strict-dynamic'` in CSP3-capable browsers (Chrome, Edge) overrides `'unsafe-inline'`, blocking all of Next.js's inline hydration scripts. Every client component froze in its initial skeleton state. New `buildCsp()` uses `'unsafe-inline'` without nonce. All other directives unchanged: `frame-ancestors 'none'`, `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, origin allowlists, `report-uri`. |
+
+**Status of finding #28** (`unsafe-inline` in script-src): Still open. Full nonce-based CSP requires Next.js 15+ first-class nonce stamping on hydration scripts. Deferred pending Next.js 15 migration.
+
+---
+
+## Files Changed — 2026-05-31 (follow-up)
+
+| File | Change |
+|------|--------|
+| `src/lib/csrf.ts` | **Created** — `checkCsrfOrigin(nReq)`: checks `Origin` header on browser requests; mismatched origin → 403; missing `Origin` (server-to-server) → pass through |
+| `src/app/api/analyze/route.ts` | Added `checkCsrfOrigin()` call at top of POST handler (before auth) |
+| `src/app/api/monitors/route.ts` | Added `checkCsrfOrigin()` call at top of POST handler (before auth) |
+
+---
+
+---
+
+## Post-Audit Additions — 2026-06-09 (Sprint 5: Widget endpoint)
+
+### New public endpoint: `POST /api/widget/analyze`
+
+This endpoint is intentionally unauthenticated (no user session) — it accepts a `widget_key` in the request body instead. Security profile:
+
+| Control | Implementation |
+|---------|---------------|
+| **Authentication** | `wk_live_` key looked up in `user_settings` via service-role Supabase client |
+| **Rate limiting** | 10 req/hr per widget key via `checkWebRateLimit()` (Upstash Redis fixed-window) |
+| **CORS** | Explicit `Access-Control-Allow-Origin: *` — required because widget is embedded cross-origin on third-party sites |
+| **Input validation** | Zod schema on all fields; URL normalisation with explicit protocol check |
+| **Credit protection** | Standard `use_credit()` + `refund_credit()` atomic DB functions (same as `/api/analyze`) |
+| **Key storage** | Widget keys stored **plaintext** in `user_settings.widget_key` — this is intentional and documented. The key is low-sensitivity (it only allows submitting analyses against the owner's credits, not reading data). It is distinct from API keys which are SHA-256 hashed. |
+
+**CORS note:** `Access-Control-Allow-Origin: *` is acceptable here because the endpoint only accepts `POST` (mutating) requests and the key provides the identity. There is no user session or cookie to exploit via CSRF — the worst a cross-origin request can do is consume widget credits, which is the endpoint's intended function.
+
+*Updated: 2026-06-09 (sprint 5 widget endpoint added)*

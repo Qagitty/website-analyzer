@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { isSsrfUrl } from '@/lib/webhooks/deliver';
+import { hasFeature, getLimits, featureGateError } from '@/lib/billing/limits';
 import { z } from 'zod';
 
 const schema = z.object({
@@ -16,14 +17,10 @@ const schema = z.object({
 
 export async function GET(_req: NextRequest) {
   const supabase = createServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  // Omit 'secret' from the list — it is only returned once at creation time.
-  // Users who need to rotate it can delete and recreate the webhook.
-  const { data } = await (supabase as any)
+  const { data } = await supabase
     .from('webhooks')
     .select('id, url, events, active, created_at, updated_at')
     .eq('user_id', user.id)
@@ -34,10 +31,19 @@ export async function GET(_req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const supabase = createServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  // Feature gate: webhooks require Agency+
+  const { data: subscription } = await supabase
+    .from('subscriptions')
+    .select('plan')
+    .eq('user_id', user.id)
+    .single();
+  const plan = subscription?.plan ?? 'free';
+  if (!hasFeature(plan, 'webhooks')) {
+    return NextResponse.json(featureGateError('webhooks', 'agency'), { status: 403 });
+  }
 
   const body = await req.json().catch(() => ({}));
   const parsed = schema.safeParse(body);
@@ -45,16 +51,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
   }
 
-  // Max 5 webhooks per user
-  const { count } = await (supabase as any)
+  // Max webhooks per plan
+  const maxWebhooks = getLimits(plan).webhooks;
+  const { count } = await supabase
     .from('webhooks')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', user.id);
-  if ((count ?? 0) >= 5) {
-    return NextResponse.json({ error: 'Maximum 5 webhooks allowed' }, { status: 400 });
+
+  if ((count ?? 0) >= maxWebhooks) {
+    return NextResponse.json(
+      { error: `Your plan allows up to ${maxWebhooks} webhooks.` },
+      { status: 400 }
+    );
   }
 
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('webhooks')
     .insert({ ...parsed.data, user_id: user.id })
     .select()

@@ -1,9 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Loader2, BookmarkPlus } from 'lucide-react';
+import { TrackIssueButton } from '@/components/reports/TrackIssueButton';
 import type { AccessibilityIssue } from '@/types/analysis';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -18,8 +21,11 @@ interface AIAccessibilityInsight {
 }
 
 interface Props {
-  issues: AccessibilityIssue[];
+  issues:      AccessibilityIssue[];
   aiInsights?: AIAccessibilityInsight[] | null;
+  /** When provided, enables the "Track" button for each issue. */
+  analysisId?: string;
+  url?:        string;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -34,11 +40,15 @@ const IMPACT_VARIANT: Record<string, 'destructive' | 'secondary' | 'outline'> = 
 // ─── Sub-component: single issue card ────────────────────────────────────────
 
 interface IssueCardProps {
-  issue: AccessibilityIssue;
-  ai: AIAccessibilityInsight | undefined;
+  issue:      AccessibilityIssue;
+  ai:         AIAccessibilityInsight | undefined;
+  analysisId?: string;
+  url?:        string;
+  trackedId?:  string;
+  onTrackChange?: (issueId: string, newTrackedId: string | undefined) => void;
 }
 
-function IssueCard({ issue, ai }: IssueCardProps) {
+function IssueCard({ issue, ai, analysisId, url, trackedId, onTrackChange }: IssueCardProps) {
   const [showCode, setShowCode] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -57,7 +67,7 @@ function IssueCard({ issue, ai }: IssueCardProps) {
   return (
     <Card>
       <CardHeader className="pb-2">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             {/* Main title: plain English from AI, or fallback to raw id */}
             <CardTitle className="text-base leading-snug">
@@ -68,9 +78,20 @@ function IssueCard({ issue, ai }: IssueCardProps) {
               <p className="text-xs text-muted-foreground font-mono mt-0.5">{issue.id}</p>
             )}
           </div>
-          <Badge variant={IMPACT_VARIANT[issue.impact] ?? 'secondary'} className="shrink-0">
-            {issue.impact}
-          </Badge>
+          <div className="flex items-center gap-2 shrink-0">
+            {analysisId && url && onTrackChange && (
+              <TrackIssueButton
+                issue={issue}
+                analysisId={analysisId}
+                url={url}
+                trackedId={trackedId}
+                onChange={onTrackChange}
+              />
+            )}
+            <Badge variant={IMPACT_VARIANT[issue.impact] ?? 'secondary'}>
+              {issue.impact}
+            </Badge>
+          </div>
         </div>
       </CardHeader>
 
@@ -149,16 +170,103 @@ function IssueCard({ issue, ai }: IssueCardProps) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function AccessibilitySection({ issues, aiInsights }: Props) {
+export function AccessibilitySection({ issues, aiInsights, analysisId, url }: Props) {
   const critical = issues.filter((i) => i.impact === 'critical' || i.impact === 'serious');
+
+  // Map of issue_id → remediation item ID (undefined = not tracked)
+  const [trackedMap, setTrackedMap] = useState<Map<string, string>>(new Map());
+
+  // Load existing tracked items for this analysis (only when tracking is enabled)
+  useEffect(() => {
+    if (!analysisId) return;
+    fetch(`/api/remediation?url=${encodeURIComponent(url ?? '')}`)
+      .then((r) => r.json())
+      .then((items: { id: string; issue_id: string; analysis_id: string }[]) => {
+        const map = new Map<string, string>();
+        items
+          .filter((item) => item.analysis_id === analysisId)
+          .forEach((item) => map.set(item.issue_id, item.id));
+        setTrackedMap(map);
+      })
+      .catch(() => {}); // fail silently — tracking is non-critical
+  }, [analysisId, url]);
+
+  function handleTrackChange(issueId: string, newTrackedId: string | undefined) {
+    setTrackedMap((prev) => {
+      const next = new Map(prev);
+      if (newTrackedId) next.set(issueId, newTrackedId);
+      else next.delete(issueId);
+      return next;
+    });
+  }
+
+  const [bulkTracking, setBulkTracking] = useState(false);
+
+  async function trackAllCritical() {
+    if (!analysisId || !url) return;
+    const untracked = critical.filter((i) => !trackedMap.has(i.id));
+    if (untracked.length === 0) {
+      toast.info('All critical issues are already tracked');
+      return;
+    }
+
+    setBulkTracking(true);
+    let added = 0;
+    for (const issue of untracked) {
+      try {
+        const res = await fetch('/api/remediation', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            analysis_id:       analysisId,
+            url,
+            issue_id:          issue.id,
+            issue_description: issue.description,
+            impact:            issue.impact,
+            wcag_criteria:     issue.wcagCriteria ?? [],
+          }),
+        });
+        if (res.status === 201) {
+          const data = await res.json();
+          handleTrackChange(issue.id, data.id);
+          added++;
+        }
+      } catch {}
+    }
+    setBulkTracking(false);
+    if (added > 0) toast.success(`${added} critical issue${added !== 1 ? 's' : ''} added to tracker`);
+    else toast.info('No new issues to add');
+  }
+
+  const untrackedCriticalCount = critical.filter((i) => !trackedMap.has(i.id)).length;
 
   return (
     <section className="space-y-4">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
         <h2 className="text-2xl font-bold">Accessibility</h2>
         <Badge variant={critical.length > 0 ? 'destructive' : 'default'}>
           {issues.length} issue{issues.length !== 1 ? 's' : ''}
         </Badge>
+        {analysisId && trackedMap.size > 0 && (
+          <span className="text-xs text-indigo-400">
+            {trackedMap.size} tracked
+          </span>
+        )}
+        {analysisId && url && untrackedCriticalCount > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={trackAllCritical}
+            disabled={bulkTracking}
+            className="ml-auto text-xs h-7 gap-1"
+          >
+            {bulkTracking
+              ? <Loader2 className="h-3 w-3 animate-spin" />
+              : <BookmarkPlus className="h-3 w-3" />
+            }
+            Track all critical ({untrackedCriticalCount})
+          </Button>
+        )}
       </div>
 
       {issues.length === 0 ? (
@@ -171,7 +279,17 @@ export function AccessibilitySection({ issues, aiInsights }: Props) {
         <div className="space-y-3">
           {issues.map((issue, i) => {
             const ai = aiInsights?.find((a) => a.originalId === issue.id);
-            return <IssueCard key={i} issue={issue} ai={ai} />;
+            return (
+              <IssueCard
+                key={i}
+                issue={issue}
+                ai={ai}
+                analysisId={analysisId}
+                url={url}
+                trackedId={trackedMap.get(issue.id)}
+                onTrackChange={handleTrackChange}
+              />
+            );
           })}
         </div>
       )}

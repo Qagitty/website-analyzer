@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'url parameter is required' }, { status: 400 });
   }
 
-  const { data: analyses, error } = await (supabase as any)
+  const { data: analyses, error } = await supabase
     .from('analyses')
     .select('id, created_at, lighthouse_scores')
     .eq('status', 'completed')

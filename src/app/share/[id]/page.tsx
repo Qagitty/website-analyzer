@@ -17,9 +17,8 @@ import { ResourceAuditSection } from '@/components/reports/ResourceAuditSection'
 import { ScoreBreakdownSection } from '@/components/reports/ScoreBreakdownSection';
 import type { Analysis } from '@/types/analysis';
 
-export async function generateMetadata(
-  { params }: { params: { id: string } }
-): Promise<Metadata> {
+export async function generateMetadata(props: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const params = await props.params;
   const supabase = createServiceRoleClient();
   const { data } = await (supabase
     .from('analyses') as any)
@@ -39,7 +38,8 @@ export async function generateMetadata(
 // Cache public reports for 1 hour — they are immutable once created
 export const revalidate = 3600;
 
-export default async function PublicReportPage({ params }: { params: { id: string } }) {
+export default async function PublicReportPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   // Use service role so RLS doesn't block — we manually check is_public
   const supabase = createServiceRoleClient();
 

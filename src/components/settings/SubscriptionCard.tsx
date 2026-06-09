@@ -67,8 +67,9 @@ export function SubscriptionCard({ plan, status, periodEnd, credits, stripeConfi
               <p className="font-semibold text-lg capitalize">{currentPlan.name}</p>
               {(() => {
                 const base = 'text-xs font-medium px-2.5 py-0.5 rounded-full';
-                if (plan === 'agency') return <span className={`${base} bg-violet-500/10 text-violet-300 border border-violet-500/20`}>{plan}</span>;
-                if (plan === 'pro')    return <span className={`${base} bg-indigo-500/10 text-indigo-300 border border-indigo-500/20`}>{plan}</span>;
+                if (plan === 'compliance') return <span className={`${base} bg-emerald-500/10 text-emerald-300 border border-emerald-500/20`}>{plan}</span>;
+                if (plan === 'agency')     return <span className={`${base} bg-violet-500/10 text-violet-300 border border-violet-500/20`}>{plan}</span>;
+                if (plan === 'pro')        return <span className={`${base} bg-indigo-500/10 text-indigo-300 border border-indigo-500/20`}>{plan}</span>;
                 return <span className={`${base} bg-secondary text-muted-foreground border border-border`}>{plan}</span>;
               })()}
             </div>
@@ -121,11 +122,13 @@ export function SubscriptionCard({ plan, status, periodEnd, credits, stripeConfi
           </Button>
         )}
 
-        {/* Upgrade options */}
-        {(plan === 'free' || plan === 'pro') && (
+        {/* Upgrade options — show next logical tiers */}
+        {plan !== 'compliance' && (
           <div className="space-y-3 pt-2 border-t border-border">
             <p className="text-sm font-medium">
-              {plan === 'free' ? 'Upgrade your plan' : 'Upgrade to Agency'}
+              {plan === 'free'   ? 'Upgrade your plan'         :
+               plan === 'pro'   ? 'Upgrade to Agency or Compliance' :
+                                  'Upgrade to Compliance'}
             </p>
 
             {!stripeConfigured && (
@@ -135,25 +138,38 @@ export function SubscriptionCard({ plan, status, periodEnd, credits, stripeConfi
             )}
 
             {stripeConfigured && (
-              <div className={`grid gap-3 ${plan === 'free' ? 'grid-cols-2' : 'grid-cols-1'}`}>
-                {(plan === 'free' ? (['pro', 'agency'] as PlanId[]) : (['agency'] as PlanId[])).map((p) => (
-                  <div key={p} className="rounded-lg border border-border bg-card p-3 space-y-2">
-                    <p className="font-semibold">{PLANS[p].name} — ${PLANS[p].price}/mo</p>
-                    <ul className="text-xs text-muted-foreground space-y-1">
-                      {PLANS[p].features.slice(0, 3).map((f) => (
-                        <li key={f}>✓ {f}</li>
-                      ))}
-                    </ul>
-                    <Button
-                      size="sm"
-                      className="w-full bg-gradient-to-r from-indigo-500 to-violet-500 text-white hover:from-indigo-400 hover:to-violet-400"
-                      disabled={loadingUpgrade === p}
-                      onClick={() => upgrade(p)}
-                    >
-                      {loadingUpgrade === p ? 'Redirecting…' : `Upgrade to ${PLANS[p].name}`}
-                    </Button>
-                  </div>
-                ))}
+              <div className="grid gap-3 grid-cols-1">
+                {(
+                  plan === 'free'   ? (['pro', 'agency', 'compliance'] as PlanId[]) :
+                  plan === 'pro'    ? (['agency', 'compliance']         as PlanId[]) :
+                                     (['compliance']                    as PlanId[])
+                ).map((p) => {
+                  const isCompliance = p === 'compliance';
+                  return (
+                    <div key={p} className={`rounded-lg border p-3 space-y-2 ${isCompliance ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-border bg-card'}`}>
+                      <p className={`font-semibold ${isCompliance ? 'text-emerald-300' : ''}`}>
+                        {PLANS[p].name} — ${PLANS[p].price}/mo
+                      </p>
+                      <ul className="text-xs text-muted-foreground space-y-1">
+                        {PLANS[p].features.slice(0, 3).map((f) => (
+                          <li key={f}>✓ {f}</li>
+                        ))}
+                      </ul>
+                      <Button
+                        size="sm"
+                        className={`w-full text-white ${
+                          isCompliance
+                            ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500'
+                            : 'bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400'
+                        }`}
+                        disabled={loadingUpgrade === p}
+                        onClick={() => upgrade(p)}
+                      >
+                        {loadingUpgrade === p ? 'Redirecting…' : `Upgrade to ${PLANS[p].name}`}
+                      </Button>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

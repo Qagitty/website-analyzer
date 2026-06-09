@@ -14,7 +14,10 @@ Automated website quality analysis with AI-powered recommendations — performan
 | **Shareable Reports** | One-click public `/share/{id}` URL, no login required, with branded CTA footer |
 | **Scheduled Monitoring** | Daily/weekly automated re-analysis with Vercel Cron, email alerts on score drops via Resend |
 | **PDF Export** | Download full report as PDF |
-| **Stripe Subscriptions** | Free (3 credits), Pro ($29/mo, 100 credits), Agency ($99/mo, unlimited) |
+| **Stripe Subscriptions** | Free (3 credits), Pro ($29/mo, 100 credits), Agency ($99/mo, unlimited), Compliance ($249/mo) |
+| **Agency Lead Widget** | Embeddable JS widget + hosted page captures visitor leads; `/leads` dashboard for Agency+ users |
+| **Pricing Page** | Standalone `/pricing` with monthly/annual toggle, comparison table, FAQ accordion, Schema.org JSON-LD |
+| **Changelog Page** | Public `/changelog` timeline driven by `src/data/changelog.ts` — single source of truth for releases |
 
 ## Stack
 
@@ -83,6 +86,10 @@ EMAIL_FROM=noreply@yourdomain.com
 
 # Vercel Cron security
 CRON_SECRET=your-random-secret          # Used to authenticate /api/cron/monitors
+
+# Widget (Agency Lead Widget)
+# Widget keys are stored in plaintext in user_settings (unlike API keys which are hashed)
+# No extra env vars needed — keys use the same Supabase DB
 
 # App
 NEXT_PUBLIC_APP_URL=https://yourapp.com  # No trailing slash
@@ -169,6 +176,13 @@ npx supabase db push
 | `/api/monitors` | GET/POST | List / create scheduled monitors |
 | `/api/monitors/[id]` | PATCH/DELETE | Update (pause/resume) / delete a monitor |
 | `/api/cron/monitors` | GET | Vercel Cron endpoint — process due monitors (requires `CRON_SECRET`) |
+| `/api/cron/reset-credits` | GET | Vercel Cron endpoint — reset free-user credits monthly (requires `CRON_SECRET`) |
+| `/api/reports/[id]/compliance-pdf` | GET | Generate compliance-framed PDF (Pro+ plan required) |
+| `/api/remediation` | GET, POST | List / create remediation tracking items (POST requires Pro+) |
+| `/api/remediation/[id]` | PATCH, DELETE | Update status/notes or remove a tracked issue |
+| `/api/widget/analyze` | POST | Public widget analysis — authenticates by `widget_key`, rate-limited |
+| `/api/widget/key` | PATCH | Update widget settings (buttonText, buttonColor, position, showEmail) |
+| `/api/leads` | GET | List captured leads for the authenticated Agency+ user |
 | `/api/stripe/checkout` | POST | Create Stripe checkout session |
 | `/api/stripe/webhook` | POST | Handle Stripe subscription events |
 | `/api/user/credits` | GET | Get current user's credit balance |
@@ -178,6 +192,9 @@ npx supabase db push
 | Route | Description |
 |-------|-------------|
 | `/share/[id]` | Public report page — no auth required, only serves `is_public=true` analyses |
+| `/widget/[key]` | Hosted public widget page — embeddable lead capture form keyed by `wk_live_…` widget key |
+| `/pricing` | Standalone pricing page — monthly/annual toggle, comparison table, FAQ, Schema.org JSON-LD |
+| `/changelog` | Public changelog — timeline driven by `src/data/changelog.ts` |
 
 ## Pages
 
@@ -186,14 +203,18 @@ npx supabase db push
 | Landing | `/` | Public |
 | Login | `/login` | Public |
 | Signup | `/signup` | Public |
+| Pricing | `/pricing` | Public |
+| Changelog | `/changelog` | Public |
 | Dashboard | `/dashboard` | Required |
 | New Analysis | `/analyze` | Required |
 | Analysis Status | `/analyze/[id]` | Required |
 | Report Detail | `/reports/[id]` | Required |
 | Reports History | `/reports` | Required |
 | Monitors | `/monitors` | Required |
+| Leads | `/leads` | Required (Agency+) |
 | Settings | `/settings` | Required |
 | Public Report | `/share/[id]` | None |
+| Widget Embed | `/widget/[key]` | None |
 
 ## Feature Details
 
@@ -236,16 +257,20 @@ src/
 │   ├── (auth)/               # Login, Signup pages
 │   ├── (dashboard)/
 │   │   ├── analyze/          # URL input form + analysis status
-│   │   ├── reports/          # Report detail + history list
+│   │   ├── reports/          # Report detail + history list (paginated, PAGE_SIZE=20)
 │   │   ├── monitors/         # Scheduled monitoring page
 │   │   ├── dashboard/        # Stats + recent analyses
 │   │   └── settings/         # Profile + billing
 │   ├── share/[id]/           # Public report (no auth)
+│   ├── opengraph-image.tsx   # OG social preview image (Next.js ImageResponse)
 │   └── api/
-│       ├── analyze/           # POST create + POST callback
-│       ├── reports/[id]/      # GET report + GET pdf + POST share
-│       ├── monitors/          # GET list + POST create + PATCH/DELETE [id]
-│       ├── cron/monitors/     # GET Vercel Cron handler
+│       ├── analyze/           # POST create + POST callback (credit refund in both failure paths)
+│       ├── reports/[id]/      # GET report (stale-job via updated_at) + GET pdf + POST share
+│       ├── monitors/          # GET list + POST create (CSRF-protected) + PATCH/DELETE [id]
+│       ├── team/              # POST invite (sets invite_expires_at) + GET accept (expiry check)
+│       ├── cron/
+│       │   ├── monitors/      # GET Vercel Cron handler (hourly)
+│       │   └── reset-credits/ # GET monthly free-user credit reset (1st of month)
 │       ├── ai/analyze/        # POST direct AI analysis
 │       ├── stripe/            # POST checkout + POST webhook
 │       └── user/credits/      # GET credit balance
@@ -256,7 +281,7 @@ src/
 │   ├── reports/
 │   │   ├── ReportHeader.tsx          # Share toggle, copy link, public banner
 │   │   ├── ShareReportHeader.tsx     # Read-only header for /share/[id]
-│   │   ├── PerformanceSection.tsx    # Lighthouse scores + radar chart
+│   │   ├── PerformanceSection.tsx    # Lighthouse scores + radar chart (FID/CLS: N/A)
 │   │   ├── AccessibilitySection.tsx  # WCAG violations
 │   │   ├── ConsoleErrorsSection.tsx  # Console errors
 │   │   ├── AIInsightsSection.tsx     # AI insights + code fix toggles
@@ -269,25 +294,47 @@ src/
 │   ├── ai/
 │   │   ├── claude.ts         # analyzeWithAI(), compareWithDesign()
 │   │   └── prompts.ts        # All AI prompts (6 functions)
+│   ├── csrf.ts               # checkCsrfOrigin() — Origin header CSRF guard
+│   ├── url-validation-patterns.ts  # Shared HTTP_ERROR_STATUSES + PAGE_ERROR_PATTERNS
 │   ├── email/resend.ts       # sendScoreDropAlert(), sendMonitorSummary()
 │   ├── queue/redis.ts        # Upstash Redis client
 │   └── stripe/               # Stripe client + plan definitions
-├── workers/analyzer/         # Cloudflare Worker (Playwright + Lighthouse + axe-core)
+├── workers/analyzer/         # Cloudflare Worker — split into focused modules
+│   ├── index.ts              # Entry point + runAnalysis() + sendCallback()
+│   ├── types.ts              # All shared interfaces (Env, Scores, LLMReadiness, …)
+│   ├── log.ts                # workerLog() structured logging
+│   ├── validate.ts           # validateWebsiteUrl()
+│   ├── score.ts              # analyzeHTML(), clamp()
+│   ├── accessibility.ts      # checkAccessibility() — 19 WCAG checks
+│   ├── errors.ts             # checkCommonErrors()
+│   ├── llm-readiness.ts      # checkLLMReadiness()
+│   ├── crawl.ts              # crawlInternalLinks(), crawlPage()
+│   └── resources.ts          # analyzeResources(), analyzeSecurityHeaders()
 ├── types/
-│   └── analysis.ts           # All shared TypeScript types
+│   ├── analysis.ts           # All shared TypeScript types
+│   └── database.ts           # Supabase Database interface (all 8 tables)
 ├── hooks/
-│   ├── useCredits.ts         # Credits with silent background polling
+│   ├── useCredits.ts         # Credits with stale-guard (no interval polling)
 │   ├── useAnalysis.ts
 │   └── usePolling.ts
-└── middleware.ts             # Auth protection for /dashboard /analyze /reports /settings /monitors
+└── middleware.ts             # Auth protection (/dashboard /analyze /reports /settings /monitors /compliance /remediation /leads /compare) + IP blocklist + SQL-injection scan
 supabase/migrations/
-├── 001_initial_schema.sql
-├── 002_rls_policies.sql
-├── 003_functions.sql
-├── 004_design_comparison.sql
-├── 005_public_reports.sql
-└── 006_monitors.sql
-vercel.json                   # Cron: /api/cron/monitors runs hourly
+├── 001_initial_schema.sql    — analyses, user_settings, subscriptions
+├── 002_rls_policies.sql      — Row Level Security
+├── 003_functions.sql         — triggers, use_credit(), refund_credit(), handle_new_user()
+├── 004_design_comparison.sql — design_screenshot_url + design_comparison on analyses
+├── 005_public_reports.sql    — is_public column + public read policy
+├── 006_monitors.sql          — monitors table
+├── 007_team_members.sql      — team_members + invite tokens
+├── 008_webhooks.sql          — webhooks table
+├── 009_api_keys.sql          — api_keys table (SHA-256 hash)
+├── 010_crawl_pages.sql       — crawl_pages column on analyses
+├── 011_is_public.sql         — (consolidated into 005)
+├── 013_api_key_encrypted.sql — key_encrypted column (AES-256-GCM)
+├── 016_team_invite_expiry.sql — invite_expires_at column + backfill
+├── 017_remediation_items.sql — remediation_items table (open→in_progress→resolved→verified lifecycle)
+└── 018_widget_key.sql        — widget_key TEXT + widget_settings JSONB columns on user_settings
+vercel.json                   # Crons: monitors (hourly) + reset-credits (monthly)
 ```
 
 ## Deployment
@@ -340,10 +387,12 @@ npm run test:watch    # Watch mode
 
 Test suites:
 
+**552 tests passing** (Vitest 4.x, jsdom, @testing-library/react 16.x)
+
 | File | Coverage |
 |------|---------|
 | `analysis-types.test.ts` | Runtime shape validators for all TypeScript types |
-| `prompts.test.ts` | AI prompt output schema contracts |
+| `prompts.test.ts` | AI prompt output schema contracts (including `codeExample` field) |
 | `analyze-validation.test.ts` | URL Zod schema (POST /api/analyze) |
 | `monitors-validation.test.ts` | Monitor Zod schema (POST /api/monitors) |
 | `share-report.test.ts` | Share toggle, status guard, AI summary guard |
@@ -351,3 +400,26 @@ Test suites:
 | `useAnalysis.test.ts` | Analysis hook |
 | `usePolling.test.ts` | Generic polling hook |
 | `api-routes.test.ts` | API route integration helpers |
+| `v1-api.test.ts` | Public API rate limits, key format, Bearer parsing |
+| `team-invite.test.ts` | Team invite tokens, email matching, accept guard |
+| `api-keys.test.ts` | Key generation, hashing, AES-256-GCM encrypt/decrypt |
+| `webhook-delivery.test.ts` | HMAC signing, Slack Block Kit payload |
+| `rate-limit.test.ts` | Per-plan rate limit enforcement |
+| `llm-readiness.test.ts` | Worker LLM readiness checks and internal link crawl |
+| `score-analysis.test.ts` | Worker HTML scoring (SEO, best practices, perf) |
+| `LLMReadinessSection.test.tsx` | LLM readiness report UI |
+| `EAAComplianceSection.test.tsx` | EAA compliance UI, categories, issue counts |
+| `DesignComparisonSection.test.tsx` | Fidelity score, mismatch cards, thumbnail labels |
+| `AIInsightsSection.test.tsx` | Code fix toggle, copy button, priority badges |
+| `CrawledPagesSection.test.tsx` | Crawl results table, status indicators, empty states |
+| `OnboardingBanner.test.tsx` | Banner visibility, dismiss behaviour |
+| `branding.test.ts` | Branding schema, hex validation, plan guard |
+| `monitor-scheduling.test.ts` | `next_run_at`, score-drop detection, cron eligibility |
+| `cookie-consent.test.ts` | Consent storage, analytics gating, banner visibility |
+| `widget-key.test.ts` | `generateWidgetKey`, `isValidWidgetKeyFormat` — `wk_live_` prefix, 32-hex body, uniqueness |
+| `widget-analyze.test.ts` | `POST /api/widget/analyze` — OPTIONS preflight, CORS, key auth, URL validation, rate limit, credits |
+| `PricingPage.test.tsx` | COMPARE_ROWS data invariants, plan escalation rules, billing toggle, FAQ accordion, auth modal |
+| `changelog.test.ts` | RELEASES data — sort order, unique versions, ISO dates, required fields, tag enum values |
+| `url-validation.test.ts` | Worker `validateWebsiteUrl` — valid/invalid protocols, normalisation, edge cases |
+| `compare-api.test.ts` | Compare endpoint request/response validation |
+| `CompetitorComparisonSection.test.tsx` | Competitor comparison UI rendering and empty states |

@@ -7,11 +7,12 @@ import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/s
 import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Dashboard' },
-  { href: '/analyze',   label: 'Analyze' },
-  { href: '/reports',   label: 'Reports' },
-  { href: '/monitors',  label: 'Monitors' },
-  { href: '/settings',  label: 'Settings' },
+  { href: '/dashboard',  label: 'Dashboard' },
+  { href: '/analyze',    label: 'Analyze' },
+  { href: '/reports',    label: 'Reports' },
+  { href: '/monitors',   label: 'Monitors' },
+  { href: '/compliance', label: 'Compliance' },
+  { href: '/settings',   label: 'Settings' },
 ];
 
 export function MobileSidebar() {

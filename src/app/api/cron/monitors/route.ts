@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
   // Find all active monitors that are due.
   // Do NOT join auth.users here — user emails are PII and should not travel
   // through the Cloudflare Worker. The callback resolves the email itself.
-  const { data: dueMonitors, error } = await (supabase as any).from('monitors')
+  const { data: dueMonitors, error } = await supabase.from('monitors')
     .select('id, user_id, url, frequency, notify_on_score_drop, score_drop_threshold, last_scores')
     .eq('is_active', true)
     .lte('next_run_at', now)
@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
 
       if (!hasCredit) {
         // Pause this monitor — user is out of credits
-        await (supabase as any).from('monitors')
+        await supabase.from('monitors')
           .update({ is_active: false })
           .eq('id', monitor.id);
 
@@ -79,7 +79,7 @@ export async function GET(req: NextRequest) {
         : addDays(new Date(), 7);
 
       // Update monitor — record last run, set next run
-      await (supabase as any).from('monitors')
+      await supabase.from('monitors')
         .update({
           last_run_at: now,
           next_run_at: nextRun.toISOString(),

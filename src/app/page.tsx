@@ -2,107 +2,265 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Zap, Shield, Brain, BarChart3, CheckCircle2, Globe, Code2, Bell, Users } from 'lucide-react';
+import {
+  ArrowRight, Zap, Shield, Brain, BarChart3, CheckCircle2,
+  Globe, Code2, Bell, Users, X, FileText, TrendingUp, Building2,
+} from 'lucide-react';
 import { AuthModal } from '@/components/auth/AuthModal';
-import { ProductDemo } from '@/components/landing/ProductDemo';
 import { ThemeToggle } from '@/components/shared/ThemeToggle';
 
 type ModalState = { open: boolean; tab: 'signin' | 'signup' };
+
+const PLANS = [
+  {
+    name: 'Free',
+    price: '$0',
+    period: 'forever free',
+    description: 'Try the product. No credit card required.',
+    color: 'border-border',
+    badge: null,
+    buttonClass: 'border border-border hover:bg-accent',
+    buttonText: 'Get started free',
+    features: [
+      '3 audits/month',
+      'Performance, SEO & accessibility scores',
+      'AI-readiness score',
+      'Basic AI recommendations',
+      'Fix roadmap (top issues)',
+    ],
+    locked: ['PDF export', 'Monitoring', 'API access', 'Team members'],
+  },
+  {
+    name: 'Pro',
+    price: '$29',
+    period: '/mo',
+    description: 'For freelancers and small business owners.',
+    color: 'border-indigo-500/40',
+    glow: '0 0 40px rgba(99,102,241,0.15)',
+    badge: { text: 'Most popular', class: 'bg-gradient-to-r from-indigo-500 to-violet-500 text-white' },
+    labelColor: 'text-indigo-300',
+    checkColor: 'text-indigo-400',
+    buttonClass: 'bg-gradient-to-r from-indigo-500 to-violet-500 text-white hover:from-indigo-400 hover:to-violet-400',
+    buttonText: 'Start Pro',
+    features: [
+      '100 audits/month',
+      'Everything in Free',
+      'PDF export',
+      'Full fix roadmap',
+      'Before/after comparison',
+      'Multi-page crawl (10 pages)',
+      '1 competitor comparison',
+      'Website monitoring (5 sites)',
+      'Remediation board',
+      'Public report sharing',
+    ],
+    locked: ['API access', 'Webhooks', 'Team members', 'White-label PDF'],
+  },
+  {
+    name: 'Agency',
+    price: '$99',
+    period: '/mo',
+    description: 'For web studios and small agencies.',
+    color: 'border-border',
+    badge: null,
+    labelColor: 'text-violet-400',
+    checkColor: 'text-violet-400',
+    buttonClass: 'border border-border hover:bg-accent',
+    buttonText: 'Start Agency',
+    features: [
+      'Unlimited audits (fair use)',
+      'Everything in Pro',
+      'White-label PDF reports',
+      '3 competitor comparisons',
+      'Multi-page crawl (50 pages)',
+      'Team members (up to 10)',
+      'API access (1,000 req/day)',
+      'Webhooks',
+      'Monitoring (50 sites)',
+      'Priority support',
+    ],
+    locked: [],
+  },
+  {
+    name: 'Compliance',
+    price: '$249',
+    period: '/mo',
+    description: 'For businesses that need accessibility compliance tracking.',
+    color: 'border-emerald-500/30',
+    glow: '0 0 30px rgba(5,150,105,0.1)',
+    badge: { text: 'EAA ready', class: 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white' },
+    labelColor: 'text-emerald-400',
+    checkColor: 'text-emerald-400',
+    buttonClass: 'border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10',
+    buttonText: 'Start Compliance',
+    features: [
+      'Unlimited audits (fair use)',
+      'Everything in Agency',
+      'Compliance readiness PDF',
+      'Full WCAG 2.1 AA automated checks',
+      'Remediation audit trail',
+      'Issue lifecycle tracking',
+      'Scheduled compliance audits',
+      'Historical evidence & reporting',
+    ],
+    locked: [],
+  },
+];
+
+const AUDIENCES = [
+  {
+    icon: Building2,
+    label: 'Small Business',
+    color: 'indigo',
+    headline: 'Find what is hurting your website before your customers do.',
+    points: [
+      'Improve page speed and reduce bounce rate',
+      'Fix SEO basics to get found on Google',
+      'Catch accessibility issues before they matter legally',
+      'Understand how AI search tools see your site',
+      'Get a simple action plan — no technical knowledge needed',
+    ],
+    cta: 'Audit my website',
+    href: '#signup',
+  },
+  {
+    icon: Users,
+    label: 'Agencies',
+    color: 'violet',
+    headline: 'Generate client-ready website audit reports in minutes.',
+    points: [
+      'White-label PDF reports with your agency branding',
+      'Before/after progress reports to prove your work',
+      'Compare client sites against competitors',
+      'Team access and shared report history',
+      'Webhooks and API for your existing workflow',
+    ],
+    cta: 'Create client report',
+    href: '#signup',
+  },
+  {
+    icon: Code2,
+    label: 'Developers',
+    color: 'violet',
+    headline: 'Turn vague website issues into clear technical tasks.',
+    points: [
+      'Console errors with root-cause analysis',
+      'Network bottlenecks and render-blocking resources',
+      'Performance metrics with specific code-level fixes',
+      'Accessibility violations with copy-paste fix examples',
+      'AI-readiness checks for structured data and metadata',
+    ],
+    cta: 'View technical sample',
+    href: '/sample-report',
+  },
+];
 
 export default function LandingPage() {
   const [url, setUrl] = useState('');
   const [modal, setModal] = useState<ModalState>({ open: false, tab: 'signup' });
 
+  const openSignup = () => setModal({ open: true, tab: 'signup' });
+
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
-      {/* Nav */}
+
+      {/* ── Nav ─────────────────────────────────────────────────────── */}
       <nav className="fixed top-0 w-full z-50 border-b border-border bg-background/80 backdrop-blur-xl">
         <div className="max-w-6xl mx-auto px-4 h-14 relative flex items-center justify-between">
-          {/* Logo — left */}
           <div className="flex items-center gap-2 z-10">
             <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center">
               <Zap className="h-4 w-4 text-white" />
             </div>
             <span className="font-bold text-base">WebAnalyzer</span>
           </div>
-          {/* Center links — absolutely centered so they don't shift with asymmetric sides */}
           <div className="hidden md:flex items-center gap-6 text-sm text-muted-foreground absolute left-1/2 -translate-x-1/2">
             <a href="#features" className="hover:text-foreground transition-colors">Features</a>
-            <a href="#pricing" className="hover:text-foreground transition-colors">Pricing</a>
+            <a href="#for-who" className="hover:text-foreground transition-colors">Who it&apos;s for</a>
+            <Link href="/pricing" className="hover:text-foreground transition-colors">Pricing</Link>
+            <Link href="/changelog" className="hover:text-foreground transition-colors">Changelog</Link>
+            <Link href="/sample-report" className="hover:text-foreground transition-colors">Sample report</Link>
           </div>
-          {/* Actions — right */}
           <div className="flex items-center gap-3 z-10">
             <ThemeToggle />
             <button onClick={() => setModal({ open: true, tab: 'signin' })} className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:block">Sign in</button>
-            <button onClick={() => setModal({ open: true, tab: 'signup' })} className="rounded-lg bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-1.5 text-sm font-medium text-white hover:from-indigo-400 hover:to-violet-400 transition-all">
+            <button onClick={openSignup} className="rounded-lg bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-1.5 text-sm font-medium text-white hover:from-indigo-400 hover:to-violet-400 transition-all">
               Get started free
             </button>
           </div>
         </div>
       </nav>
 
-      {/* Hero */}
+      {/* ── Hero ────────────────────────────────────────────────────── */}
       <section className="relative pt-32 pb-20 px-4 bg-grid">
-        {/* Radial glow behind headline */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-[600px] h-[400px] bg-indigo-600/10 rounded-full blur-[120px]" />
+          <div className="w-[700px] h-[400px] bg-indigo-600/10 rounded-full blur-[120px]" />
         </div>
 
         <div className="relative max-w-4xl mx-auto text-center">
-          {/* Eyebrow badge */}
           <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4 py-1.5 text-xs font-medium text-indigo-300 mb-8">
             <span className="h-1.5 w-1.5 rounded-full bg-indigo-400 animate-pulse" />
-            AI-powered website analysis
+            AI-powered website audits for SMBs &amp; agencies
           </div>
 
           <h1 className="text-5xl md:text-7xl font-bold tracking-tight leading-[1.1] mb-6">
-            Your site score,{' '}
+            Website audits your clients{' '}
             <span className="bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">
-              explained.
+              actually understand.
             </span>
           </h1>
 
-          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
-            Performance, accessibility, SEO, and LLM readiness — analyzed in 30 seconds.
-            Get AI-powered recommendations you can actually act on.
+          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-4 leading-relaxed">
+            Analyze performance, SEO, accessibility, and AI-readiness in one clear report.
+            Get prioritized fixes, PDF exports, monitoring, and before/after progress tracking.
+          </p>
+          <p className="text-sm text-muted-foreground/60 mb-10">
+            Built for small businesses, freelancers, and agencies — not enterprise SEO teams.
           </p>
 
-          {/* URL input CTA */}
-          <div className="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto mb-6">
+          {/* CTAs */}
+          <div className="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto mb-4">
             <input
               type="url"
               value={url}
               onChange={e => setUrl(e.target.value)}
               placeholder="https://yoursite.com"
-              className="flex-1 rounded-xl border border-indigo-500/20 bg-card px-4 py-3 text-sm text-white placeholder:text-muted-foreground/60 focus:outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+              className="flex-1 rounded-xl border border-indigo-500/20 bg-card px-4 py-3 text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/20 transition-all"
             />
             <button
-              onClick={() => setModal({ open: true, tab: 'signup' })}
+              onClick={openSignup}
               className="rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-6 py-3 text-sm font-semibold text-white hover:from-indigo-400 hover:to-violet-400 transition-all whitespace-nowrap flex items-center gap-2 justify-center"
               style={{ boxShadow: '0 0 24px rgba(99,102,241,0.3)' }}
             >
-              Analyze free <ArrowRight className="h-4 w-4" />
+              Run free audit <ArrowRight className="h-4 w-4" />
             </button>
           </div>
-          <p className="text-xs text-muted-foreground/60">No credit card required · 3 free analyses/month</p>
+
+          <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground/60">
+            <span>No credit card required</span>
+            <span>·</span>
+            <span>3 free audits/month</span>
+            <span>·</span>
+            <Link href="/sample-report" className="text-indigo-400 hover:text-indigo-300 transition-colors underline underline-offset-4">
+              View sample report →
+            </Link>
+          </div>
         </div>
 
-        {/* Score cards preview */}
+        {/* Score preview card */}
         <div className="relative max-w-3xl mx-auto mt-16">
-          {/* Fake report preview */}
           <div className="rounded-2xl border border-indigo-500/20 bg-card p-6 shadow-2xl" style={{ boxShadow: '0 0 60px rgba(99,102,241,0.1)' }}>
             <div className="flex items-center gap-2 mb-6">
               <div className="h-2.5 w-2.5 rounded-full bg-red-500/70" />
               <div className="h-2.5 w-2.5 rounded-full bg-amber-500/70" />
               <div className="h-2.5 w-2.5 rounded-full bg-emerald-500/70" />
-              <span className="ml-2 text-xs text-muted-foreground/60 font-mono">example.com — analysis complete</span>
+              <span className="ml-2 text-xs text-muted-foreground/60 font-mono">example.com — analysis complete · 28s</span>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
               {[
                 { label: 'Performance', score: 87, color: 'text-emerald-400' },
                 { label: 'Accessibility', score: 92, color: 'text-emerald-400' },
                 { label: 'SEO', score: 78, color: 'text-amber-400' },
-                { label: 'LLM Ready', score: 63, color: 'text-amber-400' },
+                { label: 'AI-Readiness', score: 63, color: 'text-amber-400' },
               ].map(({ label, score, color }) => (
                 <div key={label} className="rounded-xl border border-border bg-background p-4 text-center">
                   <div className={`text-4xl font-bold tabular-nums ${color}`}>{score}</div>
@@ -110,48 +268,85 @@ export default function LandingPage() {
                 </div>
               ))}
             </div>
-            <div className="mt-4 h-1 rounded-full bg-accent overflow-hidden">
-              <div className="h-full w-[85%] rounded-full bg-gradient-to-r from-indigo-500 to-violet-500" />
-            </div>
-            <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground/60">
-              <span>Analysis complete · 28s</span>
-              <span className="text-indigo-400">3 issues need attention →</span>
+            {/* Fix roadmap preview */}
+            <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3">
+              <p className="text-xs font-medium text-amber-400 mb-2">Top priority fix</p>
+              <p className="text-sm font-medium">Hero image is slowing down page load</p>
+              <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
+                <span className="rounded-full bg-red-500/20 text-red-400 px-2 py-0.5">High impact</span>
+                <span>Effort: Small</span>
+                <span>Owner: Developer</span>
+              </div>
             </div>
           </div>
-          {/* Glow under card */}
           <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-3/4 h-8 bg-indigo-500/20 blur-2xl rounded-full" />
         </div>
       </section>
 
-      {/* Divider */}
       <div className="h-px bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent" />
 
-      {/* Product demo */}
-      <ProductDemo />
+      {/* ── For Who ─────────────────────────────────────────────────── */}
+      <section id="for-who" className="py-24 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <p className="text-xs font-semibold uppercase tracking-widest text-indigo-400 mb-3">Built for real people</p>
+            <h2 className="text-4xl font-bold mb-4">Who is it for?</h2>
+            <p className="text-muted-foreground max-w-xl mx-auto">Not a platform for enterprise SEO teams. Built for people who need clear answers, fast.</p>
+          </div>
 
-      {/* Divider */}
+          <div className="grid md:grid-cols-3 gap-6">
+            {AUDIENCES.map(({ icon: Icon, label, color, headline, points, cta, href }) => (
+              <div key={label} className={`rounded-2xl border border-${color}-500/20 bg-card p-7 flex flex-col hover:border-${color}-500/40 transition-colors`}>
+                <div className={`h-10 w-10 rounded-xl bg-${color}-500/10 border border-${color}-500/20 flex items-center justify-center mb-5`}>
+                  <Icon className={`h-5 w-5 text-${color}-400`} />
+                </div>
+                <p className={`text-xs font-semibold uppercase tracking-widest text-${color}-400 mb-2`}>{label}</p>
+                <h3 className="text-lg font-bold mb-4 leading-snug">{headline}</h3>
+                <ul className="space-y-2.5 text-sm text-muted-foreground flex-1 mb-6">
+                  {points.map(p => (
+                    <li key={p} className="flex items-start gap-2">
+                      <CheckCircle2 className={`h-3.5 w-3.5 text-${color}-400 shrink-0 mt-0.5`} />
+                      {p}
+                    </li>
+                  ))}
+                </ul>
+                {href === '/sample-report' ? (
+                  <Link href={href} className={`flex items-center gap-2 text-sm font-semibold text-${color}-400 hover:text-${color}-300 transition-colors`}>
+                    {cta} <ArrowRight className="h-4 w-4" />
+                  </Link>
+                ) : (
+                  <button onClick={openSignup} className={`flex items-center gap-2 text-sm font-semibold text-${color}-400 hover:text-${color}-300 transition-colors`}>
+                    {cta} <ArrowRight className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <div className="h-px bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent" />
 
-      {/* Features */}
+      {/* ── Features ────────────────────────────────────────────────── */}
       <section id="features" className="py-24 px-4">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <p className="text-xs font-semibold uppercase tracking-widest text-indigo-400 mb-3">Everything you need</p>
-            <h2 className="text-4xl font-bold mb-4">Not just a score. A full diagnosis.</h2>
-            <p className="text-muted-foreground max-w-xl mx-auto">Seven integrated analysis engines in one report. No tab-switching, no five different tools.</p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-indigo-400 mb-3">What you get</p>
+            <h2 className="text-4xl font-bold mb-4">Not just a score. A full action plan.</h2>
+            <p className="text-muted-foreground max-w-xl mx-auto">Seven analysis engines. One clear report. Prioritized fixes your team can act on.</p>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
             {[
-              { icon: Zap, title: 'Performance', desc: 'TTFB, LCP, CLS measured with 3× median sampling for accuracy. No noisy single-sample scores.' },
-              { icon: Shield, title: 'Accessibility & EAA', desc: 'WCAG 2.2 violations with plain-English explanations and ready-to-paste code fixes. EAA compliance tracking.' },
-              { icon: Brain, title: 'AI Insights', desc: 'Claude Vision analyzes your screenshot and explains every issue like a senior engineer would.' },
-              { icon: BarChart3, title: 'LLM Readiness', desc: 'New: see how ready your site is for AI crawlers — ChatGPT, Perplexity, Claude, Google AI.' },
-              { icon: Globe, title: 'Site Crawl', desc: 'Automatically crawls up to 5 internal pages and aggregates scores across your whole site.' },
-              { icon: Bell, title: 'Monitoring & Alerts', desc: 'Weekly checks with Slack and webhook alerts when scores drop. Know before your users do.' },
-              { icon: Code2, title: 'REST API', desc: 'Full programmatic access. Integrate analysis into your CI/CD pipeline with a single curl command.' },
-              { icon: Users, title: 'Team Seats', desc: 'Invite your team on Agency plan. Shared report history, role-based access.' },
-              { icon: CheckCircle2, title: 'White-label PDF', desc: 'Send branded PDF reports to clients with your agency name and colors.' },
+              { icon: Zap, title: 'Performance audit', desc: 'TTFB, LCP, CLS with 3× median sampling. Specific fixes for render-blocking resources, image compression, and server response.' },
+              { icon: Shield, title: 'Accessibility & WCAG', desc: 'Automated WCAG 2.1 AA checks with plain-English explanations, affected users, and copy-paste code fixes.' },
+              { icon: Brain, title: 'AI recommendations', desc: 'Claude Vision analyzes your screenshot and returns structured recommendations with business impact and effort estimates.' },
+              { icon: BarChart3, title: 'AI-readiness score', desc: '8 checks for how well your site works with AI crawlers — ChatGPT, Perplexity, Google AI Overview, Claude.' },
+              { icon: Globe, title: 'Multi-page crawl', desc: 'Crawls internal pages and aggregates scores across your whole site. Catch issues that only appear on inner pages.' },
+              { icon: TrendingUp, title: 'Before/after comparison', desc: 'Re-run an audit and see exactly what improved, what is still broken, and what new issues appeared.' },
+              { icon: FileText, title: 'Fix roadmap', desc: 'Every issue ranked by business impact and fix effort. Clear owner, acceptance criteria, and expected result.' },
+              { icon: Bell, title: 'Monitoring & alerts', desc: 'Recurring checks with email alerts when scores drop. Know before your users complain.' },
+              { icon: CheckCircle2, title: 'Client-ready PDFs', desc: 'Export clean branded PDF reports. White-label with your agency name and colors on Agency plan.' },
             ].map(({ icon: Icon, title, desc }) => (
               <div key={title} className="rounded-xl border border-border bg-card p-5 hover:border-indigo-500/30 transition-colors group">
                 <div className="h-9 w-9 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-4 group-hover:bg-indigo-500/20 transition-colors">
@@ -165,100 +360,103 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Divider */}
       <div className="h-px bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent" />
 
-      {/* Pricing */}
+      {/* ── Sample report CTA ────────────────────────────────────────── */}
+      <section className="py-16 px-4">
+        <div className="max-w-3xl mx-auto rounded-2xl border border-indigo-500/20 bg-card p-10 text-center" style={{ boxShadow: '0 0 40px rgba(99,102,241,0.08)' }}>
+          <p className="text-xs font-semibold uppercase tracking-widest text-indigo-400 mb-3">See it before you sign up</p>
+          <h2 className="text-3xl font-bold mb-3">What does a report look like?</h2>
+          <p className="text-muted-foreground mb-8 max-w-xl mx-auto">Browse a real sample report — scores, fix roadmap, AI recommendations, and PDF preview — before creating an account.</p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link
+              href="/sample-report"
+              className="inline-flex items-center gap-2 rounded-xl border border-indigo-500/30 px-6 py-3 text-sm font-semibold text-indigo-400 hover:bg-indigo-500/10 transition-colors"
+            >
+              <FileText className="h-4 w-4" />
+              View sample report
+            </Link>
+            <button
+              onClick={openSignup}
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-6 py-3 text-sm font-semibold text-white hover:from-indigo-400 hover:to-violet-400 transition-all"
+            >
+              Run audit on my site <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <div className="h-px bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent" />
+
+      {/* ── Pricing ─────────────────────────────────────────────────── */}
       <section id="pricing" className="py-24 px-4">
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <p className="text-xs font-semibold uppercase tracking-widest text-indigo-400 mb-3">Pricing</p>
             <h2 className="text-4xl font-bold mb-4">Start free. Scale as you grow.</h2>
             <p className="text-muted-foreground">No credit card required to get started.</p>
           </div>
 
-          {/* mt-5 = badge clearance so cards sit level; each card has a fixed h-5 badge zone at top */}
-          <div className="grid md:grid-cols-3 gap-6 mt-5">
-            {/* Free */}
-            <div className="rounded-2xl border border-border bg-card p-7 flex flex-col">
-              {/* Badge zone — invisible spacer, same height as Pro badge */}
-              <div className="h-5 mb-6" />
-              <div className="mb-6">
-                <p className="text-sm font-medium text-muted-foreground mb-1">Free</p>
-                <div className="flex items-end gap-1">
-                  <span className="text-5xl font-bold">$0</span>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5 mt-5">
+            {PLANS.map((plan) => (
+              <div
+                key={plan.name}
+                className={`rounded-2xl border ${plan.color} bg-card p-6 flex flex-col relative`}
+                style={plan.glow ? { boxShadow: plan.glow } : undefined}
+              >
+                {plan.badge && (
+                  <span className={`absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full px-4 py-1 text-xs font-semibold whitespace-nowrap ${plan.badge.class}`}>
+                    {plan.badge.text}
+                  </span>
+                )}
+                <div className={`${plan.badge ? 'mt-2' : ''} mb-5`}>
+                  <p className={`text-sm font-medium mb-1 ${plan.labelColor ?? 'text-muted-foreground'}`}>{plan.name}</p>
+                  <div className="flex items-end gap-1">
+                    <span className="text-4xl font-bold">{plan.price}</span>
+                    {plan.period !== 'forever free' && (
+                      <span className="text-muted-foreground mb-1.5">{plan.period}</span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground/60 mt-1">{plan.period === 'forever free' ? 'Forever free' : 'Billed monthly'}</p>
+                  <p className="text-xs text-muted-foreground mt-2">{plan.description}</p>
                 </div>
-                <p className="text-sm text-muted-foreground/60 mt-1">Forever free</p>
-              </div>
-              <ul className="space-y-3 text-sm mb-6 flex-1">
-                {['3 analyses / month', 'Performance scores', 'Accessibility check', 'AI insights', 'PDF export'].map(f => (
-                  <li key={f} className="flex items-center gap-2.5 text-muted-foreground">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />{f}
-                  </li>
-                ))}
-              </ul>
-              <button onClick={() => setModal({ open: true, tab: 'signup' })} className="w-full text-center rounded-xl border border-border px-4 py-2.5 text-sm font-medium hover:bg-accent transition-colors mt-auto">
-                Get started free
-              </button>
-            </div>
 
-            {/* Pro — highlighted */}
-            <div className="rounded-2xl border border-indigo-500/40 bg-card p-7 flex flex-col relative" style={{ boxShadow: '0 0 40px rgba(99,102,241,0.15)' }}>
-              {/* Badge zone — visible badge, centered above content */}
-              <div className="h-5 mb-6 flex items-center justify-center">
-                <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-1 text-xs font-semibold text-white whitespace-nowrap">Most popular</span>
-              </div>
-              <div className="mb-6">
-                <p className="text-sm font-medium text-indigo-300 mb-1">Pro</p>
-                <div className="flex items-end gap-1">
-                  <span className="text-5xl font-bold">$29</span>
-                  <span className="text-muted-foreground mb-1.5">/mo</span>
-                </div>
-                <p className="text-sm text-muted-foreground/60 mt-1">Billed monthly</p>
-              </div>
-              <ul className="space-y-3 text-sm mb-6 flex-1">
-                {['100 analyses / month', 'Everything in Free', 'Scheduled monitoring', 'Slack & webhook alerts', 'Public report sharing', 'White-label PDF', 'API access (100 req/day)'].map(f => (
-                  <li key={f} className="flex items-center gap-2.5 text-muted-foreground">
-                    <CheckCircle2 className="h-4 w-4 text-indigo-400 shrink-0" />{f}
-                  </li>
-                ))}
-              </ul>
-              <button onClick={() => setModal({ open: true, tab: 'signup' })} className="w-full text-center rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-2.5 text-sm font-semibold text-white hover:from-indigo-400 hover:to-violet-400 transition-all mt-auto">
-                Start Pro trial
-              </button>
-            </div>
+                <ul className="space-y-2 text-sm mb-4 flex-1">
+                  {plan.features.map(f => (
+                    <li key={f} className="flex items-start gap-2 text-muted-foreground">
+                      <CheckCircle2 className={`h-3.5 w-3.5 shrink-0 mt-0.5 ${plan.checkColor ?? 'text-emerald-500'}`} />
+                      {f}
+                    </li>
+                  ))}
+                  {plan.locked && plan.locked.length > 0 && (
+                    plan.locked.map(f => (
+                      <li key={f} className="flex items-start gap-2 text-muted-foreground/40">
+                        <X className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                        {f}
+                      </li>
+                    ))
+                  )}
+                </ul>
 
-            {/* Agency */}
-            <div className="rounded-2xl border border-border bg-card p-7 flex flex-col">
-              {/* Badge zone — invisible spacer */}
-              <div className="h-5 mb-6" />
-              <div className="mb-6">
-                <p className="text-sm font-medium text-muted-foreground mb-1">Agency</p>
-                <div className="flex items-end gap-1">
-                  <span className="text-5xl font-bold">$99</span>
-                  <span className="text-muted-foreground mb-1.5">/mo</span>
-                </div>
-                <p className="text-sm text-muted-foreground/60 mt-1">Billed monthly</p>
+                <button
+                  onClick={openSignup}
+                  className={`w-full rounded-xl px-4 py-2.5 text-sm font-semibold transition-all mt-auto ${plan.buttonClass}`}
+                >
+                  {plan.buttonText}
+                </button>
               </div>
-              <ul className="space-y-3 text-sm mb-6 flex-1">
-                {['Unlimited analyses', 'Everything in Pro', 'Team seats (up to 10)', 'Design comparison AI', 'Multi-page crawl', 'API (1000 req/day)', 'Priority support'].map(f => (
-                  <li key={f} className="flex items-center gap-2.5 text-muted-foreground">
-                    <CheckCircle2 className="h-4 w-4 text-violet-400 shrink-0" />{f}
-                  </li>
-                ))}
-              </ul>
-              <button onClick={() => setModal({ open: true, tab: 'signup' })} className="w-full text-center rounded-xl border border-border px-4 py-2.5 text-sm font-medium hover:bg-accent transition-colors mt-auto">
-                Start Agency trial
-              </button>
-            </div>
+            ))}
           </div>
+
+          <p className="text-center text-xs text-muted-foreground/50 mt-6">
+            Automated accessibility checks only — reports do not constitute legal compliance certification.
+          </p>
         </div>
       </section>
 
-      {/* Divider */}
       <div className="h-px bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent" />
 
-      {/* Final CTA */}
+      {/* ── Final CTA ───────────────────────────────────────────────── */}
       <section className="py-24 px-4 text-center">
         <div className="max-w-2xl mx-auto">
           <div className="relative">
@@ -272,14 +470,24 @@ export default function LandingPage() {
               </span>
             </h2>
           </div>
-          <p className="text-muted-foreground mb-8">Start free. Your first report takes 30 seconds.</p>
-          <button
-            onClick={() => setModal({ open: true, tab: 'signup' })}
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-8 py-3.5 text-base font-semibold text-white hover:from-indigo-400 hover:to-violet-400 transition-all"
-            style={{ boxShadow: '0 0 32px rgba(99,102,241,0.35)' }}
-          >
-            Analyze your site free <ArrowRight className="h-4 w-4" />
-          </button>
+          <p className="text-muted-foreground mb-3">Start free. Your first report takes under 30 seconds.</p>
+          <p className="text-sm text-muted-foreground/60 mb-8">No credit card · 3 free audits/month · Cancel anytime</p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <button
+              onClick={openSignup}
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-8 py-3.5 text-base font-semibold text-white hover:from-indigo-400 hover:to-violet-400 transition-all"
+              style={{ boxShadow: '0 0 32px rgba(99,102,241,0.35)' }}
+            >
+              Run a free audit <ArrowRight className="h-4 w-4" />
+            </button>
+            <Link
+              href="/sample-report"
+              className="inline-flex items-center gap-2 rounded-xl border border-border px-8 py-3.5 text-base font-medium hover:bg-accent transition-colors"
+            >
+              <FileText className="h-4 w-4" />
+              View sample report
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -290,7 +498,7 @@ export default function LandingPage() {
         onClose={() => setModal({ open: false, tab: 'signup' })}
       />
 
-      {/* Footer */}
+      {/* ── Footer ──────────────────────────────────────────────────── */}
       <footer className="border-t border-border py-10">
         <div className="max-w-6xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground/60">
           <div className="flex items-center gap-2">
@@ -300,11 +508,14 @@ export default function LandingPage() {
             <span>WebAnalyzer</span>
           </div>
           <div className="flex flex-wrap items-center gap-4 md:gap-6">
+            <Link href="/pricing" className="hover:text-muted-foreground transition-colors">Pricing</Link>
+            <Link href="/changelog" className="hover:text-muted-foreground transition-colors">Changelog</Link>
+            <Link href="/sample-report" className="hover:text-muted-foreground transition-colors">Sample report</Link>
+            <Link href="/docs" className="hover:text-muted-foreground transition-colors">API Docs</Link>
             <Link href="/privacy" className="hover:text-muted-foreground transition-colors">Privacy</Link>
             <Link href="/terms" className="hover:text-muted-foreground transition-colors">Terms</Link>
             <Link href="/cookies" className="hover:text-muted-foreground transition-colors">Cookies</Link>
             <Link href="/refund" className="hover:text-muted-foreground transition-colors">Refunds</Link>
-            <Link href="/docs" className="hover:text-muted-foreground transition-colors">API Docs</Link>
           </div>
           <p>© 2026 WebAnalyzer. All rights reserved.</p>
         </div>

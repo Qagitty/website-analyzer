@@ -14,7 +14,7 @@ export async function authenticateApiKey(authHeader: string | null): Promise<Aut
 
   const supabase = createServiceRoleClient();
 
-  const { data: key } = await (supabase as any)
+  const { data: key } = await supabase
     .from('api_keys')
     .select('id, user_id, revoked_at')
     .eq('key_hash', hash)
@@ -23,14 +23,14 @@ export async function authenticateApiKey(authHeader: string | null): Promise<Aut
   if (!key || key.revoked_at) return null;
 
   // Get user plan
-  const { data: sub } = await (supabase as any)
+  const { data: sub } = await supabase
     .from('subscriptions')
     .select('plan')
     .eq('user_id', key.user_id)
     .single();
 
   // Update last_used_at (fire and forget)
-  (supabase as any)
+  supabase
     .from('api_keys')
     .update({ last_used_at: new Date().toISOString() })
     .eq('id', key.id)

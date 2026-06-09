@@ -3,6 +3,8 @@ import { notFound, redirect } from 'next/navigation';
 import { createServerClient } from '@/lib/supabase/server';
 import { getSignedUrlOrNull } from '@/lib/supabase/storage';
 import { ReportHeader } from '@/components/reports/ReportHeader';
+import { ExecSummarySection } from '@/components/reports/ExecSummarySection';
+import { FixRoadmapSection } from '@/components/reports/FixRoadmapSection';
 import { PerformanceSection } from '@/components/reports/PerformanceSection';
 import { EAAComplianceSection } from '@/components/reports/EAAComplianceSection';
 import { AccessibilitySection } from '@/components/reports/AccessibilitySection';
@@ -19,7 +21,8 @@ import type { Analysis } from '@/types/analysis';
 
 export const metadata: Metadata = { title: 'Report' };
 
-export default async function ReportPage({ params }: { params: { id: string } }) {
+export default async function ReportPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const supabase = createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -50,6 +53,22 @@ export default async function ReportPage({ params }: { params: { id: string } })
   return (
     <div className="max-w-4xl mx-auto space-y-6 md:space-y-10">
       <ReportHeader analysis={analysis} />
+
+      {/* Executive summary — scores + plain-language AI overview */}
+      {analysis.lighthouse_scores && (
+        <ExecSummarySection
+          url={analysis.url}
+          scores={analysis.lighthouse_scores as any}
+          aiSummary={analysis.ai_summary}
+          completedAt={analysis.completed_at}
+        />
+      )}
+
+      {/* Fix roadmap — prioritised issues with code snippets */}
+      {analysis.ai_insights && (
+        <FixRoadmapSection insights={(analysis.ai_insights as any)?.insights} />
+      )}
+
       <ScreenshotViewer url={screenshotSignedUrl} siteUrl={analysis.url} />
       {analysis.lighthouse_scores && (
         <PerformanceSection scores={analysis.lighthouse_scores as any} />
@@ -74,6 +93,8 @@ export default async function ReportPage({ params }: { params: { id: string } })
         <AccessibilitySection
           issues={analysis.accessibility_issues as any}
           aiInsights={(analysis.ai_insights as any)?.accessibility?.interpretedIssues ?? null}
+          analysisId={analysis.id}
+          url={analysis.url}
         />
       )}
       {analysis.console_errors && (

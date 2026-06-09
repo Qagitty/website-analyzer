@@ -221,19 +221,30 @@ Be thorough and specific. Mention exact CSS properties when suggesting fixes.
     url: string;
     performanceScore: number;
     accessibilityScore: number;
+    bestPracticesScore: number;
     seoScore: number;
     errorCount: number;
     accessibilityIssueCount: number;
   }) => `
-You are a web quality expert. Write a concise executive summary for a website analysis report.
+You are a web quality expert. Write an executive summary for a website analysis report aimed at a non-technical business owner.
 
 Site: ${data.url}
 - Performance: ${data.performanceScore}/100
 - Accessibility: ${data.accessibilityScore}/100
+- Best Practices: ${data.bestPracticesScore}/100
 - SEO: ${data.seoScore}/100
 - Console errors: ${data.errorCount}
 - Accessibility issues: ${data.accessibilityIssueCount}
 
-Write a 3-4 sentence executive summary for a non-technical business owner. No jargon. No JSON, just plain text.
+Return ONLY valid JSON in this exact format:
+{
+  "summary": "<3-4 sentences in plain English, no jargon. State the overall health, the most critical issue to fix first, and an encouraging note about improvement potential. Write for a non-technical business owner.>",
+  "overallGrade": "A" | "B" | "C" | "D" | "F",
+  "topPriority": "<Single most important action the business owner should take first, in one plain sentence>",
+  "estimatedFixTime": "<e.g. 'Most critical issues fixable in 2–3 hours'>",
+  "highlights": [
+    "<something the site does well — 1 sentence>"
+  ]
+}
 `,
 };

@@ -1,11 +1,9 @@
-// Register Sentry based on runtime
-if (process.env.NEXT_RUNTIME === "nodejs") {
-  require("../sentry.server.config");
-} else if (process.env.NEXT_RUNTIME === "edge") {
-  require("../sentry.edge.config");
-}
-
 export async function register() {
+  if (process.env.NEXT_RUNTIME === "nodejs") {
+    await import("../sentry.server.config");
+  } else if (process.env.NEXT_RUNTIME === "edge") {
+    await import("../sentry.edge.config");
+  }
   // Only run in the Node.js runtime (not in the Edge runtime)
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
 
@@ -37,3 +35,9 @@ export async function register() {
     console.error("[startup] Instrumentation error:", err);
   }
 }
+
+export const onRequestError = async (err: unknown, request: Request, context: Record<string, unknown>) => {
+  const Sentry = await import("@sentry/nextjs");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (Sentry as any).captureRequestError(err, request, context);
+};

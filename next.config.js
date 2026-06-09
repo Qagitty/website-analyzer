@@ -6,9 +6,7 @@ const { withSentryConfig } = require("@sentry/nextjs");
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    instrumentationHook: true,
-  },
+  // instrumentationHook no longer needed in Next.js 15+ (instrumentation.js enabled by default)
   images: {
     remotePatterns: [
       {

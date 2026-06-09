@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: 'Monitors' };
 export default async function MonitorsPage() {
   const supabase = createServerClient();
 
-  const { data } = await (supabase as any).from('monitors')
+  const { data } = await supabase.from('monitors')
     .select('*')
     .order('created_at', { ascending: false });
 

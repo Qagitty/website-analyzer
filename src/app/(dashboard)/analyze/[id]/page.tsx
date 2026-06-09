@@ -4,7 +4,8 @@ import { AnalysisProgress } from '@/components/analyze/AnalysisProgress';
 
 export const metadata: Metadata = { title: 'Analysis in Progress' };
 
-export default async function AnalysisStatusPage({ params }: { params: { id: string } }) {
+export default async function AnalysisStatusPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const supabase = createServerClient();
 
   const { data } = await supabase

@@ -89,6 +89,25 @@ export async function getSignedUrlOrNull(
   }
 }
 
+export async function uploadLogo(
+  supabase: SupabaseClient,
+  userId: string,
+  buffer: Buffer,
+  mimeType: string = 'image/png',
+): Promise<string> {
+  const ext = mimeType === 'image/jpeg' || mimeType === 'image/jpg' ? 'jpg'
+            : mimeType === 'image/webp' ? 'webp'
+            : 'png';
+  const path = `logos/${userId}.${ext}`;
+
+  const { error } = await supabase.storage
+    .from(BUCKET)
+    .upload(path, buffer, { contentType: mimeType, upsert: true });
+
+  if (error) throw new Error(`Logo upload failed: ${error.message}`);
+  return path;
+}
+
 // ─── Internal helpers ─────────────────────────────────────────────────────────
 
 /**

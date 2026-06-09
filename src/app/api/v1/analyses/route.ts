@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
   const offset = (page - 1) * limitParam;
 
   const supabase = createServiceRoleClient();
-  const { data, count } = await (supabase as any)
+  const { data, count } = await supabase
     .from('analyses')
     .select('id, url, status, created_at, completed_at', { count: 'exact' })
     .eq('user_id', auth.userId)

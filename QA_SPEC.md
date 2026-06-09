@@ -1,9 +1,10 @@
 # Website Analyzer — QA Specification
 
-**Version:** 4.0  
-**Last updated:** 2026-05-25  
-**Coverage:** Sprints 1–8 + all post-sprint features  
-**Test runner:** Vitest v4 + @testing-library/react + jsdom
+**Version:** 5.0  
+**Last updated:** 2026-06-09  
+**Coverage:** Sprints 1–8 + compliance platform (Sprints 2–4) + Agency Lead Widget (Sprint 5) + Content/SEO pages (Sprint 6)  
+**Test runner:** Vitest v4 + @testing-library/react 16.x + jsdom  
+**Total automated tests: 552 (all passing)**
 
 ---
 
@@ -34,7 +35,14 @@
 23. [Worker — Score Analysis](#23-worker--score-analysis)
 24. [Worker — LLM Readiness Checks](#24-worker--llm-readiness-checks)
 25. [Security Headers & Middleware](#25-security-headers--middleware)
-26. [End-to-End Smoke Tests](#26-end-to-end-smoke-tests)
+26. [Component Rendering (Unit Tests)](#26-component-rendering-unit-tests)
+27. [End-to-End Smoke Tests](#27-end-to-end-smoke-tests)
+28. [Compliance PDF Export](#28-compliance-pdf-export)
+29. [Remediation Tracking](#29-remediation-tracking)
+30. [Compliance Plan (Tier 4)](#30-compliance-plan-tier-4)
+31. [Agency Lead Widget](#31-agency-lead-widget)
+32. [Pricing Page](#32-pricing-page)
+33. [Changelog Page](#33-changelog-page)
 
 ---
 
@@ -76,8 +84,13 @@
 | 3 | `/reports` (unauthenticated) | Redirect to `/login` |
 | 4 | `/settings` (unauthenticated) | Redirect to `/login` |
 | 5 | `/monitors` (unauthenticated) | Redirect to `/login` |
-| 6 | `/share/{id}` (unauthenticated) | Page renders (public) |
-| 7 | `/` (unauthenticated) | Landing page renders |
+| 6 | `/leads` (unauthenticated) | Redirect to `/login` |
+| 7 | `/compliance` (unauthenticated) | Redirect to `/login` |
+| 8 | `/share/{id}` (unauthenticated) | Page renders (public) |
+| 9 | `/widget/{key}` (unauthenticated) | Page renders (public) |
+| 10 | `/pricing` (unauthenticated) | Page renders (public) |
+| 11 | `/changelog` (unauthenticated) | Page renders (public) |
+| 12 | `/` (unauthenticated) | Landing page renders |
 
 ---
 
@@ -154,8 +167,9 @@
 | 3 | Score < 50 | Score card text = red |
 | 4 | LCP < 2500 ms | "✓ Good" badge |
 | 5 | LCP ≥ 2500 ms | "✗ Needs work" badge |
-| 6 | CLS < 0.1 | "✓ Good" badge |
-| 7 | Radar chart | Renders with all 4 metrics |
+| 6 | FID metric | Shows "N/A" + "Not measured" label (requires real user interaction — not measurable by static analysis) |
+| 7 | CLS metric | Shows "N/A" + "Not measured" label (requires layout-shift observation in a real browser) |
+| 8 | Radar chart | Renders with all 4 metrics |
 
 ### TC-REPORT-004 — AI Insights code fix toggle
 | # | Step | Expected Result |
@@ -235,6 +249,17 @@
 | 3 | Cancel subscription in portal | `cancel_at_period_end = true` |
 | 4 | Free user | "Manage Billing" button not shown |
 
+### TC-BILLING-004 — Monthly credit reset (free users)
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | `GET /api/cron/reset-credits` without auth | 401 Unauthorized |
+| 2 | Wrong `Authorization: Bearer` value | 401 Unauthorized |
+| 3 | Valid `CRON_SECRET` header | 200 with `{ reset: N, creditsPerUser: 3 }` |
+| 4 | Free users' credits reset | `user_settings.credits = 3` for every free-plan user |
+| 5 | Pro/Agency users | Not affected — only `plan = 'free'` rows updated |
+| 6 | Large user base | Processed in batches of 500; no single query timeout |
+| 7 | Cron fires on 1st of month | Vercel Cron schedule `0 0 1 * *` in `vercel.json` |
+
 ---
 
 ## 6. Monitors
@@ -313,6 +338,11 @@
 | 4 | Click Retry | New analysis created for same URL |
 | 5 | No analyses | Empty state CTA shown |
 | 6 | `GET /api/reports/history` | Returns paginated analysis list |
+| 7 | > 20 analyses | Only first 20 shown; "Next →" pagination link appears |
+| 8 | Visit `/reports?page=2` | Second page of 20 results shown |
+| 9 | Total count | "N total" shown in top-right corner |
+| 10 | Page 1 | No "← Previous" link; "Next →" shown if more pages |
+| 11 | Last page | No "Next →" link; "← Previous" shown |
 
 ---
 
@@ -443,11 +473,22 @@
 ### TC-TEAM-002 — Accept and remove
 | # | Step | Expected Result |
 |---|------|----------------|
-| 1 | Visit `/invite/{token}` (authenticated) | `POST /api/team/accept` |
+| 1 | Visit `/invite/{token}` (authenticated) | `GET /api/team/accept?token=…` |
 | 2 | DB | `status = 'active'`, `accepted_at` set |
-| 3 | Invalid token | Error: "invitation invalid or expired" |
-| 4 | Wrong email logged in | Error: "sent to a different email address" |
-| 5 | Click Remove (owner) | `DELETE /api/team/{id}`, member removed |
+| 3 | Invalid / already-used token | Redirect to `/login?error=invalid_invite` |
+| 4 | Valid token but `invite_expires_at` in the past | Redirect to `/login?error=invite_expired` |
+| 5 | Invite within 7-day window | Accepted normally |
+| 6 | Wrong email logged in | Error: "sent to a different email address" |
+| 7 | Click Remove (owner) | `DELETE /api/team/{id}`, member removed |
+
+### TC-TEAM-003 — Invite expiry
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | New invite created | `invite_expires_at = now + 7 days` set on the row |
+| 2 | Visit token within 7 days | Accepted normally |
+| 3 | Visit token after 7 days | Redirected to `/login?error=invite_expired` |
+| 4 | Existing pending invites (backfill) | `invite_expires_at = invited_at + 7 days` (migration 016 back-fill) |
+| 5 | Accepted/rejected invites | `invite_expires_at = null` (no expiry needed) |
 
 ---
 
@@ -623,6 +664,17 @@
 | 2 | `110` | `100` |
 | 3 | `50` | `50` |
 
+### TC-WORKER-SCORE-005 — Worker URL validation (`validateWebsiteUrl`)
+| # | Input | Expected |
+|---|-------|---------|
+| 1 | `https://example.com` | Returns the URL unchanged |
+| 2 | `http://example.com` | Returns the URL unchanged |
+| 3 | `example.com` | Prefixes `https://` → `https://example.com` |
+| 4 | `HTTPS://EXAMPLE.COM` | Normalised and returned |
+| 5 | `ftp://example.com` | Throws / returns error — invalid protocol |
+| 6 | `javascript:alert(1)` | Throws / returns error — rejected |
+| 7 | Empty string | Throws / returns error — required |
+
 ---
 
 ## 24. Worker — LLM Readiness Checks
@@ -666,16 +718,82 @@
 | 3 | `Referrer-Policy` | `strict-origin-when-cross-origin` |
 | 4 | `Content-Security-Policy` | Present |
 
-### TC-SECURITY-002 — Auth tokens
+### TC-SECURITY-002 — Auth tokens and CSRF
 | # | Step | Expected |
 |---|------|---------|
 | 1 | API callback without `WORKER_CALLBACK_SECRET` | 401 |
 | 2 | Cron endpoint without `CRON_SECRET` | 401 |
 | 3 | API key SHA-256 hash | Plaintext never stored in DB |
+| 4 | `POST /api/analyze` with `Origin: https://evil.com` | 403 Forbidden |
+| 5 | `POST /api/monitors` with `Origin: https://evil.com` | 403 Forbidden |
+| 6 | `POST /api/analyze` from same origin | 200/202 (allowed) |
+| 7 | `POST /api/analyze` with no `Origin` header (server-to-server) | Allowed (no CSRF risk without a browser) |
+| 8 | Stale-job detection | Uses `updated_at` (not `created_at`) — clock resets on each status transition |
 
 ---
 
-## 26. End-to-End Smoke Tests
+## 26. Component Rendering (Unit Tests)
+
+### TC-COMPONENT-001 — AIInsightsSection
+| # | Condition | Expected |
+|---|-----------|---------|
+| 1 | `insights` prop is `undefined` | Returns null — nothing rendered |
+| 2 | `insights` prop is `null` | Returns null — nothing rendered |
+| 3 | `insights.quickWins` has items | Quick Wins section visible |
+| 4 | Insight with `codeExample` | "Show code fix" toggle button visible |
+| 5 | Code toggle clicked | Code block expands; "Suggested fix" header shown |
+| 6 | Copy button clicked | Code copied to clipboard; "Copied" feedback shown |
+| 7 | `beforeCode` + `afterCode` present | Before/After toggle buttons rendered |
+| 8 | `frameworkNotes.react` present | "React" tab shown in code block |
+
+### TC-COMPONENT-002 — EAAComplianceSection
+| # | Condition | Expected |
+|---|-----------|---------|
+| 1 | `accessibilityIssues` is `undefined` | Returns null |
+| 2 | No issues (empty array) | Badge: "Compliant" |
+| 3 | Critical/serious issues present | Badge: "Non-Compliant" |
+| 4 | Only moderate/minor issues | Badge: "Partially Compliant" |
+| 5 | Any issues | Three category tiles shown: WCAG 2.1 AA, Perceivable, Operable |
+| 6 | Any state | Legal notice callout is rendered (no "EAA" or "compliant" collisions) |
+| 7 | Issues have `wcag143` tag | Tag visible as a chip |
+
+### TC-COMPONENT-003 — DesignComparisonSection
+| # | Condition | Expected |
+|---|-----------|---------|
+| 1 | `designComparison` is `undefined` | Returns null |
+| 2 | `designScreenshotUrl` is missing | Returns null |
+| 3 | `fidelityScore >= 80` | "High fidelity" label |
+| 4 | `fidelityScore` 60–79 | "Moderate fidelity" label |
+| 5 | `fidelityScore < 60` | "Low fidelity" label |
+| 6 | Mismatches present | "Design expects" + "Live site shows" labels shown; CSS fix in `<pre>` |
+| 7 | `mismatches` is empty | "No significant mismatches detected" shown once |
+| 8 | `screenshotUrl` provided | Side-by-side "Your Design" and "Live Site" thumbnails |
+
+### TC-COMPONENT-004 — CrawledPagesSection
+| # | Condition | Expected |
+|---|-----------|---------|
+| 1 | `crawledPages` is `undefined` | Returns null |
+| 2 | `crawledPages` has 0 items | Returns null |
+| 3 | `crawledPages` has 1 item | Returns null (no crawl occurred) |
+| 4 | 2+ pages | Section header "Crawled Pages" and table rendered |
+| 5 | Page with `status: 200` | Status shown in green |
+| 6 | Page with `status: 404` | Status shown in red |
+| 7 | Page with `status: 301` | Status shown in amber |
+| 8 | Page with `errors` array | Error count shown as "N issue(s)" |
+
+### TC-COMPONENT-005 — LLMReadinessSection
+| # | Condition | Expected |
+|---|-----------|---------|
+| 1 | `llmReadiness` undefined | Returns null |
+| 2 | Score ≥ 80 | Badge has `green` class |
+| 3 | Score 50–79 | Badge has `yellow` class |
+| 4 | Score < 50 | Badge has `red` class |
+| 5 | `llmChecks.hasStructuredData = true` | Green tick icon rendered |
+| 6 | `llmChecks.hasMetaDescription = false` | Red X icon rendered |
+
+---
+
+## 27. End-to-End Smoke Tests
 
 These are manual or Playwright-based full-flow tests run before each release.
 
@@ -702,12 +820,219 @@ These are manual or Playwright-based full-flow tests run before each release.
 
 ---
 
+---
+
+## 28. Compliance PDF Export
+
+### TC-COMPLIANCE-PDF-001 — Download compliance PDF
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Free user clicks "Compliance PDF" | 402 "Compliance PDF reports require the Pro plan or higher" |
+| 2 | Pro+ user on completed report | PDF download triggers (`compliance-report-{hostname}.pdf`) |
+| 3 | PDF cover page | Dark background, site URL, audit date, WCAG standard, overall status badge |
+| 4 | Executive Summary page | Status banner, 3 stat cards (total / critical / moderate), WCAG category table |
+| 5 | Legal Context page | EAA requirements, fine amounts, methodology, standards table |
+| 6 | Issues Found page | Issues sorted critical → serious → moderate → minor with WCAG tags |
+| 7 | No issues | Single page: "✓ No Accessibility Issues Detected" |
+| 8 | Remediation page | Priority list with IMMEDIATE/HIGH labels, 5-step action plan, sign-off table |
+| 9 | Non-existent / non-completed analysis | 404 returned |
+| 10 | Agency plan with custom branding | Agency name appears on cover as "Prepared by" |
+
+---
+
+## 29. Remediation Tracking
+
+### TC-REMEDIATION-001 — Track an issue from a report
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Free user clicks "Track" on any issue | 402 "Remediation tracking requires the Pro plan or higher" |
+| 2 | Pro+ user clicks "Track" on accessibility issue | `POST /api/remediation` → 201; button turns indigo "Tracked ✓" |
+| 3 | Click "Track" on already-tracked issue | 409 "Already tracked"; UI shows toast "Already tracked" |
+| 4 | Click "Tracked ✓" button (untrack) | `DELETE /api/remediation/{id}` → 204; button reverts to "Track" |
+| 5 | Navigate away and return to report | Previously tracked issues still show "Tracked ✓" (loaded via GET on mount) |
+
+### TC-REMEDIATION-002 — Remediation board
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Navigate to `/compliance/remediation` | Board loads; tabs show All/Open/In Progress/Resolved/Verified with counts |
+| 2 | No tracked issues | Empty state: "No issues tracked yet" with link to Reports |
+| 3 | With tracked issues | Each card shows: impact badge, issue description, WCAG tags, site URL, age |
+| 4 | Click "→ In Progress" | Status updated via PATCH; card badge changes; toast "Status → In Progress" |
+| 5 | Click "→ Resolved" | Status → Resolved |
+| 6 | Click notes → type → Save | Notes saved via PATCH; toast "Notes saved" |
+| 7 | "View original report →" link | Navigates to `/reports/{analysis_id}` |
+| 8 | Click trash icon | Confirmation-less delete; item removed from list; toast |
+| 9 | Filter by tab | Only items matching status shown; count badges update |
+| 10 | Verified issues | No advance button shown (terminal state) |
+
+---
+
+## 30. Compliance Plan (Tier 4)
+
+### TC-COMPLIANCE-PLAN-001 — Plan structure and gating
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Landing page pricing | 4 cards: Free / Pro / Agency / Compliance ($249); Compliance has emerald "EAA ready" badge |
+| 2 | Free user → Compliance PDF API | 402 "requires Pro plan or higher" |
+| 3 | Free user → POST /api/remediation | 402 "requires Pro plan or higher" |
+| 4 | Pro user → Compliance PDF | Allowed |
+| 5 | Pro user → Remediation tracking | Allowed |
+| 6 | Settings → Subscription (Free user) | Shows Pro + Agency + Compliance upgrade cards |
+| 7 | Settings → Subscription (Pro user) | Shows Agency + Compliance upgrade cards |
+| 8 | Settings → Subscription (Agency user) | Shows Compliance upgrade card only |
+| 9 | Settings → Subscription (Compliance user) | No upgrade section shown; emerald badge displayed |
+| 10 | `planAtLeast('compliance', 'pro')` | Returns `true` |
+| 11 | `planAtLeast('free', 'pro')` | Returns `false` |
+
+---
+
+## 31. Agency Lead Widget
+
+### TC-WIDGET-001 — Widget settings panel (WidgetSettings component)
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Agency user visits Settings | Widget Settings section visible with key, appearance controls, embed codes |
+| 2 | Free/Pro user visits Settings | Locked state with "Upgrade to Agency" CTA; no key or controls shown |
+| 3 | Appearance: change button text | Embed code JS snippet updates live |
+| 4 | Appearance: change position | Hosted URL and iframe update live |
+| 5 | Click Save | `PATCH /api/widget/key` called; toast "Widget settings saved" |
+| 6 | Click Regenerate key | New `wk_live_` key generated; old embed codes invalidated |
+| 7 | Copy JS snippet button | Clipboard updated with `<script>` tag |
+| 8 | Copy hosted URL button | Clipboard updated with hosted widget page URL |
+| 9 | Copy iframe button | Clipboard updated with `<iframe>` embed code |
+
+### TC-WIDGET-002 — Public widget analyze endpoint
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | `OPTIONS /api/widget/analyze` | 204 with CORS headers |
+| 2 | `POST` with valid key + valid URL | 202 with `{ analysisId, reportUrl }` |
+| 3 | Response has CORS `Access-Control-Allow-Origin` | Header present |
+| 4 | Missing `widgetKey` field | 400 "Widget key is required" |
+| 5 | Malformed key (wrong format) | 400 "Invalid widget key format" |
+| 6 | Valid format key not found in DB | 404 "Widget key not found" |
+| 7 | Invalid URL (`'hello world spaces'`) | 400 URL validation error |
+| 8 | Bare domain (`'example.com'`) | Auto-prefixed to `'https://example.com'`; accepted |
+| 9 | Agency user has 0 credits | 402 "Insufficient credits" |
+| 10 | Analysis DB insert fails | 500 returned; `refund_credit()` called |
+| 11 | Email field provided | Accepted; stored on lead record |
+| 12 | Invalid email format | 400 email validation error |
+| 13 | 11th request in same hour (rate limit) | 429 "Rate limit exceeded" |
+
+### TC-WIDGET-003 — Widget key format (`wk_live_`)
+| # | Condition | Expected |
+|---|-----------|---------|
+| 1 | `generateWidgetKey()` | Returns string starting with `wk_live_` |
+| 2 | Suffix length | 32 lowercase hex characters |
+| 3 | Total length | 40 characters (`wk_live_` = 8 + 32) |
+| 4 | 20 generated keys | All unique |
+| 5 | `isValidWidgetKeyFormat` on fresh key | `true` |
+| 6 | Uppercase hex in suffix | `false` |
+| 7 | Too-short suffix | `false` |
+| 8 | `wa_live_` prefix (API key prefix) | `false` |
+| 9 | Empty string | `false` |
+| 10 | UUID string | `false` |
+
+### TC-WIDGET-004 — Leads dashboard (`/leads`)
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Agency user visits `/leads` | Leads table rendered |
+| 2 | No leads yet | Empty state with embed code hint |
+| 3 | With leads | Table shows: date, email, URL, status, report link |
+| 4 | Leads sorted | Newest first |
+| 5 | Unauthenticated visit | Redirect to `/login` |
+| 6 | Sidebar | "Leads" item visible (Users icon) for Agency+ users |
+
+---
+
+## 32. Pricing Page
+
+### TC-PRICING-001 — Page render
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Visit `/pricing` (unauthenticated) | Page renders with 4 plan cards |
+| 2 | `<h1>` present | Page heading visible |
+| 3 | Plan names shown | Free, Pro, Agency, Compliance all present |
+| 4 | Monthly prices (default) | $0, $29, $99, $249 shown |
+| 5 | Compliance card | Emerald "EAA ready" badge present |
+| 6 | SEO metadata | `<title>` and `<meta description>` set |
+| 7 | JSON-LD | `<script type="application/ld+json">` with `SoftwareApplication` + 4 `Offer` objects present |
+| 8 | OG image | `/pricing/opengraph-image` returns 1200×630 image |
+
+### TC-PRICING-002 — Billing toggle
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Default state | Monthly button active |
+| 2 | Click Annual | Pro shows $23 ($29 × 0.8 = 23.2 → 23) |
+| 3 | Click Annual | Agency shows $79 ($99 × 0.8 = 79.2 → 79) |
+| 4 | Click Annual | Compliance shows $199 ($249 × 0.8 = 199.2 → 199) |
+| 5 | Click Monthly | Original prices restored |
+| 6 | Toggle buttons | Both "Monthly" and "Annual" buttons accessible by role |
+
+### TC-PRICING-003 — Feature comparison table
+| # | Condition | Expected |
+|---|-----------|---------|
+| 1 | "Full feature comparison" heading | Present |
+| 2 | ≥ 15 rows | `COMPARE_ROWS.length >= 15` |
+| 3 | Every row has free/pro/agency/compliance | All 4 keys present |
+| 4 | Plan escalation — if pro=false | free must also be false |
+| 5 | Plan escalation — if pro=true | agency must not be false |
+| 6 | Plan escalation — if agency=true | compliance must not be false |
+| 7 | API access row | `free=false`, `pro=false`, `agency≠false` |
+| 8 | Team members row | `free=false`, `pro=false`, `agency≠false` |
+| 9 | WCAG checks row | `agency=false`, `compliance≠false` (compliance-only) |
+| 10 | All labels | Non-empty strings |
+
+### TC-PRICING-004 — FAQ accordion
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | "Frequently asked questions" heading | Present |
+| 2 | Click FAQ item | Answer expands |
+| 3 | Click FAQ item again | Answer collapses |
+| 4 | "What counts as one audit?" item | Expands to show answer about URL submissions |
+
+### TC-PRICING-005 — CTA and auth modal
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Click "Get started free" CTA | `AuthModal` opens |
+| 2 | Modal closes | `open` prop becomes false |
+
+---
+
+## 33. Changelog Page
+
+### TC-CHANGELOG-001 — Page render
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Visit `/changelog` (unauthenticated) | Page renders with release timeline |
+| 2 | "What's new" `<h1>` | Present |
+| 3 | Releases shown | At least 5 entries |
+| 4 | Most recent release | Shown at top |
+| 5 | OG image | `/changelog/opengraph-image` returns 1200×630 image |
+| 6 | Sitemap `/changelog` entry | `lastModified` matches `RELEASES[0].date` |
+
+### TC-CHANGELOG-002 — RELEASES data invariants (`src/data/changelog.ts`)
+| # | Condition | Expected |
+|---|-----------|---------|
+| 1 | `RELEASES.length ≥ 5` | At least 5 releases |
+| 2 | Required fields | version, date, tag, title, summary, items[] on every entry |
+| 3 | `date` format | ISO YYYY-MM-DD regex match |
+| 4 | `tag` values | Only `Feature`, `Improvement`, `Fix`, or `Security` |
+| 5 | Sort order | Each release date ≥ next release date (newest-first) |
+| 6 | Unique versions | No two releases share the same version string |
+| 7 | Items length | Each release has ≥ 2 items |
+| 8 | Most recent title | Non-empty string |
+| 9 | All item strings | Non-empty after trim |
+
+---
+
 ## Known Limitations (Not Blocking)
 
 | Item | Detail |
 |------|--------|
 | Cloudflare Worker not deployed | Analysis engine returns mock scores in staging |
-| Sentry not configured | Error reporting to Sentry skipped |
-| `og-image.png` missing | Social media preview cards use fallback |
+| Sentry not configured | Error reporting to Sentry skipped (DSN not set) |
+| ~~`og-image.png` missing~~ | ✅ **Resolved** — `src/app/opengraph-image.tsx` implemented |
+| FID / CLS not measured | Static-fetch worker cannot measure interaction or layout-shift metrics; UI shows "N/A / Not measured" |
+| Nonce-based CSP deferred | `'strict-dynamic'` + nonce CSP blocked Next.js hydration scripts in production (CSP3 browsers ignore `'unsafe-inline'` when nonce present). Reverted to `'unsafe-inline'` without nonce. Full nonce support requires Next.js 15+ first-class integration. |
 | GPT-4o text analysis | Deferred to post-MVP; Claude handles all AI |
 | Webhook retries | Single delivery only; no retry queue |

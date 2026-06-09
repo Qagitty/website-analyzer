@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { sendTeamInvite } from '@/lib/email/resend';
+import { hasFeature, getLimits, featureGateError } from '@/lib/billing/limits';
 import { z } from 'zod';
-
-const TEAM_SEAT_LIMIT = 10;
 
 const inviteSchema = z.object({
   email: z.string().email('Please provide a valid email address'),
@@ -17,7 +16,7 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { data: members, error } = await (supabase as any)
+  const { data: members, error } = await supabase
     .from('team_members')
     .select('*')
     .eq('owner_id', user.id)
@@ -38,29 +37,28 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Verify Agency plan
+  // Feature gate: team members require Agency+
   const { data: subscription } = await supabase
     .from('subscriptions')
     .select('plan')
     .eq('user_id', user.id)
     .single();
+  const plan = subscription?.plan ?? 'free';
 
-  if (!subscription || subscription.plan !== 'agency') {
-    return NextResponse.json(
-      { error: 'Team seats require the Agency plan' },
-      { status: 402 }
-    );
+  if (!hasFeature(plan, 'teamMembers')) {
+    return NextResponse.json(featureGateError('teamMembers', 'agency'), { status: 403 });
   }
 
-  // Check team size limit
-  const { count } = await (supabase as any)
+  // Check team size limit per plan
+  const { count } = await supabase
     .from('team_members')
     .select('id', { count: 'exact', head: true })
     .eq('owner_id', user.id);
 
-  if ((count ?? 0) >= TEAM_SEAT_LIMIT) {
+  const maxMembers = getLimits(plan).teamMembers;
+  if ((count ?? 0) >= maxMembers - 1) { // -1 to account for the owner
     return NextResponse.json(
-      { error: `Team seat limit of ${TEAM_SEAT_LIMIT} reached` },
+      { error: `Your plan allows up to ${maxMembers} team members including yourself.` },
       { status: 402 }
     );
   }
@@ -84,7 +82,7 @@ export async function POST(req: NextRequest) {
   const { email } = parsed.data;
 
   // Check for duplicate invite
-  const { data: existing } = await (supabase as any)
+  const { data: existing } = await supabase
     .from('team_members')
     .select('id')
     .eq('owner_id', user.id)
@@ -95,10 +93,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Already invited' }, { status: 409 });
   }
 
-  // Insert the invite row
-  const { data: newMember, error: insertError } = await (supabase as any)
+  // Insert the invite row (expires 7 days from now)
+  const inviteExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: newMember, error: insertError } = await supabase
     .from('team_members')
-    .insert({ owner_id: user.id, member_email: email })
+    .insert({ owner_id: user.id, member_email: email, invite_expires_at: inviteExpiresAt })
     .select()
     .single();
 

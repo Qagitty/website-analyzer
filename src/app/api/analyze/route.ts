@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
+import { createServerClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { uploadDesignScreenshot } from '@/lib/supabase/storage';
 import { checkWebRateLimit } from '@/lib/rate-limit/web';
+import { HTTP_ERROR_STATUSES, PAGE_ERROR_PATTERNS } from '@/lib/url-validation-patterns';
+import { checkCsrfOrigin } from '@/lib/csrf';
 import { z } from 'zod';
 
 const ACCEPTED_MIME = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
@@ -82,33 +84,6 @@ async function domainExistsViaDoh(hostname: string): Promise<boolean> {
   return true;
 }
 
-// HTTP status codes that indicate a broken / unavailable page.
-const HTTP_ERROR_STATUSES_SET = new Set([404, 410, 500, 502, 503, 504]);
-
-// Text patterns found in browser-generated error pages, CDN error pages (e.g.
-// Cloudflare "Error 1016 — Origin DNS error"), and domain parking pages.
-// These are checked against a lowercase copy of the response body, but ONLY
-// when the visible text is thin (< 400 chars) to avoid false positives on
-// legitimate pages that mention error phrases in their content.
-const PAGE_ERROR_PATTERNS = [
-  'error 1016',
-  'origin dns error',
-  'dns_probe_finished_nxdomain',
-  'this site can\'t be reached',
-  'server not found',
-  'page not found',
-  '404 not found',
-  'the requested url was not found',
-  'domain for sale',
-  'buy this domain',
-  'this domain is parked',
-  'domain parking',
-  'this domain has expired',
-  'site unavailable',
-  'bad gateway',
-  'gateway timeout',
-  'service unavailable',
-];
 
 // Verify the URL is reachable AND serves real content before consuming a credit.
 //
@@ -172,7 +147,7 @@ async function checkUrlReachable(url: string): Promise<{ ok: boolean; error?: st
   }
 
   // HTTP error statuses
-  if (HTTP_ERROR_STATUSES_SET.has(response.status)) {
+  if (HTTP_ERROR_STATUSES.has(response.status)) {
     return {
       ok: false,
       error: `The URL returned HTTP ${response.status}. Please check the link is correct.`,
@@ -212,6 +187,9 @@ async function checkUrlReachable(url: string): Promise<{ ok: boolean; error?: st
 }
 
 export async function POST(req: NextRequest) {
+  const csrfError = checkCsrfOrigin(req);
+  if (csrfError) return csrfError;
+
   const supabase = createServerClient();
 
   const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -269,13 +247,11 @@ export async function POST(req: NextRequest) {
   let designScreenshotUrl: string | null = null;
   if (designScreenshotBase64 && designMimeType) {
     try {
-      // Use service role client via createServiceRoleClient is not available here,
-      // but uploads to public bucket are fine with the anon key via RLS
       const buffer = Buffer.from(designScreenshotBase64, 'base64');
-      const { createServiceRoleClient } = await import('@/lib/supabase/server');
       const serviceSupabase = createServiceRoleClient();
       designScreenshotUrl = await uploadDesignScreenshot(serviceSupabase, analysis.id, buffer, designMimeType);
-      await (supabase.from('analyses') as any)
+      await supabase
+        .from('analyses')
         .update({ design_screenshot_url: designScreenshotUrl })
         .eq('id', analysis.id);
     } catch (uploadErr) {

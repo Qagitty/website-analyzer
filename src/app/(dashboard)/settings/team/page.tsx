@@ -26,7 +26,7 @@ export default async function TeamPage() {
       .select('plan')
       .eq('user_id', user.id)
       .single(),
-    (supabase as any)
+    supabase
       .from('team_members')
       .select('*')
       .eq('owner_id', user.id)

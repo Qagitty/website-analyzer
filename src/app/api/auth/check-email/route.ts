@@ -40,24 +40,17 @@ export async function POST(req: NextRequest) {
 
   const supabase = createServiceRoleClient();
 
-  // Fetch all users and look for a matching email.
-  // listUsers() supports up to 1000 per page; fine for early-stage projects.
-  // For scale (>10k users) replace with a SECURITY DEFINER SQL function:
-  //   SELECT EXISTS(SELECT 1 FROM auth.users WHERE lower(email) = lower($1))
-  const { data, error } = await supabase.auth.admin.listUsers({
-    page: 1,
-    perPage: 1000,
+  // email_exists() is a SECURITY DEFINER function (migration 015) that does
+  // an indexed point-lookup on auth.users — O(log n) regardless of user count.
+  const { data: exists, error } = await supabase.rpc('email_exists', {
+    p_email: email,
   });
 
   if (error) {
-    console.error('[check-email] admin.listUsers error:', error.message);
-    // If we can't check, allow the client to proceed — signUp will catch dupes.
+    console.error('[check-email] email_exists rpc error:', error.message);
+    // Fail open — signUp will catch duplicates if the function is unavailable.
     return NextResponse.json({ available: true });
   }
-
-  const exists = data.users.some(
-    (u) => u.email?.toLowerCase() === email.toLowerCase()
-  );
 
   if (exists) {
     return NextResponse.json(

@@ -10,10 +10,8 @@ const patchSchema = z.object({
 });
 
 // PATCH /api/monitors/[id] — update a monitor
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const supabase = createServerClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -24,7 +22,7 @@ export async function PATCH(
     return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
   }
 
-  const { data, error } = await (supabase as any).from('monitors')
+  const { data, error } = await supabase.from('monitors')
     .update(parsed.data)
     .eq('id', params.id)
     .eq('user_id', user.id)
@@ -36,15 +34,13 @@ export async function PATCH(
 }
 
 // DELETE /api/monitors/[id] — delete a monitor
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const supabase = createServerClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { error } = await (supabase as any).from('monitors')
+  const { error } = await supabase.from('monitors')
     .delete()
     .eq('id', params.id)
     .eq('user_id', user.id);

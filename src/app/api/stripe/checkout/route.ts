@@ -5,7 +5,7 @@ import { PLANS, type PlanId } from '@/lib/stripe/plans';
 import { z } from 'zod';
 
 const schema = z.object({
-  plan: z.enum(['pro', 'agency']),
+  plan: z.enum(['pro', 'agency', 'compliance']),
 });
 
 export async function POST(req: NextRequest) {

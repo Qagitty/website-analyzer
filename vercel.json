@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/monitors",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/reset-credits",
+      "schedule": "0 0 1 * *"
     }
   ]
 }

@@ -154,6 +154,7 @@ describe('AI_PROMPTS.finalSummary()', () => {
     url: 'https://example.com',
     performanceScore: 72,
     accessibilityScore: 88,
+    bestPracticesScore: 80,
     seoScore: 95,
     errorCount: 3,
     accessibilityIssueCount: 1,
@@ -171,8 +172,8 @@ describe('AI_PROMPTS.finalSummary()', () => {
     expect(AI_PROMPTS.finalSummary(data)).toContain('72');
   });
 
-  it('instructs Claude to write plain text (not JSON)', () => {
-    expect(AI_PROMPTS.finalSummary(data)).toMatch(/no JSON|just plain text/i);
+  it('instructs Claude to return valid JSON', () => {
+    expect(AI_PROMPTS.finalSummary(data)).toMatch(/valid JSON/i);
   });
 });
 

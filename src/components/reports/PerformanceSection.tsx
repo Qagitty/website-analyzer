@@ -21,11 +21,14 @@ export function PerformanceSection({ scores }: { scores: LighthouseScores }) {
     { subject: 'SEO', value: scores.seo },
   ];
 
+  // FID and CLS cannot be measured by a static fetch — they require a real
+  // browser with user interaction (FID) or layout-shift observation (CLS).
+  // Show "N/A" instead of the hardcoded 0 to avoid implying a perfect score.
   const coreWebVitals = [
-    { label: 'LCP', value: `${(scores.lcp / 1000).toFixed(1)}s`, good: scores.lcp < 2500 },
-    { label: 'FID', value: `${scores.fid}ms`, good: scores.fid < 100 },
-    { label: 'CLS', value: scores.cls.toFixed(3), good: scores.cls < 0.1 },
-    { label: 'TTFB', value: `${scores.ttfb}ms`, good: scores.ttfb < 800 },
+    { label: 'LCP', value: `${(scores.lcp / 1000).toFixed(1)}s`, good: scores.lcp < 2500, measured: true },
+    { label: 'FID', value: 'N/A', good: false, measured: false },
+    { label: 'CLS', value: 'N/A', good: false, measured: false },
+    { label: 'TTFB', value: `${scores.ttfb}ms`, good: scores.ttfb < 800, measured: true },
   ];
 
   return (
@@ -81,9 +84,15 @@ export function PerformanceSection({ scores }: { scores: LighthouseScores }) {
               <div key={v.label} className="text-center space-y-1">
                 <p className="text-xs font-semibold text-muted-foreground">{v.label}</p>
                 <p className="text-lg md:text-2xl font-bold text-foreground">{v.value}</p>
-                <p className={`text-xs ${v.good ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                  {v.good ? 'Good' : 'Needs work'}
-                </p>
+                {v.measured ? (
+                  <p className={`text-xs ${v.good ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                    {v.good ? 'Good' : 'Needs work'}
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground/60" title="Requires real-browser measurement — not available in static analysis">
+                    Not measured
+                  </p>
+                )}
               </div>
             ))}
           </div>

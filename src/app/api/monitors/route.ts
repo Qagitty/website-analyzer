@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import { checkCsrfOrigin } from '@/lib/csrf';
+import { hasFeature, getLimits, featureGateError } from '@/lib/billing/limits';
 import { z } from 'zod';
 import { addDays } from 'date-fns';
 
@@ -20,7 +22,7 @@ export async function GET() {
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { data, error } = await (supabase as any).from('monitors')
+  const { data, error } = await supabase.from('monitors')
     .select('*')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
@@ -31,6 +33,9 @@ export async function GET() {
 
 // POST /api/monitors — create a monitor
 export async function POST(req: NextRequest) {
+  const csrfError = checkCsrfOrigin(req);
+  if (csrfError) return csrfError;
+
   const supabase = createServerClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -43,23 +48,28 @@ export async function POST(req: NextRequest) {
 
   const { url, frequency, notify_on_score_drop, score_drop_threshold } = parsed.data;
 
-  // Limit monitors per user (free tier: 3, pro/agency: unlimited)
-  const { count } = await (supabase as any).from('monitors')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', user.id);
-
   const { data: sub } = await supabase
     .from('subscriptions')
     .select('plan')
     .eq('user_id', user.id)
     .single();
 
-  const plan = (sub as any)?.plan ?? 'free';
-  const limit = plan === 'free' ? 3 : 999;
+  const plan = sub?.plan ?? 'free';
 
+  // Feature gate: monitoring requires Pro+
+  if (!hasFeature(plan, 'monitoring')) {
+    return NextResponse.json(featureGateError('monitoring', 'pro'), { status: 403 });
+  }
+
+  // Limit monitors per plan
+  const { count } = await supabase.from('monitors')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user.id);
+
+  const limit = getLimits(plan).monitors;
   if ((count ?? 0) >= limit) {
     return NextResponse.json(
-      { error: `Free plan allows up to ${limit} monitors. Upgrade for more.` },
+      { error: `Your plan allows up to ${limit} monitors. Upgrade to add more.` },
       { status: 402 }
     );
   }
@@ -78,7 +88,7 @@ export async function POST(req: NextRequest) {
     ? addDays(new Date(), 1)
     : addDays(new Date(), 7);
 
-  const { data: monitor, error: insertError } = await (supabase as any).from('monitors')
+  const { data: monitor, error: insertError } = await supabase.from('monitors')
     .insert({
       user_id: user.id,
       url,
@@ -110,7 +120,7 @@ export async function POST(req: NextRequest) {
   const now = new Date().toISOString();
 
   // Update monitor to record initial run
-  const { data: updatedMonitor } = await (supabase as any).from('monitors')
+  const { data: updatedMonitor } = await supabase.from('monitors')
     .update({ last_run_at: now, last_analysis_id: analysis.id })
     .eq('id', monitor.id)
     .select()

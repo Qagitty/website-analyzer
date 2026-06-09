@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { createServerClient } from '@/lib/supabase/server';
 import { ProfileForm } from '@/components/settings/ProfileForm';
 import { BrandingForm } from '@/components/settings/BrandingForm';
+import { WidgetSettings } from '@/components/settings/WidgetSettings';
 import type { PlanId } from '@/lib/stripe/plans';
 
 export const metadata: Metadata = { title: 'Settings — General' };
@@ -29,13 +30,12 @@ export default async function SettingsGeneralPage() {
       .single(),
     supabase
       .from('user_settings')
-      .select('agency_name, brand_color, show_powered_by')
+      .select('agency_name, brand_color, show_powered_by, logo_url, widget_key, widget_settings')
       .eq('user_id', user.id)
       .single() as unknown as Promise<{ data: Record<string, any> | null }>,
   ]);
 
   const plan = (subscription?.plan ?? 'free') as PlanId;
-  const isPro = plan === 'pro' || plan === 'agency';
 
   return (
     <div className="space-y-8">
@@ -48,12 +48,20 @@ export default async function SettingsGeneralPage() {
 
       <Section title="Branding">
         <BrandingForm
+          plan={plan}
           initialAgencyName={settings?.agency_name ?? ''}
           initialBrandColor={settings?.brand_color ?? '#6366f1'}
           initialShowPoweredBy={settings?.show_powered_by ?? true}
-          isPro={isPro}
+          initialLogoPath={settings?.logo_url ?? null}
         />
       </Section>
+
+      <WidgetSettings
+        plan={plan}
+        initialKey={settings?.widget_key ?? null}
+        initialSettings={settings?.widget_settings ?? null}
+        appUrl={process.env.NEXT_PUBLIC_APP_URL ?? 'https://webanalyzer.dev'}
+      />
     </div>
   );
 }

@@ -20,9 +20,9 @@ export async function GET(req: NextRequest) {
   }
 
   // Find a pending invite matching the token
-  const { data: invite } = await (supabase as any)
+  const { data: invite } = await supabase
     .from('team_members')
-    .select('id, status')
+    .select('id, status, invite_expires_at')
     .eq('invite_token', token)
     .eq('status', 'pending')
     .maybeSingle();
@@ -31,8 +31,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL('/login?error=invalid_invite', req.url));
   }
 
+  // Reject expired invites
+  if (invite.invite_expires_at && new Date() > new Date(invite.invite_expires_at)) {
+    return NextResponse.redirect(new URL('/login?error=invite_expired', req.url));
+  }
+
   // Accept the invite
-  const { error: updateError } = await (supabase as any)
+  const { error: updateError } = await supabase
     .from('team_members')
     .update({
       status: 'active',

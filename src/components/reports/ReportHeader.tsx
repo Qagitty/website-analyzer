@@ -169,11 +169,19 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
             </Button>
           )}
 
-          {/* Download PDF */}
+          {/* Download technical PDF */}
           <a href={`/api/reports/${analysis.id}/pdf`} download>
             <Button variant="outline" size="sm" className="gap-1.5 border-border text-muted-foreground hover:bg-accent hover:text-foreground">
               <Download className="h-3.5 w-3.5" />
               PDF
+            </Button>
+          </a>
+
+          {/* Download compliance PDF */}
+          <a href={`/api/reports/${analysis.id}/compliance-pdf`} download>
+            <Button variant="outline" size="sm" className="gap-1.5 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10 hover:text-indigo-300">
+              <Download className="h-3.5 w-3.5" />
+              Compliance PDF
             </Button>
           </a>
 

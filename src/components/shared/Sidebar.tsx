@@ -4,13 +4,16 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { UserMenu } from '@/components/shared/UserMenu';
-import { Code2, Zap } from 'lucide-react';
+import { Code2, Zap, ShieldCheck, BarChart2, Users } from 'lucide-react';
 
 const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Dashboard' },
-  { href: '/analyze',   label: 'Analyze' },
-  { href: '/reports',   label: 'Reports' },
-  { href: '/monitors',  label: 'Monitors' },
+  { href: '/dashboard',       label: 'Dashboard' },
+  { href: '/analyze',         label: 'Analyze',    exact: true },
+  { href: '/analyze/compare', label: 'Compare',    icon: BarChart2 },
+  { href: '/reports',         label: 'Reports' },
+  { href: '/monitors',        label: 'Monitors' },
+  { href: '/leads',           label: 'Leads',      icon: Users },
+  { href: '/compliance',      label: 'Compliance', icon: ShieldCheck },
 ];
 
 export function Sidebar() {
@@ -27,20 +30,24 @@ export function Sidebar() {
         </Link>
       </div>
       <nav className="flex-1 p-3 space-y-1">
-        {NAV_ITEMS.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              'block px-3 py-2 rounded-md text-sm font-medium transition-colors',
-              pathname.startsWith(item.href)
-                ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 border-l-2 border-indigo-500 pl-[10px]'
-                : 'text-muted-foreground hover:bg-accent hover:text-foreground'
-            )}
-          >
-            {item.label}
-          </Link>
-        ))}
+        {NAV_ITEMS.map((item) => {
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                'flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors',
+                ((item as any).exact ? pathname === item.href : pathname.startsWith(item.href))
+                  ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 border-l-2 border-indigo-500 pl-[10px]'
+                  : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+              )}
+            >
+              {Icon && <Icon className="h-4 w-4 shrink-0" />}
+              {item.label}
+            </Link>
+          );
+        })}
         <Link
           href="/docs"
           className={cn(

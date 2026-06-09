@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { detectSqlInjectionInRequest, getClientIp } from '@/lib/rate-limit/web';
 
-const PROTECTED_ROUTES = ['/dashboard', '/analyze', '/reports', '/settings', '/monitors'];
+const PROTECTED_ROUTES = ['/dashboard', '/analyze', '/reports', '/settings', '/monitors', '/compliance', '/remediation', '/leads', '/compare'];
 const AUTH_ROUTES = ['/login', '/signup'];
 
 // ── Supabase host for CSP connect-src ────────────────────────────────────────
@@ -25,30 +25,25 @@ const BLOCKED_IPS: Set<string> = new Set(
   (process.env.BLOCKED_IPS ?? '').split(',').map((s) => s.trim()).filter(Boolean)
 );
 
-// ── Nonce-based Content Security Policy ──────────────────────────────────────
-// A fresh nonce is generated on every request.  'unsafe-inline' is gone from
-// script-src — the nonce is the only way to execute inline or inline-equivalent
-// scripts, so an injected <script> without the nonce is dead.
+// ── Content Security Policy ───────────────────────────────────────────────────
+// NOTE: A nonce-based / 'strict-dynamic' CSP was attempted but is incompatible
+// with Next.js 14's hydration model — in CSP3-capable browsers 'strict-dynamic'
+// silently overrides 'unsafe-inline', blocking all of Next.js's own inline
+// hydration scripts and freezing every client component in its skeleton state.
 //
-// 'strict-dynamic' lets nonce-trusted scripts (Next.js runtime) load further
-// chunks via webpack dynamic imports without needing to allowlist each chunk URL.
-//
-// 'unsafe-inline' is still present in style-src — removing it requires
-// auditing all Tailwind/shadcn inline styles and is deferred.
-function buildCsp(nonce: string): string {
-  // 'unsafe-inline' is required as a fallback for Next.js's own inline
-  // hydration scripts which do not carry a nonce attribute in Next.js 14.
-  // In CSP3-capable browsers 'strict-dynamic' takes precedence and makes
-  // 'unsafe-inline' a no-op, so nonce-less inline scripts are still blocked
-  // there.  'script-src-elem' is intentionally omitted — it would override
-  // 'script-src' without 'strict-dynamic' and break webpack chunk loading.
+// Until Next.js provides first-class nonce support (stamping every hydration
+// <script> automatically), we use 'unsafe-inline' without a nonce.  This is
+// still a meaningful CSP: it blocks scripts from arbitrary external origins,
+// enforces frame-ancestors 'none' (clickjacking), restricts form-action, and
+// eliminates object-src / base-uri attacks.
+function buildCsp(): string {
   return [
     `default-src 'self'`,
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'unsafe-inline' https://js.stripe.com`,
+    `script-src 'self' 'unsafe-inline' https://js.stripe.com https://va.vercel-scripts.com`,
     `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
     `font-src 'self' https://fonts.gstatic.com`,
     `img-src 'self' data: blob: https://*.supabase.co`,
-    `connect-src 'self' https://${SUPABASE_HOST} https://api.stripe.com wss://${SUPABASE_HOST}`,
+    `connect-src 'self' https://${SUPABASE_HOST} https://api.stripe.com wss://${SUPABASE_HOST} https://vitals.vercel-insights.com https://*.ingest.sentry.io https://*.ingest.de.sentry.io`,
     `frame-src https://js.stripe.com https://hooks.stripe.com`,
     `object-src 'none'`,
     `base-uri 'self'`,
@@ -56,16 +51,6 @@ function buildCsp(nonce: string): string {
     `frame-ancestors 'none'`,
     `report-uri /api/csp-report`,
   ].join('; ');
-}
-
-// ── Generate a cryptographically random nonce ────────────────────────────────
-// Web Crypto API is available in the Next.js Edge Runtime (middleware).
-// Output is a 16-byte base64 string (~22 chars), safe to embed in a CSP header.
-function generateNonce(): string {
-  const bytes = new Uint8Array(16);
-  crypto.getRandomValues(bytes);
-  // btoa() is available in Edge Runtime; Array.from avoids spread-of-TypedArray limits
-  return btoa(Array.from(bytes, (b) => String.fromCharCode(b)).join(''));
 }
 
 export async function middleware(request: NextRequest) {
@@ -115,20 +100,11 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // ── Generate per-request nonce ───────────────────────────────────────────
-  const nonce = generateNonce();
+  // Build request headers (pathname forwarded to server components)
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-pathname', pathname);
 
-  // Build modified request headers — server components read these via headers().
-  // Called in two places: initial response and the Supabase cookie-refresh
-  // response, so the nonce is preserved even if Supabase replaces the response.
-  const buildHeaders = () =>
-    new Headers({
-      ...Object.fromEntries(request.headers),
-      'x-pathname': pathname,
-      'x-nonce': nonce,
-    });
-
-  let response = NextResponse.next({ request: { headers: buildHeaders() } });
+  let response = NextResponse.next({ request: { headers: requestHeaders } });
 
   // ── Supabase auth ────────────────────────────────────────────────────────
   const supabase = createServerClient(
@@ -140,10 +116,8 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          // Supabase refreshed the session — create a new response but preserve
-          // the nonce and pathname so server components still receive them.
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          response = NextResponse.next({ request: { headers: buildHeaders() } });
+          response = NextResponse.next({ request: { headers: requestHeaders } });
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options)
           );
@@ -165,8 +139,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
-  // ── Set nonce-based CSP on the final response ────────────────────────────
-  response.headers.set('Content-Security-Policy', buildCsp(nonce));
+  // ── Set CSP on the final response ────────────────────────────────────────
+  response.headers.set('Content-Security-Policy', buildCsp());
 
   return response;
 }

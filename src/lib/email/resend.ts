@@ -1,5 +1,14 @@
 import { Resend } from 'resend';
 
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // Resend is optional — if no API key is configured, emails are silently skipped
 const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
@@ -27,7 +36,7 @@ export async function sendWelcomeEmail({
     return;
   }
 
-  const displayName = name?.split(' ')[0] || 'there';
+  const displayName = escapeHtml(name?.split(' ')[0] || 'there');
   const analyzeUrl = `${APP_URL}/analyze`;
   const dashboardUrl = `${APP_URL}/dashboard`;
 
@@ -188,7 +197,7 @@ export async function sendScoreDropAlert({
     </div>
     <div style="padding:24px;space-y:16px;">
       <p style="margin:0 0 12px;color:#374151;">
-        A scheduled analysis of <strong>${url}</strong> detected a performance regression.
+        A scheduled analysis of <strong>${escapeHtml(url)}</strong> detected a performance regression.
       </p>
       <table style="width:100%;border-collapse:collapse;margin-bottom:16px;font-size:14px;">
         <thead>
@@ -206,7 +215,7 @@ export async function sendScoreDropAlert({
       </a>
     </div>
     <div style="padding:12px 24px;border-top:1px solid #e5e7eb;font-size:12px;color:#9ca3af;">
-      You're receiving this because you set up monitoring for ${url} on WebAnalyzer.
+      You're receiving this because you set up monitoring for ${escapeHtml(url)} on WebAnalyzer.
       <a href="${APP_URL}/monitors" style="color:#6366f1;">Manage monitors</a>
     </div>
   </div>
@@ -258,7 +267,7 @@ export async function sendMonitorSummary({
     </div>
     <div style="padding:24px;">
       <p style="margin:0 0 12px;color:#374151;">
-        Your scheduled analysis of <strong>${url}</strong> completed successfully.
+        Your scheduled analysis of <strong>${escapeHtml(url)}</strong> completed successfully.
       </p>
       <table style="width:100%;border-collapse:collapse;margin-bottom:16px;font-size:14px;">
         <thead>
@@ -297,12 +306,21 @@ export async function sendSupportMessage({
   phone: string;
   message: string;
 }): Promise<void> {
-  const to = process.env.SUPPORT_EMAIL ?? 'lagmax.88@gmail.com';
+  const to = process.env.SUPPORT_EMAIL;
+  if (!to) {
+    console.warn('[email] SUPPORT_EMAIL is not set — support message dropped. From:', email);
+    return;
+  }
 
   if (!resend) {
     console.log('[email] RESEND_API_KEY not set — support message from', email, ':', message);
     return;
   }
+
+  const safeName    = escapeHtml(name);
+  const safeEmail   = escapeHtml(email);
+  const safePhone   = escapeHtml(phone);
+  const safeMessage = escapeHtml(message).replace(/\n/g, '<br/>');
 
   const html = `
 <!DOCTYPE html>
@@ -317,24 +335,24 @@ export async function sendSupportMessage({
       <table style="width:100%;border-collapse:collapse;margin-bottom:20px;font-size:14px;">
         <tr>
           <td style="padding:8px 0;color:#6b7280;width:90px;">Name</td>
-          <td style="padding:8px 0;color:#111827;font-weight:600;">${name}</td>
+          <td style="padding:8px 0;color:#111827;font-weight:600;">${safeName}</td>
         </tr>
         <tr>
           <td style="padding:8px 0;color:#6b7280;">Email</td>
-          <td style="padding:8px 0;"><a href="mailto:${email}" style="color:#4f46e5;">${email}</a></td>
+          <td style="padding:8px 0;"><a href="mailto:${safeEmail}" style="color:#4f46e5;">${safeEmail}</a></td>
         </tr>
         <tr>
           <td style="padding:8px 0;color:#6b7280;">Phone</td>
-          <td style="padding:8px 0;color:#111827;">${phone}</td>
+          <td style="padding:8px 0;color:#111827;">${safePhone}</td>
         </tr>
       </table>
       <div style="background:#f9fafb;border-radius:8px;padding:14px;font-size:14px;color:#374151;line-height:1.6;">
-        ${message.replace(/\n/g, '<br/>')}
+        ${safeMessage}
       </div>
     </div>
     <div style="padding:12px 24px;border-top:1px solid #e5e7eb;font-size:12px;color:#9ca3af;">
       Sent from the WebAnalyzer support chat widget.
-      <a href="mailto:${email}" style="color:#6366f1;margin-left:8px;">Reply to ${name}</a>
+      <a href="mailto:${safeEmail}" style="color:#6366f1;margin-left:8px;">Reply to ${safeName}</a>
     </div>
   </div>
 </body>
@@ -374,7 +392,7 @@ export async function sendTeamInvite({
     </div>
     <div style="padding:24px;">
       <p style="margin:0 0 20px;color:#374151;">
-        <strong>${inviterEmail}</strong> has invited you to collaborate on WebAnalyzer.
+        <strong>${escapeHtml(inviterEmail)}</strong> has invited you to collaborate on WebAnalyzer.
       </p>
       <a href="${acceptUrl}"
          style="display:inline-block;background:#4f46e5;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;font-size:15px;">

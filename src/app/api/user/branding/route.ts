@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createServerClient } from '@/lib/supabase/server';
+import { hasFeature } from '@/lib/billing/limits';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,6 +35,21 @@ export async function PATCH(req: NextRequest) {
   }
 
   const { agencyName, brandColor, showPoweredBy } = parsed.data;
+
+  // Trying to disable "Powered by" requires whiteLabelPdf (Agency+)
+  if (showPoweredBy === false) {
+    const { data: subscription } = await supabase
+      .from('subscriptions')
+      .select('plan')
+      .eq('user_id', user.id)
+      .single();
+    if (!hasFeature(subscription?.plan ?? 'free', 'whiteLabelPdf')) {
+      return NextResponse.json(
+        { error: 'Removing the "Powered by" badge requires an Agency plan or higher.' },
+        { status: 403 },
+      );
+    }
+  }
 
   // Build a typed partial update object; cast to any to bypass stale codegen
   // (columns are added by migration 007 but generated types may not reflect them yet)

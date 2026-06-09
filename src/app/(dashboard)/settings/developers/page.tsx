@@ -23,12 +23,12 @@ export default async function DevelopersPage() {
   if (!user) redirect('/login');
 
   const [{ data: webhooks }, { data: apiKeys }] = await Promise.all([
-    (supabase as any)
+    supabase
       .from('webhooks')
       .select('id, url, events, active, created_at, updated_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false }),
-    (supabase as any)
+    supabase
       .from('api_keys')
       .select('id, name, key_prefix, last_used_at, requests_today, created_at, revoked_at')
       .eq('user_id', user.id)

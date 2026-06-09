@@ -8,7 +8,7 @@ import { Navbar } from '@/components/shared/Navbar';
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const pathname = headers().get('x-pathname') ?? '';
+  const pathname = (await headers()).get('x-pathname') ?? '';
 
   // /docs is public — render without sidebar when not logged in
   if (!user && pathname === '/docs') {

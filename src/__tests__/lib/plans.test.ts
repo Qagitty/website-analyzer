@@ -2,11 +2,11 @@ import { describe, it, expect } from 'vitest';
 import { PLANS } from '@/lib/stripe/plans';
 import type { PlanId } from '@/lib/stripe/plans';
 
-const ALL_PLANS: PlanId[] = ['free', 'pro', 'agency'];
+const ALL_PLANS: PlanId[] = ['free', 'pro', 'agency', 'compliance'];
 
 describe('PLANS data integrity', () => {
-  it('defines exactly three plans', () => {
-    expect(Object.keys(PLANS)).toHaveLength(3);
+  it('defines exactly four plans', () => {
+    expect(Object.keys(PLANS)).toHaveLength(4);
     expect(Object.keys(PLANS)).toEqual(expect.arrayContaining(ALL_PLANS));
   });
 
@@ -79,10 +79,27 @@ describe('PLANS data integrity', () => {
     });
   });
 
+  describe('compliance plan', () => {
+    const plan = PLANS.compliance;
+
+    it('costs $249', () => {
+      expect(plan.price).toBe(249);
+    });
+
+    it('has unlimited credits (>= 99999)', () => {
+      expect(plan.credits).toBeGreaterThanOrEqual(99999);
+    });
+
+    it('is more expensive than agency', () => {
+      expect(plan.price).toBeGreaterThan(PLANS.agency.price);
+    });
+  });
+
   describe('plan ordering', () => {
-    it('plans are ordered free < pro < agency by price', () => {
+    it('plans are ordered free < pro < agency < compliance by price', () => {
       expect(PLANS.free.price).toBeLessThan(PLANS.pro.price);
       expect(PLANS.pro.price).toBeLessThan(PLANS.agency.price);
+      expect(PLANS.agency.price).toBeLessThan(PLANS.compliance.price);
     });
 
     it('plans are ordered free < pro < agency by credits', () => {

@@ -177,11 +177,11 @@ Detailed feature specifications from the perspective of each user type.
 - Score colour coding: ≥ 90 = green, 50–89 = yellow, < 50 = red
 - Radar chart shows all four scores simultaneously for a visual overview
 - Core Web Vitals panel:
-  - LCP (Largest Contentful Paint): Good if < 2500 ms
-  - FID (First Input Delay): Good if < 100 ms
-  - CLS (Cumulative Layout Shift): Good if < 0.1
-  - TTFB (Time to First Byte): Good if < 800 ms
-  - Each metric shows a "✓ Good" or "✗ Needs work" badge
+  - **LCP** (Largest Contentful Paint): Good if < 2500 ms — shows "✓ Good" or "✗ Needs work"
+  - **FID** (First Input Delay): Shows **"N/A / Not measured"** — FID requires real user interaction which is impossible in automated headless analysis; tooltip explains this
+  - **CLS** (Cumulative Layout Shift): Shows **"N/A / Not measured"** — CLS requires observing layout shifts in a rendering browser; tooltip explains this
+  - **TTFB** (Time to First Byte): Good if < 800 ms — shows "✓ Good" or "✗ Needs work"
+- Measurement confidence badge (when `performanceVariance` is available): High / Medium / Low based on TTFB variance across multiple samples
 
 ---
 
@@ -332,6 +332,21 @@ Detailed feature specifications from the perspective of each user type.
   5. On return to the app, the credits badge shows 100
 - Agency plan ($99/mo, unlimited): same flow, `credits` set to a very large number (e.g. 9999)
 - Failed payment → Stripe handles the error; user is returned to the app with no plan change
+
+---
+
+### US-CREDITS-04: Monthly credit refresh (free plan)
+**As a** free user whose 3 monthly credits have run out,  
+**I want** my credits to automatically reset on the 1st of every month,  
+**so that** I can continue using the service without upgrading.
+
+**Acceptance Criteria:**
+- A Vercel Cron job fires on `0 0 1 * *` (midnight UTC on the 1st of each month)
+- The cron endpoint `GET /api/cron/reset-credits` is authenticated via `Authorization: Bearer {CRON_SECRET}`
+- All users whose subscription plan is `'free'` have their `user_settings.credits` reset to `3`
+- Pro and Agency users are unaffected — their credits are managed by Stripe webhooks
+- The batch processes in pages of 500 users to prevent query timeouts
+- The endpoint returns `{ reset: N, creditsPerUser: 3 }` on success
 
 ---
 
@@ -560,7 +575,8 @@ Detailed feature specifications from the perspective of each user type.
 **Acceptance Criteria:**
 - If the Cloudflare Worker returns an error, the analysis `status` is set to `failed` with an `error_message`
 - The status page `/analyze/{id}` shows the error message and stops polling
-- If the credit was consumed before the failure, a `refund_credit()` DB call is made — the user's balance is restored
+- **Credit refund — worker error:** If the worker reports failure (worker-side crash, timeout, fetch error), `refund_credit()` is called in the callback route immediately after marking the analysis failed — the user's balance is restored
+- **Credit refund — server-side error:** If the callback processing itself fails (AI call exception, DB error), the credit is also refunded — the user is never penalised for server-side failures
 - The reports history page shows a "Retry" button (via `RetryButton` component) on failed analyses
 - Clicking "Retry" creates a new analysis for the same URL (consuming 1 new credit)
 
@@ -744,12 +760,28 @@ Detailed feature specifications from the perspective of each user type.
 **so that** I can access the team's reports.
 
 **Acceptance Criteria:**
-- Clicking the invite link navigates to `/invite/{token}` which calls `POST /api/team/accept`
-- If the user is not logged in, they are prompted to log in or sign up first
+- Clicking the invite link navigates to `/api/team/accept?token=…`
+- If the user is not logged in, they are redirected to `/login` with a redirect-back parameter containing the token
 - After authentication, the invite is accepted: `status = 'active'`, `member_id` set, `accepted_at` set
+- The user is redirected to `/dashboard?invited=1`
 - The user can now see the team owner's analyses in their reports list
-- If the token is invalid or already used: error page "This invitation is invalid or has expired"
+- **Invite expiry:** If the invite token is older than 7 days (`invite_expires_at` has passed), the user is redirected to `/login?error=invite_expired` — distinct from an invalid token (`invite_expired` vs `invalid_invite`)
+- If the token is invalid or already used: redirect to `/login?error=invalid_invite`
 - If the invited email doesn't match the logged-in account email: error "This invitation was sent to a different email address"
+
+---
+
+### US-TEAM-04: Invite expiry management
+**As a** team owner,  
+**I want** invite links to expire automatically after 7 days,  
+**so that** stale invite links cannot be misused.
+
+**Acceptance Criteria:**
+- Every new invite row has `invite_expires_at = now + 7 days` set at creation time
+- Invitees who click the link within 7 days can accept normally
+- Invitees who click after 7 days see an "Invite expired" error and must request a new invite from the owner
+- Existing pending invites (before this feature was added) are back-filled to `invited_at + 7 days` via migration 016
+- Accepted and rejected rows have `invite_expires_at = null` (irrelevant after resolution)
 
 ---
 
@@ -855,6 +887,106 @@ Detailed feature specifications from the perspective of each user type.
 
 ---
 
+## 23. Compliance PDF Report
+
+### US-COMPLIANCE-PDF-01: Download a compliance-framed audit PDF
+**As a** Pro/Agency/Compliance user who needs to demonstrate accessibility compliance,  
+**I want to** download a formally structured compliance PDF from any completed report,  
+**so that** I can share it with legal teams, auditors, or management without them needing app access.
+
+**Acceptance Criteria:**
+- A **"Compliance PDF"** button (indigo, with download icon) appears in the report header next to the existing "PDF" button
+- Clicking it calls `GET /api/reports/{id}/compliance-pdf`
+- Free plan users receive 402 "Compliance PDF reports require the Pro plan or higher"
+- Pro+ users receive a PDF download named `compliance-report-{hostname}.pdf`
+- The PDF contains:
+  1. **Cover page** — dark branded, site URL, audit date, WCAG standard, overall compliance status badge (Compliant / Partially Compliant / Non-Compliant)
+  2. **Executive Summary** — plain-English status description, 3 stat cards (total / critical / moderate issues), WCAG category breakdown table, AI summary if available
+  3. **Legal Context** — EAA requirements, fine amounts, who is affected, audit methodology, standards referenced (WCAG 2.1, EN 301 549, Directive 2019/882)
+  4. **Issues Found** — all violations sorted critical → serious → moderate → minor, each with WCAG criteria tags
+  5. **Remediation & Sign-Off** — priority list (IMMEDIATE / HIGH), 5-step action plan with 30-day deadline, physical sign-off table (name / role / date / signature)
+- If no issues found: Issues page shows "✓ No Accessibility Issues Detected"
+- Agency users with custom branding: Agency name shown as "Prepared by" on cover
+
+---
+
+## 24. Remediation Tracking
+
+### US-REMEDIATION-01: Track an accessibility issue for fixing
+**As a** Pro/Agency/Compliance user reviewing an accessibility report,  
+**I want to** mark specific issues as "tracked" so I can manage their resolution,  
+**so that** I don't lose track of what needs to be fixed across multiple reports.
+
+**Acceptance Criteria:**
+- Each issue card in the Accessibility section has a **Track** button (bookmark icon)
+- Clicking Track: issue is saved to `remediation_items` table; button turns indigo "Tracked ✓"
+- Clicking "Tracked ✓": issue is removed from tracking; button reverts to "Track"
+- Free users attempting to track receive 402 "requires Pro plan or higher"
+- Tracking state persists across page reloads (loaded via `GET /api/remediation` on mount)
+- Tracked count shown in the Accessibility section header ("3 tracked")
+- Duplicate tracking prevented server-side (409 if same user + analysis + issue)
+
+---
+
+### US-REMEDIATION-02: Manage tracked issues on the remediation board
+**As a** user with tracked issues,  
+**I want to** see all my tracked issues in one place and move them through a resolution workflow,  
+**so that** I can manage remediation progress systematically.
+
+**Acceptance Criteria:**
+- Remediation board at `/compliance/remediation`, linked from the Compliance page header
+- Tabs: **All | Open | In Progress | Resolved | Verified** with live counts
+- Each issue card shows: impact badge, WCAG rule ID, plain-English description, WCAG criteria tags, site hostname, age
+- **Status advance button** ("→ In Progress", "→ Resolved", "→ Verified") advances status one step
+- Verified is the terminal state — no further advance button shown
+- **Notes expander**: free-text notes field, Save button, "View original report →" link
+- **Delete button** (trash icon): removes issue from tracker immediately; toast confirms
+- Empty state: "No issues tracked yet" with link to Reports
+
+---
+
+### US-REMEDIATION-03: Filter by status
+**As a** user with many tracked issues,  
+**I want to** filter the board by status (Open, In Progress, Resolved, Verified),  
+**so that** I can focus on what needs attention right now.
+
+**Acceptance Criteria:**
+- Clicking a tab filters the list to that status
+- Tab badge counts update as items are advanced or deleted
+- All tab shows all items regardless of status
+
+---
+
+## 25. Compliance Plan (Tier 4)
+
+### US-COMPLIANCE-PLAN-01: Choose the Compliance plan
+**As a** business that sells to EU customers and needs to demonstrate ongoing EAA compliance,  
+**I want to** subscribe to the Compliance plan,  
+**so that** I get the full compliance toolkit including audit history, remediation tracking, and signed-off compliance reports.
+
+**Acceptance Criteria:**
+- Landing page pricing section shows 4 plans: Free / Pro ($29) / Agency ($99) / **Compliance ($249)**
+- Compliance card has emerald "EAA ready" badge and lists: unlimited analyses, EAA/WCAG 2.1 AA dashboard, compliance PDF with sign-off, remediation board, audit history, dedicated compliance support
+- Clicking "Get started" on the Compliance card initiates Stripe checkout
+- Settings → Subscription shows Compliance plan with emerald badge
+- Compliance users see all features from lower tiers
+- Settings upgrade section shows relevant higher tiers only (Free → shows 3 options, Pro → 2, Agency → 1, Compliance → none)
+
+---
+
+### US-COMPLIANCE-PLAN-02: Feature gating for compliance features
+**As a** Free plan user,  
+**I want to** see clear upgrade prompts when I try to use compliance-only features,  
+**so that** I understand what I need to upgrade to access them.
+
+**Acceptance Criteria:**
+- Compliance PDF: Free users get 402 with message "requires the Pro plan or higher"
+- Remediation Tracking (POST): Free users get 402 with message "requires the Pro plan or higher"
+- Pro+ users can access both features
+- The plan hierarchy for access checks: free (0) < pro (1) < agency (2) < compliance (3)
+
+---
+
 ## 19. Theme
 
 ### US-THEME-01: Toggle dark and light mode
@@ -924,4 +1056,170 @@ Detailed feature specifications from the perspective of each user type.
 
 ---
 
-*Last updated: 2026-05-25 | Covers Sprints 1–8 + post-sprint additions*
+---
+
+## 26. Agency Lead Widget
+
+### US-WIDGET-01: Configure the embeddable lead capture widget
+**As an** Agency plan user,  
+**I want to** configure and embed a lead capture widget on my clients' websites,  
+**so that** visitors can request a website analysis report directly from my agency's site.
+
+**Acceptance Criteria:**
+- Widget Settings section is visible on `/settings` for Agency+ plan users only
+- Free/Pro users see a locked preview with an "Upgrade to Agency" CTA
+- Agency users see:
+  - Their widget key (`wk_live_` + 32 hex chars) displayed in a read-only field
+  - Appearance controls: button text input, button colour picker (hex), position selector (bottom-right / bottom-left / top-right / top-left), "Show email field" checkbox
+  - A **Save** button that calls `PATCH /api/widget/key` with the new settings
+  - A **Regenerate key** button that generates a fresh `wk_live_…` key
+  - Three embed code panels (JS snippet, hosted page URL, iframe) computed live from the current settings
+  - Copy-to-clipboard button on each code panel
+
+---
+
+### US-WIDGET-02: Embed the widget on an external website
+**As an** agency customer whose site has the widget installed,  
+**I want to** see a "Get a free analysis" button on the site,  
+**so that** I can request a report without navigating away to the analyzer app.
+
+**Acceptance Criteria:**
+- The JS snippet (copy from Widget Settings) is a `<script>` tag pointing to the hosted widget JS
+- On load the script appends a floating button to the page at the configured position
+- Clicking the button opens a lightweight modal with: URL input (pre-filled with `window.location.href`), optional email field (shown when `showEmail = true`), and a "Analyze" submit button
+- Submitting calls `POST /api/widget/analyze` with `{ widgetKey, url, email? }`
+- A success state is shown ("Your report is on its way!")
+- Widget appearance (button colour, label) matches the Agency user's saved settings
+
+---
+
+### US-WIDGET-03: Submit a URL via the public widget endpoint
+**As a** visitor triggering a widget analysis,  
+**I want to** submit a URL for analysis via the widget,  
+**so that** a report is generated on my behalf.
+
+**Acceptance Criteria:**
+- `POST /api/widget/analyze` is a public endpoint — no user session required
+- Request body: `{ widgetKey: "wk_live_…", url: "https://…", email?: "…" }`
+- The widget key is looked up in `user_settings` (plaintext, not hashed) using the service-role client (bypasses RLS)
+- If the key is not found → 404
+- If the Agency user has 0 credits → 402
+- If the URL is invalid → 400
+- A bare domain (e.g. `example.com`) is automatically prefixed with `https://`
+- On success → 202 with `{ analysisId, reportUrl }` where `reportUrl` points to the public share URL
+- Rate limiting: 10 submissions per hour per widget key (via Upstash Redis)
+- CORS headers included on all responses (widget is embedded cross-origin)
+
+---
+
+### US-WIDGET-04: View captured leads on the Leads dashboard
+**As an** Agency user whose widget has received submissions,  
+**I want to** see a list of all captured leads,  
+**so that** I can follow up with prospects who requested analyses.
+
+**Acceptance Criteria:**
+- Leads dashboard is available at `/leads`, linked from the sidebar (visible only to Agency+ users)
+- Unauthenticated access or non-Agency access redirects appropriately
+- The leads table shows: submission date/time, email (if provided), URL submitted, analysis status (pending / completed / failed), link to the report
+- Leads are sorted newest first
+- Empty state: "No leads yet. Share your widget embed code to start capturing leads."
+- `GET /api/leads` powers the list (authenticated, Agency+ only)
+
+---
+
+## 27. Pricing Page
+
+### US-PRICING-01: View standalone pricing page
+**As a** visitor evaluating the product,  
+**I want to** see a dedicated pricing page with all plan details,  
+**so that** I can compare plans and choose the right one before signing up.
+
+**Acceptance Criteria:**
+- Pricing page is available at `/pricing` (no auth required)
+- Page navigation matches the marketing site nav: Features, Pricing (active), Changelog, API Docs, Sign in, Get started free
+- Four plan cards are shown: **Free**, **Pro** ($29/mo), **Agency** ($99/mo), **Compliance** ($249/mo)
+- Each card shows: plan name, price, billing period, headline feature list, and a CTA button
+- Compliance plan card has an emerald "EAA ready" badge
+
+---
+
+### US-PRICING-02: Toggle between monthly and annual billing
+**As a** visitor on the pricing page,  
+**I want to** switch between monthly and annual billing to see the discounted annual prices,  
+**so that** I can decide whether annual billing is worth it for my budget.
+
+**Acceptance Criteria:**
+- A "Monthly / Annual" toggle is shown above the plan cards; Monthly is selected by default
+- Switching to Annual updates all paid plan prices to reflect 20% off:
+  - Pro: $29 → $23/mo (billed annually)
+  - Agency: $99 → $79/mo (billed annually)
+  - Compliance: $249 → $199/mo (billed annually)
+- Prices update without a page reload (client-side state)
+- The monthly equivalent is shown when annual is selected
+
+---
+
+### US-PRICING-03: View full feature comparison table
+**As a** visitor who wants to understand exactly what each plan includes,  
+**I want to** see a detailed side-by-side comparison of all features across all plans,  
+**so that** I can identify which plan has the features I need.
+
+**Acceptance Criteria:**
+- "Full feature comparison" table is shown below the plan cards
+- Rows are grouped by category (Core, Analysis, Reporting, Team & API, Compliance)
+- Each cell shows: ✓ (included), ✗ (not included), or a string value (e.g. "100 credits/mo")
+- Plan escalation invariants are maintained: a feature available on Pro is also available on Agency; available on Agency → available on Compliance
+- At least 21 rows covering all differentiating features
+
+---
+
+### US-PRICING-04: Read FAQ and open auth modal from pricing
+**As a** visitor with questions about the plans,  
+**I want to** find answers to common questions and start sign-up without leaving the page,  
+**so that** there's no friction between decision and account creation.
+
+**Acceptance Criteria:**
+- "Frequently asked questions" section shown below the comparison table
+- FAQ items are expandable accordion items (click to expand, click again to collapse)
+- At least 4 FAQ items covering: what counts as one audit, annual billing, team members, cancellation
+- CTA buttons throughout the page ("Get started free", plan-specific "Get started") open an `AuthModal` with the signup tab pre-selected
+- The page has `<script type="application/ld+json">` with Schema.org `SoftwareApplication` + 4 `Offer` objects for SEO
+- OG image is generated at `/pricing/opengraph-image` (Next.js `ImageResponse`) showing all 4 plan prices
+
+---
+
+## 28. Changelog Page
+
+### US-CHANGELOG-01: View product release history
+**As a** user or visitor,  
+**I want to** see a timeline of all features, improvements, and fixes that have been shipped,  
+**so that** I can understand what's new and how the product has evolved.
+
+**Acceptance Criteria:**
+- Changelog page is available at `/changelog` (no auth required)
+- Page layout: top nav (matching marketing site), hero with "What's new" heading, vertical timeline, footer
+- Each release entry shows: tag badge (Feature / Improvement / Fix / Security) with matching icon and colour, date (YYYY-MM-DD), version number, title, summary paragraph, bullet list of shipped items
+- Timeline line connects all entries visually (left-aligned vertical line with dots)
+- Releases are sorted newest-first (enforced by `src/data/changelog.ts`)
+- Tags are colour-coded: Feature = indigo, Improvement = violet, Fix = amber, Security = red
+- OG image is generated at `/changelog/opengraph-image` showing the 3 most recent release titles
+- Sitemap includes `/changelog` with `lastModified` set to the date of the most recent release
+
+---
+
+### US-CHANGELOG-02: Data integrity — release data as a single source of truth
+**As a** developer maintaining the changelog,  
+**I want to** manage all release data in a single file,  
+**so that** the page, sitemap, and any future integrations always show consistent data.
+
+**Acceptance Criteria:**
+- All release data lives in `src/data/changelog.ts` as the `RELEASES` array (pure TypeScript, no server-only imports)
+- `src/app/changelog/page.tsx` imports from `@/data/changelog` and re-exports `RELEASES`
+- `src/app/sitemap.ts` imports `RELEASES[0].date` for the changelog `lastModified` — no manual date needed
+- Each release must have: `version` (string), `date` (ISO YYYY-MM-DD), `tag` (Feature | Improvement | Fix | Security), `title`, `summary`, `items[]` (min 2 items)
+- All versions are unique — no duplicate version numbers
+- Dates are strictly sorted newest-first
+
+---
+
+*Last updated: 2026-06-09 | Covers Sprints 1–8 + compliance platform Sprints 2–4 + Lead Widget Sprint 5 + Content/SEO Sprint 6 (552 tests passing)*

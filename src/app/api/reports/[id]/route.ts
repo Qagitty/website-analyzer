@@ -8,7 +8,8 @@ const STALE_MS: Record<string, number> = {
   running: 8 * 60 * 1000,  // 8 min  — analysis itself should not take this long
 };
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const supabase = createServerClient();
 
   const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -27,10 +28,13 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     return NextResponse.json({ error: 'Report not found' }, { status: 404 });
   }
 
-  // Auto-fail jobs that have been stuck too long (e.g. worker died mid-run)
+  // Auto-fail jobs that have been stuck too long (e.g. worker died mid-run).
+  // Use updated_at (bumped by DB trigger on every status change) so the clock
+  // resets on each transition — created_at would fire too early for jobs that
+  // spend time in pending/queued before the worker picks them up.
   const staleThreshold = STALE_MS[analysis.status];
   if (staleThreshold) {
-    const ageMs = Date.now() - new Date(analysis.created_at).getTime();
+    const ageMs = Date.now() - new Date(analysis.updated_at).getTime();
     if (ageMs > staleThreshold) {
       const errorMessage =
         'Analysis timed out — the worker did not respond in time. Please resubmit.';
