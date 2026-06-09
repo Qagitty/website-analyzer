@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { analyzeWithAI, compareWithDesign } from '@/lib/ai/claude';
 import { uploadScreenshot, getSignedUrlOrNull } from '@/lib/supabase/storage';
-import { sendScoreDropAlert, sendMonitorSummary } from '@/lib/email/resend';
+import { sendScoreDropAlert, sendMonitorSummary, sendAnalysisComplete, sendAnalysisFailed } from '@/lib/email/resend';
 import { fireWebhooksForAnalysis } from '@/lib/webhooks/deliver';
 import * as Sentry from '@sentry/nextjs';
 
@@ -52,6 +52,22 @@ export async function POST(req: NextRequest) {
     // Refund the credit — the worker failed before producing a usable result
     if (failedRecord?.user_id) {
       await supabase.rpc('refund_credit', { p_user_id: failedRecord.user_id });
+
+      try {
+        const [{ data: userSettings }, { data: userData }] = await Promise.all([
+          supabase.from('user_settings').select('notifications').eq('user_id', failedRecord.user_id).single(),
+          supabase.auth.admin.getUserById(failedRecord.user_id),
+        ]);
+        const prefs = userSettings?.notifications as any;
+        const userEmail = userData?.user?.email;
+        if (userEmail && prefs?.email_on_fail !== false) {
+          sendAnalysisFailed({
+            to: userEmail,
+            url: body.url ?? analysisId,
+            analysisId,
+          }).catch(() => {});
+        }
+      } catch { /* non-fatal */ }
     }
 
     return NextResponse.json({ received: true });
@@ -167,6 +183,30 @@ export async function POST(req: NextRequest) {
     }
     // ─────────────────────────────────────────────────────────────────────
 
+    // ── Manual analysis completion email ────────────────────────────────
+    // Only for non-monitor runs — monitor emails are handled below separately
+    if (!monitorId && analysisRecord?.user_id) {
+      try {
+        const [{ data: userSettings }, { data: userData }] = await Promise.all([
+          supabase.from('user_settings').select('notifications').eq('user_id', analysisRecord.user_id).single(),
+          supabase.auth.admin.getUserById(analysisRecord.user_id),
+        ]);
+        const prefs = userSettings?.notifications as any;
+        const userEmail = userData?.user?.email;
+        if (userEmail && prefs?.email_on_complete !== false) {
+          sendAnalysisComplete({
+            to: userEmail,
+            url: (analysisRecord as any).url,
+            analysisId,
+            scores: results.lighthouseScores ?? null,
+          }).catch((e) => console.error('[callback] completion email failed:', e));
+        }
+      } catch (e) {
+        console.error('[callback] failed to resolve user email for completion notification:', e);
+      }
+    }
+    // ────────────────────────────────────────────────────────────────────
+
     // ── Monitor post-processing ──────────────────────────────────────────
     if (monitorId && results.lighthouseScores) {
       const newScores = results.lighthouseScores;
@@ -234,6 +274,22 @@ export async function POST(req: NextRequest) {
     // Refund the credit — server-side failure, user shouldn't be penalized
     if (failedRecord?.user_id) {
       await supabase.rpc('refund_credit', { p_user_id: failedRecord.user_id });
+
+      try {
+        const [{ data: userSettings }, { data: userData }] = await Promise.all([
+          supabase.from('user_settings').select('notifications').eq('user_id', failedRecord.user_id).single(),
+          supabase.auth.admin.getUserById(failedRecord.user_id),
+        ]);
+        const prefs = userSettings?.notifications as any;
+        const userEmail = userData?.user?.email;
+        if (userEmail && prefs?.email_on_fail !== false) {
+          sendAnalysisFailed({
+            to: userEmail,
+            url: (analysisRecord as any)?.url ?? analysisId,
+            analysisId,
+          }).catch(() => {});
+        }
+      } catch { /* non-fatal */ }
     }
 
     return NextResponse.json({ received: true, status: 'failed' });

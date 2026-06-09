@@ -367,6 +367,175 @@ export async function sendSupportMessage({
   });
 }
 
+export async function sendAnalysisComplete({
+  to,
+  url,
+  analysisId,
+  scores,
+}: {
+  to: string;
+  url: string;
+  analysisId: string;
+  scores?: Record<string, number> | null;
+}): Promise<void> {
+  if (!resend) {
+    console.log('[email] RESEND_API_KEY not set — skipping completion email for', to);
+    return;
+  }
+
+  const reportUrl = `${APP_URL}/reports/${analysisId}`;
+  const perf = scores?.performance;
+  const a11y = scores?.accessibility;
+  const seo  = scores?.seo;
+
+  const scoreColor = (v: number) =>
+    v >= 90 ? '#16a34a' : v >= 50 ? '#d97706' : '#dc2626';
+
+  const scoreRow = (label: string, v: number | undefined) =>
+    v != null
+      ? `<tr>
+          <td style="padding:6px 12px;border-bottom:1px solid #2d2d3d;color:#a09fbb;font-size:14px;">${label}</td>
+          <td style="padding:6px 12px;border-bottom:1px solid #2d2d3d;text-align:center;font-weight:700;font-size:14px;color:${scoreColor(v)};">${v}</td>
+        </tr>`
+      : '';
+
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Analysis Complete</title>
+</head>
+<body style="margin:0;padding:0;background:#0d0d14;font-family:system-ui,-apple-system,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0d0d14;padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table width="520" cellpadding="0" cellspacing="0" style="max-width:520px;width:100%;">
+          <tr>
+            <td style="background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);border-radius:16px 16px 0 0;padding:24px 32px;">
+              <div style="font-size:22px;font-weight:800;color:#ffffff;">✅ Your report is ready</div>
+              <div style="font-size:13px;color:#c4b5fd;margin-top:4px;">${escapeHtml(url)}</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#16161f;padding:28px 32px;border-left:1px solid #2d2d3d;border-right:1px solid #2d2d3d;">
+              <p style="margin:0 0 20px;font-size:15px;color:#a09fbb;line-height:1.6;">
+                Your analysis completed successfully. Here's a quick score summary:
+              </p>
+              ${(perf != null || a11y != null || seo != null) ? `
+              <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:24px;border:1px solid #2d2d3d;border-radius:8px;overflow:hidden;">
+                <thead>
+                  <tr style="background:#1e1e2e;">
+                    <th style="padding:8px 12px;text-align:left;font-size:12px;color:#6b6b8a;text-transform:uppercase;letter-spacing:0.05em;">Metric</th>
+                    <th style="padding:8px 12px;text-align:center;font-size:12px;color:#6b6b8a;text-transform:uppercase;letter-spacing:0.05em;">Score</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${scoreRow('Performance', perf)}
+                  ${scoreRow('Accessibility', a11y)}
+                  ${scoreRow('SEO', seo)}
+                </tbody>
+              </table>` : ''}
+              <a href="${reportUrl}"
+                 style="display:inline-block;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#ffffff;padding:13px 28px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;">
+                View Full Report →
+              </a>
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#0d0d14;border:1px solid #2d2d3d;border-top:none;border-radius:0 0 16px 16px;padding:14px 32px;text-align:center;">
+              <p style="margin:0;font-size:12px;color:#5c5b73;">
+                You're receiving this because you enabled analysis completion notifications in
+                <a href="${APP_URL}/settings/notifications" style="color:#6366f1;text-decoration:none;">Settings → Notifications</a>.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `✅ Analysis complete — ${url}`,
+    html,
+  });
+}
+
+export async function sendAnalysisFailed({
+  to,
+  url,
+  analysisId,
+}: {
+  to: string;
+  url: string;
+  analysisId: string;
+}): Promise<void> {
+  if (!resend) {
+    console.log('[email] RESEND_API_KEY not set — skipping failure email for', to);
+    return;
+  }
+
+  const analyzeUrl = `${APP_URL}/analyze`;
+
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8" /><title>Analysis Failed</title></head>
+<body style="margin:0;padding:0;background:#0d0d14;font-family:system-ui,-apple-system,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0d0d14;padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table width="520" cellpadding="0" cellspacing="0" style="max-width:520px;width:100%;">
+          <tr>
+            <td style="background:linear-gradient(135deg,#dc2626 0%,#b91c1c 100%);border-radius:16px 16px 0 0;padding:24px 32px;">
+              <div style="font-size:22px;font-weight:800;color:#ffffff;">⚠️ Analysis failed</div>
+              <div style="font-size:13px;color:#fca5a5;margin-top:4px;">${escapeHtml(url)}</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#16161f;padding:28px 32px;border-left:1px solid #2d2d3d;border-right:1px solid #2d2d3d;">
+              <p style="margin:0 0 20px;font-size:15px;color:#a09fbb;line-height:1.6;">
+                The analysis of <strong style="color:#f1f0ff;">${escapeHtml(url)}</strong> could not be completed.
+                Your credit has been refunded automatically.
+              </p>
+              <p style="margin:0 0 24px;font-size:14px;color:#a09fbb;line-height:1.6;">
+                This can happen if the site is unreachable, takes too long to respond, or blocks automated scanning.
+                You can try again from the Analyze page.
+              </p>
+              <a href="${analyzeUrl}"
+                 style="display:inline-block;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#ffffff;padding:13px 28px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;">
+                Try Again →
+              </a>
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#0d0d14;border:1px solid #2d2d3d;border-top:none;border-radius:0 0 16px 16px;padding:14px 32px;text-align:center;">
+              <p style="margin:0;font-size:12px;color:#5c5b73;">
+                You're receiving this because you enabled failure notifications in
+                <a href="${APP_URL}/settings/notifications" style="color:#6366f1;text-decoration:none;">Settings → Notifications</a>.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `⚠️ Analysis failed — ${url}`,
+    html,
+  });
+}
+
 export async function sendTeamInvite({
   to,
   inviterEmail,
