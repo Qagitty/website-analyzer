@@ -179,9 +179,16 @@ export default function CompliancePage() {
     else             setLoading(true);
     setError(false);
 
+    const timer = setTimeout(() => {
+      setError(true);
+      setLoading(false);
+      setRefreshing(false);
+    }, 12000);
+
     try {
       const supabase = createBrowserClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) { window.location.href = '/login'; return; }
 
       // 1. Fetch all monitors
@@ -256,6 +263,7 @@ export default function CompliancePage() {
     } catch {
       setError(true);
     } finally {
+      clearTimeout(timer);
       setLoading(false);
       setRefreshing(false);
     }

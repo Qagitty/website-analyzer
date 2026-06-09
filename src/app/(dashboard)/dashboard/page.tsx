@@ -30,13 +30,16 @@ export default function DashboardPage() {
 
   useEffect(() => {
     let cancelled = false;
+    const timer = setTimeout(() => {
+      if (!cancelled) { setDataError(true); setLoading(false); }
+    }, 12000);
 
     async function load() {
       try {
         const supabase = createBrowserClient();
 
-        // Auth — browser client reads the session cookie automatically
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { session } } = await supabase.auth.getSession();
+        const user = session?.user;
         if (!user) { window.location.href = '/login'; return; }
 
         const [analysesRes, settingsRes] = await Promise.all([
@@ -64,12 +67,13 @@ export default function DashboardPage() {
       } catch {
         if (!cancelled) setDataError(true);
       } finally {
+        clearTimeout(timer);
         if (!cancelled) setLoading(false);
       }
     }
 
     load();
-    return () => { cancelled = true; };
+    return () => { cancelled = true; clearTimeout(timer); };
   }, []);
 
   if (loading) return <DashboardSkeleton />;

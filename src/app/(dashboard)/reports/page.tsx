@@ -56,10 +56,16 @@ export default function ReportsPage() {
     setLoading(true);
     setDataError(false);
 
+    const timer = setTimeout(() => {
+      setDataError(true);
+      setLoading(false);
+    }, 12000);
+
     try {
       const supabase = createBrowserClient();
 
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) { window.location.href = '/login'; return; }
       setUserId(user.id);
 
@@ -92,6 +98,7 @@ export default function ReportsPage() {
     } catch {
       setDataError(true);
     } finally {
+      clearTimeout(timer);
       setLoading(false);
     }
   }, []);
