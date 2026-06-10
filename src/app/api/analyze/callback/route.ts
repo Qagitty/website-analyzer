@@ -285,7 +285,7 @@ export async function POST(req: NextRequest) {
         if (userEmail && prefs?.email_on_fail !== false) {
           sendAnalysisFailed({
             to: userEmail,
-            url: (analysisRecord as any)?.url ?? analysisId,
+            url: results.url ?? analysisId,
             analysisId,
           }).catch(() => {});
         }

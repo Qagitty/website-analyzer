@@ -5,8 +5,6 @@ import { ThemeToggle } from '@/components/shared/ThemeToggle';
 import { RELEASES } from '@/data/changelog';
 import type { TagType } from '@/data/changelog';
 
-export { RELEASES };
-
 export const metadata: Metadata = {
   title: "What's New — WebAnalyzer",
   description:
