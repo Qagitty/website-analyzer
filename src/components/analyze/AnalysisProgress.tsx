@@ -210,11 +210,11 @@ export function AnalysisProgress({ analysisId, initialData }: Props) {
       {CANCELLABLE.has(state.status) && (
         <div className="flex justify-center pt-2">
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
             onClick={cancel}
             disabled={cancelling}
-            className="text-muted-foreground hover:text-red-400 hover:bg-red-500/10 text-xs"
+            className="border-red-500/40 text-red-400 hover:bg-red-500/10 hover:border-red-500/70 hover:text-red-300 transition-colors"
           >
             {cancelling ? 'Cancelling…' : '✕ Cancel analysis'}
           </Button>
