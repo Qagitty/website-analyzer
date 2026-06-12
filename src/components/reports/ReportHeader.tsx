@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { Link2, Link2Off, Check, Activity, Download, Bell, BellOff } from 'lucide-react';
+import { Link2, Link2Off, Check, Activity, Download, Bell, BellOff, Loader2 } from 'lucide-react';
 import type { Analysis } from '@/types/analysis';
 
 export function ReportHeader({ analysis }: { analysis: Analysis }) {
@@ -203,8 +203,10 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
             disabled={downloading === 'pdf'}
             className="gap-1.5 border-border text-muted-foreground hover:bg-accent hover:text-foreground"
           >
-            <Download className="h-3.5 w-3.5" />
-            {downloading === 'pdf' ? 'Downloading…' : 'PDF'}
+            {downloading === 'pdf'
+              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              : <Download className="h-3.5 w-3.5" />}
+            PDF
           </Button>
 
           {/* Download compliance PDF */}
@@ -215,8 +217,10 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
             disabled={downloading === 'compliance-pdf'}
             className="gap-1.5 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10 hover:text-indigo-300"
           >
-            <Download className="h-3.5 w-3.5" />
-            {downloading === 'compliance-pdf' ? 'Downloading…' : 'Compliance PDF'}
+            {downloading === 'compliance-pdf'
+              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              : <Download className="h-3.5 w-3.5" />}
+            Compliance PDF
           </Button>
 
           {/* Monitor this site */}
