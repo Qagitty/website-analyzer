@@ -15,6 +15,7 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
   const [copied, setCopied] = useState(false);
   const [monitoring, setMonitoring] = useState(false);
   const [monitoringActive, setMonitoringActive] = useState(false);
+  const [downloading, setDownloading] = useState<'pdf' | 'compliance-pdf' | null>(null);
 
   // Monitor form state
   const [showMonitorForm, setShowMonitorForm] = useState(false);
@@ -94,6 +95,31 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
     }
   };
 
+  const downloadPDF = async (type: 'pdf' | 'compliance-pdf') => {
+    setDownloading(type);
+    try {
+      const res = await fetch(`/api/reports/${analysis.id}/${type}`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? 'Download failed');
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const hostname = new URL(analysis.url).hostname;
+      a.download = type === 'pdf'
+        ? `report-${hostname}.pdf`
+        : `compliance-report-${hostname}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setDownloading(null);
+    }
+  };
+
   const createMonitor = async () => {
     setMonitoring(true);
     try {
@@ -170,20 +196,28 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
           )}
 
           {/* Download technical PDF */}
-          <a href={`/api/reports/${analysis.id}/pdf`} download>
-            <Button variant="outline" size="sm" className="gap-1.5 border-border text-muted-foreground hover:bg-accent hover:text-foreground">
-              <Download className="h-3.5 w-3.5" />
-              PDF
-            </Button>
-          </a>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => downloadPDF('pdf')}
+            disabled={downloading === 'pdf'}
+            className="gap-1.5 border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+          >
+            <Download className="h-3.5 w-3.5" />
+            {downloading === 'pdf' ? 'Downloading…' : 'PDF'}
+          </Button>
 
           {/* Download compliance PDF */}
-          <a href={`/api/reports/${analysis.id}/compliance-pdf`} download>
-            <Button variant="outline" size="sm" className="gap-1.5 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10 hover:text-indigo-300">
-              <Download className="h-3.5 w-3.5" />
-              Compliance PDF
-            </Button>
-          </a>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => downloadPDF('compliance-pdf')}
+            disabled={downloading === 'compliance-pdf'}
+            className="gap-1.5 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10 hover:text-indigo-300"
+          >
+            <Download className="h-3.5 w-3.5" />
+            {downloading === 'compliance-pdf' ? 'Downloading…' : 'Compliance PDF'}
+          </Button>
 
           {/* Monitor this site */}
           {monitoringActive ? (
