@@ -6,8 +6,19 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { Link2, Link2Off, Check, Activity, Download, Bell, BellOff, Loader2 } from 'lucide-react';
+import { Link2, Link2Off, Check, Activity, Download, Bell, BellOff, Loader2, ChevronDown, FileText, FileSpreadsheet, FileJson, FileDown } from 'lucide-react';
 import type { Analysis } from '@/types/analysis';
+
+type ExportFormat = 'pdf' | 'compliance-pdf' | 'docx' | 'markdown' | 'json' | 'xlsx';
+
+const EXPORT_OPTIONS: { format: ExportFormat; label: string; desc: string; Icon: any }[] = [
+  { format: 'pdf',            label: 'PDF',            desc: 'Full report',           Icon: FileDown },
+  { format: 'compliance-pdf', label: 'Compliance PDF', desc: 'Accessibility audit',   Icon: FileDown },
+  { format: 'docx',           label: 'DOCX',           desc: 'Microsoft Word',        Icon: FileText },
+  { format: 'xlsx',           label: 'XLSX',           desc: 'Excel spreadsheet',     Icon: FileSpreadsheet },
+  { format: 'markdown',       label: 'Markdown',       desc: 'AI / LLM friendly',     Icon: FileText },
+  { format: 'json',           label: 'JSON',           desc: 'Raw structured data',   Icon: FileJson },
+];
 
 export function ReportHeader({ analysis }: { analysis: Analysis }) {
   const [isPublic, setIsPublic] = useState(analysis.is_public ?? false);
@@ -15,7 +26,9 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
   const [copied, setCopied] = useState(false);
   const [monitoring, setMonitoring] = useState(false);
   const [monitoringActive, setMonitoringActive] = useState(false);
-  const [downloading, setDownloading] = useState<'pdf' | 'compliance-pdf' | null>(null);
+  const [downloading, setDownloading] = useState<ExportFormat | null>(null);
+  const [showExport, setShowExport] = useState(false);
+  const exportRef = useRef<HTMLDivElement>(null);
 
   // Monitor form state
   const [showMonitorForm, setShowMonitorForm] = useState(false);
@@ -49,6 +62,18 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [showMonitorForm]);
+
+  // Close export dropdown on outside click
+  useEffect(() => {
+    if (!showExport) return;
+    const handler = (e: MouseEvent) => {
+      if (exportRef.current && !exportRef.current.contains(e.target as Node)) {
+        setShowExport(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showExport]);
 
   const duration = analysis.completed_at && analysis.started_at
     ? Math.round(
@@ -95,10 +120,11 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
     }
   };
 
-  const downloadPDF = async (type: 'pdf' | 'compliance-pdf') => {
-    setDownloading(type);
+  const downloadExport = async (format: ExportFormat) => {
+    setDownloading(format);
+    setShowExport(false);
     try {
-      const res = await fetch(`/api/reports/${analysis.id}/${type}`);
+      const res = await fetch(`/api/reports/${analysis.id}/${format}`);
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error ?? 'Download failed');
@@ -107,10 +133,13 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      const hostname = new URL(analysis.url).hostname;
-      a.download = type === 'pdf'
-        ? `report-${hostname}.pdf`
-        : `compliance-report-${hostname}.pdf`;
+      const hostname = (() => { try { return new URL(analysis.url).hostname; } catch { return 'report'; } })();
+      const ext: Record<ExportFormat, string> = {
+        'pdf': 'pdf', 'compliance-pdf': 'pdf',
+        'docx': 'docx', 'xlsx': 'xlsx', 'markdown': 'md', 'json': 'json',
+      };
+      const prefix = format === 'compliance-pdf' ? 'compliance-report' : 'report';
+      a.download = `${prefix}-${hostname}.${ext[format]}`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (err: any) {
@@ -195,33 +224,41 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
             </Button>
           )}
 
-          {/* Download technical PDF */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => downloadPDF('pdf')}
-            disabled={downloading === 'pdf'}
-            className="gap-1.5 border-border text-muted-foreground hover:bg-accent hover:text-foreground"
-          >
-            {downloading === 'pdf'
-              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              : <Download className="h-3.5 w-3.5" />}
-            PDF
-          </Button>
+          {/* Export dropdown */}
+          <div ref={exportRef} className="relative">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowExport(v => !v)}
+              disabled={downloading !== null}
+              className="gap-1.5 border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+            >
+              {downloading !== null
+                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                : <Download className="h-3.5 w-3.5" />}
+              Export
+              <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-150 ${showExport ? 'rotate-180' : ''}`} />
+            </Button>
 
-          {/* Download compliance PDF */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => downloadPDF('compliance-pdf')}
-            disabled={downloading === 'compliance-pdf'}
-            className="gap-1.5 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10 hover:text-indigo-300"
-          >
-            {downloading === 'compliance-pdf'
-              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              : <Download className="h-3.5 w-3.5" />}
-            Compliance PDF
-          </Button>
+            {showExport && (
+              <div className="absolute right-0 top-full mt-1.5 z-50 w-52 rounded-xl border border-border bg-card shadow-xl py-1.5 overflow-hidden">
+                {EXPORT_OPTIONS.map(({ format, label, desc, Icon }) => (
+                  <button
+                    key={format}
+                    type="button"
+                    onClick={() => downloadExport(format)}
+                    className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-secondary/60 transition-colors"
+                  >
+                    <Icon className="h-4 w-4 text-indigo-400 shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground leading-none">{label}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* Monitor this site */}
           {monitoringActive ? (
