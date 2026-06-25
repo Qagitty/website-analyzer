@@ -88,7 +88,13 @@ export default function SampleReportPage() {
         <FixRoadmapSection insights={analysis.ai_insights?.insights} />
 
         {/* Performance */}
-        <PerformanceSection scores={scores as any} />
+        <PerformanceSection
+          scores={scores as any}
+          resourceAudit={(analysis.network_requests as any)?.resourceAudit}
+          htmlBytes={(analysis.network_requests as any)?.totalBytes}
+          analysisUrl={analysis.url}
+          completedAt={analysis.completed_at ?? undefined}
+        />
 
         {/* Score breakdown */}
         {(scores as any).scoreBreakdown && (
@@ -106,7 +112,7 @@ export default function SampleReportPage() {
         {/* Security headers */}
         <SecurityHeadersSection securityHeaders={(scores as any).securityHeaders} />
 
-        {/* Resource audit */}
+        {/* Resource audit (legacy detail) */}
         <ResourceAuditSection resourceAudit={(analysis.network_requests as any)?.resourceAudit} />
 
         {/* EAA compliance */}

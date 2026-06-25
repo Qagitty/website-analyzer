@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Performance Test Page — WebsiteAnalyzer Fixture</title>
+
+  <!-- Render-blocking synchronous stylesheet (no media query) -->
+  <link rel="stylesheet" href="https://example.com/css/main.css">
+  <link rel="stylesheet" href="https://cdn.thirdparty.com/vendor.css">
+
+  <!-- Render-blocking synchronous scripts in <head> — no defer/async -->
+  <script src="https://example.com/js/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.analytics.com/tracker.js"></script>
+
+  <!-- 3rd-party script that will delay LCP -->
+  <script src="https://www.googletagmanager.com/gtm.js?id=GTM-XXXXX"></script>
+
+  <!-- SEO meta -->
+  <meta name="description" content="A test page for performance analysis fixture.">
+  <meta name="robots" content="index, follow">
+</head>
+<body>
+
+  <!-- Hero image WITHOUT width/height attributes — causes layout shifts (CLS) -->
+  <!-- Also lacks loading attribute — will block render above fold -->
+  <img src="https://example.com/images/hero-banner-1920x600.jpg" alt="Hero banner">
+
+  <!-- Product images — missing dimensions + lazy loading -->
+  <img src="https://example.com/images/product-a-800x600.jpg" alt="Product A">
+  <img src="https://example.com/images/product-b-800x600.png" alt="Product B">
+  <img src="https://example.com/images/product-c-legacy.gif" alt="Product C (legacy GIF format)">
+  <img src="https://cdn.thirdparty.com/badge.jpg" alt="Third-party badge" width="120" height="60" loading="lazy">
+
+  <!-- Large inline script (>2KB) — blocks parser -->
+  <script>
+    // Simulated large inline script block for testing inlineScriptCount detection.
+    // In a real page this would be bundled JavaScript. Padding to exceed 2KB:
+    var APP_CONFIG = {
+      apiEndpoint: "https://api.example.com/v2",
+      features: { darkMode: true, analytics: true, experimentFlag: false },
+      version: "3.14.159",
+      buildHash: "abc123def456",
+      releaseDate: "2025-01-01",
+      settings: {
+        timeout: 30000,
+        retries: 3,
+        cachePolicy: "no-store",
+        locale: "en-US",
+        currency: "USD"
+      }
+    };
+    window.__INITIAL_STATE__ = { user: null, cart: [], wishlist: [], session: null };
+    // End of large inline script
+  </script>
+
+  <main>
+    <h1>Welcome to Greenleaf Garden Centre</h1>
+    <p>We sell the finest plants, tools, and garden accessories.</p>
+
+    <!-- iframe from third party (social embed) -->
+    <iframe src="https://www.facebook.com/plugins/like.php?href=https%3A%2F%2Fexample.com"
+            width="450" height="80" loading="lazy"></iframe>
+
+    <!-- Unoptimised images without srcset -->
+    <img src="https://example.com/images/seasonal-offer-1200x900.jpg" alt="Seasonal offer">
+    <img src="https://example.com/images/team-photo-2400x1800.jpeg" alt="Our team">
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <p>© 2025 Greenleaf Garden Centre</p>
+    <!-- 3rd-party chat widget -->
+    <script src="https://widget.intercom.io/widget/abc123" async></script>
+    <!-- Payment provider -->
+    <script src="https://js.stripe.com/v3/" async></script>
+  </footer>
+
+</body>
+</html>

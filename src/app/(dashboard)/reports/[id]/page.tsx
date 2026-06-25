@@ -71,7 +71,13 @@ export default async function ReportPage(props: { params: Promise<{ id: string }
 
       <ScreenshotViewer url={screenshotSignedUrl} siteUrl={analysis.url} />
       {analysis.lighthouse_scores && (
-        <PerformanceSection scores={analysis.lighthouse_scores as any} />
+        <PerformanceSection
+          scores={analysis.lighthouse_scores as any}
+          resourceAudit={(analysis.network_requests as any)?.resourceAudit}
+          htmlBytes={(analysis.network_requests as any)?.totalBytes}
+          analysisUrl={analysis.url}
+          completedAt={analysis.completed_at ?? undefined}
+        />
       )}
       {(analysis.lighthouse_scores as any)?.scoreBreakdown && (
         <ScoreBreakdownSection

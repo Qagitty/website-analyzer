@@ -8,6 +8,15 @@ import { z } from 'zod';
 
 const ACCEPTED_MIME = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
 
+// Private/reserved IP ranges that must never be reached from the API route (SSRF prevention).
+// Covers IPv4 loopback, link-local, RFC1918, documentation, broadcast, and IPv6 loopback.
+const PRIVATE_HOSTNAME_RE =
+  /^(localhost|127\.|0\.0\.0\.0|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|169\.254\.|100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.|::1$|fc00:|fe80:|fd)/i;
+
+function isPrivateHostname(hostname: string): boolean {
+  return PRIVATE_HOSTNAME_RE.test(hostname);
+}
+
 function normalizeUrl(value: string): string {
   const trimmed = value.trim();
   if (/^https?:\/\//i.test(trimmed)) return trimmed;
@@ -19,7 +28,24 @@ const schema = z.object({
     .string()
     .trim()
     .transform(normalizeUrl)
-    .pipe(z.string().url('Invalid URL')),
+    .pipe(
+      z.string()
+        .url('Invalid URL')
+        // Protocol allowlist — only http/https
+        .refine(
+          (u) => {
+            try { return /^https?:$/i.test(new URL(u).protocol); } catch { return false; }
+          },
+          'Only http:// and https:// URLs are allowed'
+        )
+        // SSRF: block private/loopback IP addresses and hostnames
+        .refine(
+          (u) => {
+            try { return !isPrivateHostname(new URL(u).hostname); } catch { return false; }
+          },
+          'Analyzing internal or private network addresses is not allowed'
+        )
+    ),
   designScreenshotBase64: z.string().optional(),
   designMimeType: z
     .string()

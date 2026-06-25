@@ -613,6 +613,38 @@ function CoverPage({
 
 // ─── Page 2: Performance ─────────────────────────────────────────────────────
 
+function truncatePdfUrl(url: string, max = 70): string {
+  if (!url) return '';
+  try {
+    const u = new URL(url);
+    const full = u.hostname + u.pathname;
+    return full.length <= max ? full : full.slice(0, max - 1) + '…';
+  } catch {
+    return url.length > max ? url.slice(0, max - 1) + '…' : url;
+  }
+}
+
+function metricStatusColor(status: string): string {
+  if (status === 'good') return '#16a34a';
+  if (status === 'needs-improvement') return '#d97706';
+  if (status === 'poor') return '#dc2626';
+  return '#9ca3af';
+}
+
+function metricStatusLabel(status: string): string {
+  if (status === 'good') return 'Good';
+  if (status === 'needs-improvement') return 'Needs work';
+  if (status === 'poor') return 'Poor';
+  return 'N/A';
+}
+
+function formatAuditMetricValue(m: { value: number | null; unit: string }): string {
+  if (m.value == null) return 'N/A';
+  if (m.unit === 'ms') return m.value >= 1000 ? `${(m.value / 1000).toFixed(1)}s` : `${m.value}ms`;
+  if (m.unit === 'score') return m.value.toFixed(m.value < 1 ? 2 : 0);
+  return String(m.value);
+}
+
 function PerformancePage({
   analysis,
   branding,
@@ -625,78 +657,112 @@ function PerformancePage({
   brandColor: string;
 }) {
   const ls = analysis.lighthouse_scores as LighthouseScores;
+  const audit = (ls as any)?.performanceAudit;
+  const isFetchOnly = !ls?.measurementMode || ls.measurementMode === 'fetch-only';
+  const modeLabel = isFetchOnly ? 'Fetch-only (no real browser)' : 'Browser lab';
 
-  const vitals: Array<{ key: keyof LighthouseScores; label: string }> = [
-    { key: 'lcp',  label: 'Largest Contentful Paint' },
-    { key: 'cls',  label: 'Cumulative Layout Shift'  },
-    { key: 'ttfb', label: 'Time to First Byte'       },
-    { key: 'fid',  label: 'First Input Delay'        },
-  ];
+  // Opportunities: top 4 by severity order
+  const opportunities: Array<{ title: string; recommendation: string; estimatedSavingsMs?: number; severity: string }> =
+    ((ls as any)?.opportunities ?? []).slice(0, 4);
 
   const criticalIssues: Array<{ metric: string; fix: string }> =
     (analysis.ai_insights?.performance?.criticalIssues ?? []).slice(0, 4);
+
+  // Build metrics table rows — prefer performanceAudit.metrics, fall back to legacy fields
+  const metricRows: Array<{ label: string; value: string; status: string; source: string }> = [];
+
+  if (audit?.metrics) {
+    const m = audit.metrics;
+    const order = ['ttfb', 'lcp', 'cls', 'tbt', 'fcp', 'inp'] as const;
+    for (const key of order) {
+      const metric = m[key];
+      if (!metric || metric.status === 'unavailable') continue;
+      metricRows.push({
+        label: metric.name,
+        value: formatAuditMetricValue(metric),
+        status: metric.status,
+        source: metric.source === 'estimated' ? `Est. · ${metric.confidence} confidence` : metric.source === 'fetch-timing' ? 'HTTP timing' : metric.source,
+      });
+    }
+  } else {
+    // Legacy fallback
+    if (ls?.ttfb != null) metricRows.push({ label: 'TTFB', value: `${ls.ttfb}ms`, status: ls.ttfb < 800 ? 'good' : ls.ttfb < 1800 ? 'needs-improvement' : 'poor', source: 'HTTP timing' });
+    const lcpVal = ls?.estimatedLcp ?? ls?.lcp;
+    if (lcpVal != null) metricRows.push({ label: 'LCP (estimated)', value: `~${lcpVal >= 1000 ? (lcpVal / 1000).toFixed(1) + 's' : lcpVal + 'ms'}`, status: lcpVal < 2500 ? 'good' : lcpVal < 4000 ? 'needs-improvement' : 'poor', source: 'Estimated' });
+  }
 
   return (
     <Page size="A4" style={styles.page}>
       <HeaderBar styles={styles} brandColor={brandColor} agencyName={branding.agencyName} logoUrl={branding.logoUrl} pageLabel="Performance" />
       <Text style={styles.sectionHeading}>Performance</Text>
 
-      {/* Core Web Vitals table */}
-      <View style={{ marginBottom: 18 }}>
-        <View style={[styles.tableRow, { backgroundColor: '#f9fafb' }]}>
-          <View style={{ flex: 2 }}>
-            <Text style={[styles.tableCell, { fontFamily: 'Helvetica-Bold', fontSize: 8 }]}>Metric</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.tableCell, { fontFamily: 'Helvetica-Bold', fontSize: 8 }]}>Value</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.tableCell, { fontFamily: 'Helvetica-Bold', fontSize: 8 }]}>Status</Text>
-          </View>
+      {/* Overview row: score + mode */}
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 16, marginBottom: 16 }}>
+        <View style={{ alignItems: 'center', minWidth: 60 }}>
+          <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 28, color: scoreColor(ls?.performance) }}>{ls?.performance ?? '–'}</Text>
+          <Text style={{ fontSize: 7, color: '#6b7280' }}>out of 100</Text>
         </View>
-
-        {vitals.map(({ key, label }) => {
-          const val = ls?.[key] as number | undefined;
-          if (val == null) return null;
-          return (
-            <View key={key} style={styles.tableRow}>
-              <View style={{ flex: 2 }}>
-                <Text style={styles.tableCell}>{label}</Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.tableCell}>{formatVitalValue(key, val)}</Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <View style={[styles.vitalBadge, { backgroundColor: vitalColor(key, val) }]}>
-                  <Text style={styles.vitalBadgeText}>{vitalLabel(key, val)}</Text>
-                </View>
-              </View>
-            </View>
-          );
-        })}
+        <View style={{ flex: 1 }}>
+          <View style={{ height: 8, backgroundColor: '#f3f4f6', borderRadius: 4, overflow: 'hidden', marginBottom: 6 }}>
+            <View style={{ height: 8, width: `${ls?.performance ?? 0}%`, backgroundColor: scoreColor(ls?.performance), borderRadius: 4 }} />
+          </View>
+          <Text style={{ fontSize: 7, color: '#6b7280' }}>Measurement: {modeLabel}</Text>
+          {isFetchOnly && <Text style={{ fontSize: 7, color: '#d97706', marginTop: 2 }}>TTFB is real · LCP is estimated · CLS/TBT/FCP/INP not available in fetch-only mode</Text>}
+        </View>
       </View>
 
-      {/* Performance score bar */}
-      {ls?.performance != null && (
-        <View style={{ marginBottom: 18 }}>
-          <Text style={styles.sectionSubheading}>Score: {ls.performance}/100</Text>
-          <View style={{ height: 8, backgroundColor: '#f3f4f6', borderRadius: 4, overflow: 'hidden' }}>
-            <View style={{
-              height: 8,
-              width: `${ls.performance}%`,
-              backgroundColor: scoreColor(ls.performance),
-              borderRadius: 4,
-            }} />
+      {/* Metrics table */}
+      {metricRows.length > 0 && (
+        <View style={{ marginBottom: 16 }}>
+          <Text style={styles.sectionSubheading}>Core Metrics</Text>
+          <View style={[styles.tableRow, { backgroundColor: '#f9fafb' }]}>
+            <View style={{ flex: 3 }}><Text style={[styles.tableCell, { fontFamily: 'Helvetica-Bold', fontSize: 8 }]}>Metric</Text></View>
+            <View style={{ flex: 1 }}><Text style={[styles.tableCell, { fontFamily: 'Helvetica-Bold', fontSize: 8 }]}>Value</Text></View>
+            <View style={{ flex: 1 }}><Text style={[styles.tableCell, { fontFamily: 'Helvetica-Bold', fontSize: 8 }]}>Status</Text></View>
+            <View style={{ flex: 2 }}><Text style={[styles.tableCell, { fontFamily: 'Helvetica-Bold', fontSize: 8 }]}>Source</Text></View>
           </View>
+          {metricRows.map((row, i) => (
+            <View key={i} style={styles.tableRow} wrap={false}>
+              <View style={{ flex: 3 }}><Text style={styles.tableCell}>{row.label}</Text></View>
+              <View style={{ flex: 1 }}><Text style={styles.tableCell}>{row.value}</Text></View>
+              <View style={{ flex: 1 }}>
+                <View style={[styles.vitalBadge, { backgroundColor: metricStatusColor(row.status) }]}>
+                  <Text style={styles.vitalBadgeText}>{metricStatusLabel(row.status)}</Text>
+                </View>
+              </View>
+              <View style={{ flex: 2 }}><Text style={[styles.tableCell, { color: '#9ca3af', fontSize: 7 }]}>{row.source}</Text></View>
+            </View>
+          ))}
         </View>
       )}
 
-      {/* Recommendations */}
-      {criticalIssues.length > 0 && (
+      {/* Top opportunities */}
+      {opportunities.length > 0 && (
+        <View style={{ marginBottom: 16 }}>
+          <Text style={styles.sectionSubheading}>Top Opportunities</Text>
+          {opportunities.map((opp, i) => (
+            <View key={i} style={styles.bulletRow} wrap={false}>
+              <View style={[styles.bulletDot, { backgroundColor: opp.severity === 'critical' ? '#dc2626' : opp.severity === 'high' ? '#d97706' : '#6366f1' }]} />
+              <View style={styles.bulletContent}>
+                <Text style={styles.bulletTitle}>{opp.title}</Text>
+                <Text style={styles.bulletText}>{opp.recommendation}</Text>
+                {opp.estimatedSavingsMs != null && (
+                  <Text style={{ fontSize: 7, color: '#6366f1', marginTop: 1 }}>
+                    ~{opp.estimatedSavingsMs >= 1000 ? `${(opp.estimatedSavingsMs / 1000).toFixed(1)}s` : `${opp.estimatedSavingsMs}ms`} potential saving
+                  </Text>
+                )}
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* AI recommendations fallback when no structured opportunities */}
+      {opportunities.length === 0 && criticalIssues.length > 0 && (
         <View>
           <Text style={styles.sectionSubheading}>Top Recommendations</Text>
           {criticalIssues.map((issue, i) => (
-            <View key={i} style={styles.bulletRow}>
+            <View key={i} style={styles.bulletRow} wrap={false}>
               <View style={[styles.bulletDot, { backgroundColor: brandColor }]} />
               <View style={styles.bulletContent}>
                 <Text style={styles.bulletTitle}>{issue.metric}</Text>
