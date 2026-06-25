@@ -84,7 +84,10 @@ export default async function ReportPage(props: { params: Promise<{ id: string }
           }}
         />
       )}
-      <SecurityHeadersSection securityHeaders={(analysis.lighthouse_scores as any)?.securityHeaders} />
+      <SecurityHeadersSection
+        securityHeaders={(analysis.lighthouse_scores as any)?.securityHeaders}
+        crawledPages={analysis.crawl_pages as any}
+      />
       <ResourceAuditSection resourceAudit={(analysis.network_requests as any)?.resourceAudit} />
       <EAAComplianceSection
         accessibilityIssues={(analysis.accessibility_issues as any) ?? undefined}

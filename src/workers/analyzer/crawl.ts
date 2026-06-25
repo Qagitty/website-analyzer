@@ -1,5 +1,6 @@
 import { analyzeHTML } from './score';
 import { checkLLMReadiness } from './llm-readiness';
+import { analyzeSecurityHeaders } from './resources';
 import type { CrawledPage } from './types';
 
 export function crawlInternalLinks(html: string, baseUrl: string): string[] {
@@ -52,6 +53,7 @@ export async function crawlPage(url: string, fetchHeaders: object): Promise<Craw
 
     const scores = analyzeHTML(html, r, bytes, ttfb);
     const llmReadiness = checkLLMReadiness(html);
+    const securityHeaders = analyzeSecurityHeaders(r);
 
     return {
       url: r.url,
@@ -63,6 +65,7 @@ export async function crawlPage(url: string, fetchHeaders: object): Promise<Craw
       seo: scores.seo,
       accessibility: scores.accessibility,
       llmReadiness: llmReadiness.score,
+      securityHeaders,
     };
   } catch {
     return {

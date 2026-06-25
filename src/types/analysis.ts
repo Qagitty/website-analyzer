@@ -58,6 +58,7 @@ export interface CrawledPage {
   seo: number;
   accessibility: number;
   llmReadiness: number;
+  securityHeaders?: SecurityHeaderResult[];
 }
 
 export interface ConsoleError {

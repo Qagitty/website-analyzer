@@ -107,6 +107,7 @@ async function runAnalysis(req: AnalysisRequest): Promise<void> {
         seo: scores.seo,
         accessibility: scores.accessibility,
         llmReadiness: llmReadiness.score,
+        securityHeaders,
       },
     ];
 
