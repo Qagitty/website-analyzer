@@ -103,12 +103,17 @@ export default async function PublicReportPage(props: { params: Promise<{ id: st
             accessibilityIssues={(analysis.accessibility_issues as any) ?? undefined}
           />
         )}
-        {analysis.accessibility_issues && (
+        {(analysis.lighthouse_scores as any)?.accessibilityAudit ? (
+          <AccessibilitySection
+            accessibilityAudit={(analysis.lighthouse_scores as any).accessibilityAudit}
+            aiInsights={(analysis.ai_insights as any)?.accessibility?.interpretedIssues ?? null}
+          />
+        ) : analysis.accessibility_issues ? (
           <AccessibilitySection
             issues={analysis.accessibility_issues as any}
             aiInsights={(analysis.ai_insights as any)?.accessibility?.interpretedIssues ?? null}
           />
-        )}
+        ) : null}
         {analysis.console_errors && (
           <ConsoleErrorsSection errors={analysis.console_errors as any} />
         )}

@@ -126,7 +126,17 @@ async function runAnalysis(req: AnalysisRequest): Promise<void> {
       totalImages:         resourceAudit.totalImages,
       thirdPartyCount:     resourceAudit.thirdParty.length,
     });
-    const accessibilityIssues = checkAccessibility(html);
+    const accessibilityAudit = checkAccessibility(html);
+    const accessibilityIssues = accessibilityAudit.findings;
+    workerLog('info', 'accessibility.complete', {
+      analysisId: req.analysisId,
+      urlHash: urlTag,
+      score: accessibilityAudit.score,
+      findingsCount: accessibilityAudit.findings.length,
+      confirmedCritical: accessibilityAudit.scoreBreakdown.confirmedCritical,
+      confirmedSerious: accessibilityAudit.scoreBreakdown.confirmedSerious,
+      truncated: !!accessibilityAudit.error,
+    });
     const consoleErrors = checkCommonErrors(html, response);
     const llmReadiness = checkLLMReadiness(html);
     const securityHeaders = analyzeSecurityHeaders(response);
@@ -163,11 +173,13 @@ async function runAnalysis(req: AnalysisRequest): Promise<void> {
         title: homepageTitle,
         performance: scores.performance,
         seo: scores.seo,
-        accessibility: scores.accessibility,
+        accessibility: accessibilityAudit.score,
         llmReadiness: llmReadiness.score,
         securityHeaders,
         measurementMode: 'full-fetch',
         auditLabel: 'Full fetch audit',
+        accessibilityFindingCount: accessibilityAudit.findings.filter(f => f.status === 'confirmed' || f.status === 'likely').length,
+        accessibilityAuditLabel: 'Static accessibility scan',
       },
     ];
 
@@ -202,7 +214,7 @@ async function runAnalysis(req: AnalysisRequest): Promise<void> {
       screenshotBase64: null,
       lighthouseScores: {
         performance: scores.performance,
-        accessibility: scores.accessibility,
+        accessibility: accessibilityAudit.score,
         bestPractices: scores.bestPractices,
         seo: scores.seo,
         // Keep lcp for backward compat with stored reports; estimatedLcp is the canonical name
@@ -237,6 +249,7 @@ async function runAnalysis(req: AnalysisRequest): Promise<void> {
         securityHeaders,
         scoreBreakdown: scores.scoreBreakdown,
         opportunities,
+        accessibilityAudit,
       },
       consoleErrors,
       accessibilityIssues,

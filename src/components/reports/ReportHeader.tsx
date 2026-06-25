@@ -12,12 +12,10 @@ import type { Analysis } from '@/types/analysis';
 type ExportFormat = 'pdf' | 'compliance-pdf' | 'docx' | 'markdown' | 'json' | 'xlsx';
 
 const EXPORT_OPTIONS: { format: ExportFormat; label: string; desc: string; Icon: any }[] = [
-  { format: 'pdf',            label: 'PDF',            desc: 'Full report',           Icon: FileDown },
-  { format: 'compliance-pdf', label: 'Compliance PDF', desc: 'Accessibility audit',   Icon: FileDown },
-  { format: 'docx',           label: 'DOCX',           desc: 'Microsoft Word',        Icon: FileText },
-  { format: 'xlsx',           label: 'XLSX',           desc: 'Excel spreadsheet',     Icon: FileSpreadsheet },
-  { format: 'markdown',       label: 'Markdown',       desc: 'AI / LLM friendly',     Icon: FileText },
-  { format: 'json',           label: 'JSON',           desc: 'Raw structured data',   Icon: FileJson },
+  { format: 'docx',     label: 'DOCX',     desc: 'Microsoft Word',      Icon: FileText },
+  { format: 'xlsx',     label: 'XLSX',     desc: 'Excel spreadsheet',   Icon: FileSpreadsheet },
+  { format: 'markdown', label: 'Markdown', desc: 'AI / LLM friendly',   Icon: FileText },
+  { format: 'json',     label: 'JSON',     desc: 'Raw structured data', Icon: FileJson },
 ];
 
 export function ReportHeader({ analysis }: { analysis: Analysis }) {
@@ -224,7 +222,35 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
             </Button>
           )}
 
-          {/* Export dropdown */}
+          {/* PDF */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => downloadExport('pdf')}
+            disabled={downloading !== null}
+            className="gap-1.5 border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+          >
+            {downloading === 'pdf'
+              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              : <Download className="h-3.5 w-3.5" />}
+            PDF
+          </Button>
+
+          {/* Compliance PDF */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => downloadExport('compliance-pdf')}
+            disabled={downloading !== null}
+            className="gap-1.5 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10 hover:text-indigo-300"
+          >
+            {downloading === 'compliance-pdf'
+              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              : <Download className="h-3.5 w-3.5" />}
+            Compliance PDF
+          </Button>
+
+          {/* Export dropdown (DOCX / XLSX / Markdown / JSON) */}
           <div ref={exportRef} className="relative">
             <Button
               variant="outline"
@@ -233,7 +259,7 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
               disabled={downloading !== null}
               className="gap-1.5 border-border text-muted-foreground hover:bg-accent hover:text-foreground"
             >
-              {downloading !== null
+              {downloading !== null && !['pdf','compliance-pdf'].includes(downloading)
                 ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 : <Download className="h-3.5 w-3.5" />}
               Export

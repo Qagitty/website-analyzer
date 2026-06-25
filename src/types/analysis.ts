@@ -1,3 +1,6 @@
+import type { PerformanceAuditResult, PerformanceOpportunity, ResourceSummaryData } from './performance';
+import type { AccessibilityAuditResult } from './accessibility';
+
 export type AnalysisStatus = 'pending' | 'queued' | 'running' | 'completed' | 'failed';
 
 export interface ScoreCheckItem {
@@ -35,12 +38,27 @@ export interface LighthouseScores {
   accessibility: number;
   bestPractices: number;
   seo: number;
-  lcp: number;
-  fid: number;
-  cls: number;
+  /** @deprecated use estimatedLcp — kept for backward compat with stored reports */
+  lcp?: number | null;
+  /** Estimated LCP from TTFB + HTML size formula. Low confidence — not a real browser measurement. */
+  estimatedLcp?: number;
+  /** Not measured — requires real browser interaction. Always null in fetch-only mode. */
+  fid?: number | null;
+  /** Not measured — requires browser layout observation. Always null in fetch-only mode. */
+  cls?: number | null;
   ttfb: number;
   ttfbSamples?: number[];
   performanceVariance?: number;
+  /** Describes what kind of analysis produced the scores */
+  measurementMode?: 'fetch-only' | 'browser' | 'hybrid';
+  /** Scoring formula version, for result comparability across deployments */
+  scoreVersion?: string;
+  /** Full structured performance audit — present on analyses created with score v2+ */
+  performanceAudit?: PerformanceAuditResult;
+  /** Evidence-based performance improvement opportunities */
+  opportunities?: PerformanceOpportunity[];
+  /** Full structured accessibility audit — present on analyses created with accessibility-v2+ */
+  accessibilityAudit?: AccessibilityAuditResult;
   llmReadiness?: number;
   llmChecks?: Record<string, boolean>;
   llmSignals?: string[];
@@ -50,6 +68,10 @@ export interface LighthouseScores {
 
 export interface CrawledPage {
   url: string;
+  /** URL before any redirects */
+  requestedUrl?: string;
+  /** Final URL after redirects (may differ from url) */
+  finalUrl?: string;
   statusCode: number;
   ttfb: number;
   bytes: number;
@@ -59,6 +81,20 @@ export interface CrawledPage {
   accessibility: number;
   llmReadiness: number;
   securityHeaders?: SecurityHeaderResult[];
+  /** What kind of audit was performed on this page */
+  measurementMode?: 'full-fetch' | 'lightweight-fetch' | 'fetch-status-only';
+  /** Human-readable label shown in the crawled-pages table */
+  auditLabel?: 'Full fetch audit' | 'Lightweight fetch audit' | 'Fetch status only' | 'Measurement failed';
+  /** Total accessibility findings count for this page (from accessibility-v2 audit) */
+  accessibilityFindingCount?: number;
+  /** Label for the accessibility audit method used on this page */
+  accessibilityAuditLabel?: string;
+  /** Structured failure reason when measurementMode is unavailable */
+  measurementError?: {
+    code: 'TIMEOUT' | 'BLOCKED' | 'DNS_ERROR' | 'TLS_ERROR' | 'HTTP_ERROR' | 'BROWSER_ERROR' | 'EMPTY_PAGE' | 'UNSUPPORTED' | 'UNKNOWN';
+    message: string;
+    retryable: boolean;
+  };
 }
 
 export interface ConsoleError {
@@ -106,6 +142,7 @@ export interface ResourceAudit {
   totalImages: number;
   lazyImages: number;
   inlineScriptCount: number;
+  detectedResources?: import('./performance').DetectedResource[];
 }
 export interface SecurityHeaderResult {
   header: string;
@@ -122,6 +159,7 @@ export interface NetworkSummary {
   failedRequests: number;
   slowRequests: number;
   resourceAudit?: ResourceAudit;
+  resourceSummary?: ResourceSummaryData;
 }
 
 export interface AIInsight {

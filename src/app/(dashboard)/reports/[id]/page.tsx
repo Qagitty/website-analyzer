@@ -98,14 +98,21 @@ export default async function ReportPage(props: { params: Promise<{ id: string }
       <EAAComplianceSection
         accessibilityIssues={(analysis.accessibility_issues as any) ?? undefined}
       />
-      {analysis.accessibility_issues && (
+      {(analysis.lighthouse_scores as any)?.accessibilityAudit ? (
+        <AccessibilitySection
+          accessibilityAudit={(analysis.lighthouse_scores as any).accessibilityAudit}
+          aiInsights={(analysis.ai_insights as any)?.accessibility?.interpretedIssues ?? null}
+          analysisId={analysis.id}
+          url={analysis.url}
+        />
+      ) : analysis.accessibility_issues ? (
         <AccessibilitySection
           issues={analysis.accessibility_issues as any}
           aiInsights={(analysis.ai_insights as any)?.accessibility?.interpretedIssues ?? null}
           analysisId={analysis.id}
           url={analysis.url}
         />
-      )}
+      ) : null}
       {analysis.console_errors && (
         <ConsoleErrorsSection errors={analysis.console_errors as any} />
       )}

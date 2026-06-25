@@ -183,6 +183,11 @@ export function EAAComplianceSection({ accessibilityIssues }: Props) {
               </div>
             </div>
           )}
+
+          {/* Static analysis disclaimer */}
+          <p className="text-xs text-muted-foreground/60 border-t border-border/40 pt-3 leading-relaxed">
+            Based on static HTML analysis only — not a legal compliance certification. A full audit requires testing with screen readers, keyboard navigation, and browser-based tools.
+          </p>
         </div>
       </div>
     </section>

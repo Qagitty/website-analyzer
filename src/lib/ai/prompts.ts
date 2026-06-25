@@ -41,51 +41,82 @@ Return ONLY valid JSON in this exact format:
 
   performanceAnalysis: (data: {
     performance: number;
-    lcp: number;
-    fid: number;
-    cls: number;
+    scoreVersion?: string;
+    measurementMode?: string;
     ttfb: number;
-    networkSummary: {
-      totalRequests: number;
-      totalBytes: number;
-      failedRequests: number;
-      slowRequests: number;
-      renderBlockingCount?: number;
-      imageIssuesCount?: number;
-      thirdPartyCount?: number;
-    };
+    estimatedLcp?: number;
+    htmlBytes?: number;
+    renderBlockingCount?: number;
+    imageIssueCount?: number;
+    thirdPartyCount?: number;
+    opportunities?: Array<{
+      id: string;
+      title: string;
+      severity: string;
+      confidence: string;
+      evidence: string[];
+      estimatedSavingsMs?: number;
+      estimatedSavingsBytes?: number;
+    }>;
   }) => `
-You are a web performance expert. Analyze these Lighthouse metrics and provide actionable recommendations.
+You are a web performance expert. Analyze these website performance measurements and provide actionable, realistic recommendations.
 
-Metrics:
-- Performance Score: ${data.performance}/100
-- LCP (Largest Contentful Paint): ${data.lcp}ms (good: <2500ms)
-- FID (First Input Delay): ${data.fid}ms (good: <100ms)
-- CLS (Cumulative Layout Shift): ${data.cls} (good: <0.1)
-- TTFB (Time to First Byte): ${data.ttfb}ms (good: <800ms)
-- Total network requests: ${data.networkSummary.totalRequests}
-- Total page weight: ${Math.round(data.networkSummary.totalBytes / 1024)}KB
-- Failed requests: ${data.networkSummary.failedRequests}
-- Slow requests (>3s): ${data.networkSummary.slowRequests}${data.networkSummary.renderBlockingCount != null ? `\n- Render-blocking resources: ${data.networkSummary.renderBlockingCount}` : ''}${data.networkSummary.imageIssuesCount != null ? `\n- Images with issues (missing dimensions, no lazy-load, etc.): ${data.networkSummary.imageIssuesCount}` : ''}${data.networkSummary.thirdPartyCount != null ? `\n- Third-party script domains: ${data.networkSummary.thirdPartyCount}` : ''}
+MEASUREMENT MODE: ${data.measurementMode ?? 'fetch-only'} — analysis is performed by fetching the HTML document, NOT by running a real browser.
+
+IMPORTANT RULES:
+- Only comment on metrics that were actually measured or structurally detected
+- Do not claim CLS, FID, INP, or TBT values — they are not available
+- LCP is an estimate (not a measurement) — always label it as such
+- Do not promise guaranteed score improvements
+- Reference specific affected resources when evidence is available
+- Distinguish quick wins (low effort, high impact) from architectural improvements
+- Do not recommend removing payment processors, consent tools, or essential analytics without qualification
+- Recommend testing changes in a staging environment before deploying
+
+LAB DATA (this session):
+- TTFB: ${data.ttfb}ms (real measurement — median of 3 HTTP fetches from Cloudflare edge)
+- HTML size: ${data.htmlBytes != null ? `${Math.round(data.htmlBytes / 1024)}KB` : 'unknown'}
+- Estimated LCP: ${data.estimatedLcp != null ? `~${(data.estimatedLcp / 1000).toFixed(1)}s (static estimate, not a browser measurement)` : 'unknown'}
+
+FIELD DATA: Unavailable — no CrUX or RUM data integrated. Do not claim these are real-user numbers.
+
+NOT MEASURED (requires real browser — do not fabricate):
+- CLS, FID, INP, TBT, FCP — not available
+
+RESOURCE SIGNALS (from HTML parsing):
+- Render-blocking resources in <head>: ${data.renderBlockingCount ?? 0}
+- Images with optimization issues: ${data.imageIssueCount ?? 0}
+- Third-party resource domains: ${data.thirdPartyCount ?? 0}
+
+Score: ${data.performance}/100 (v${data.scoreVersion ?? '2'})
+
+${data.opportunities && data.opportunities.length > 0 ? `
+DETECTED OPPORTUNITIES (evidence-based, already computed — use these as the basis for your recommendations, do not duplicate them under different headings):
+${data.opportunities.map(o =>
+  `- [${o.severity.toUpperCase()}] ${o.title} (confidence: ${o.confidence})
+   Evidence: ${o.evidence.slice(0, 2).join(' | ')}${o.estimatedSavingsMs ? ` | Potential saving: ~${o.estimatedSavingsMs}ms` : ''}${o.estimatedSavingsBytes ? ` / ~${Math.round(o.estimatedSavingsBytes / 1024)}KB` : ''}`
+).join('\n')}
+` : ''}
 
 Return ONLY valid JSON:
 {
-  "summary": "<2-3 sentence performance overview>",
+  "summary": "<2-3 sentences. State TTFB plainly (fast/slow with value), note that LCP is estimated, state field data is unavailable. Do not use jargon.>",
   "criticalIssues": [
     {
-      "metric": "LCP" | "FID" | "CLS" | "TTFB" | "weight" | "requests",
-      "currentValue": "<current>",
+      "metric": "TTFB" | "estimated-LCP" | "render-blocking" | "images" | "third-party" | "html-size" | "compression" | "cache",
+      "currentValue": "<measured or detected value with unit>",
       "targetValue": "<target>",
-      "fix": "<specific technical recommendation>",
+      "fix": "<specific technical fix referencing real evidence above — not generic advice>",
       "effortLevel": "low" | "medium" | "high",
       "impactScore": <1-10>,
-      "beforeCode": "<problematic pattern, e.g. render-blocking script or unoptimised image tag>",
-      "afterCode": "<fixed version with async/defer/preload/loading=lazy etc.>",
-      "codeExample": "<complete diff-style snippet: old line then new line, ready to paste>",
-      "expectedImprovement": "<e.g., reduce LCP by ~30%>"
+      "beforeCode": "<problematic pattern>",
+      "afterCode": "<fixed pattern>",
+      "codeExample": "<complete diff-style snippet>",
+      "expectedImprovement": "<realistic impact — say 'may reduce' not 'will reduce'; never promise exact LCP gains>"
     }
   ],
-  "recommendations": ["<prioritized list of improvements>"],
+  "quickWins": ["<max 3 quick wins — low effort, high confidence, reference specific evidence>"],
+  "architecturalImprovements": ["<max 3 larger changes — server-side, infrastructure, or code-splitting>"],
   "estimatedScoreAfterFixes": <0-100>
 }
 `,
@@ -96,10 +127,25 @@ Return ONLY valid JSON:
     description: string;
     nodes: string[];
     wcagCriteria: string[];
+    // v2 fields (may be present)
+    status?: string;
+    severity?: string;
+    what?: string;
+    why?: string;
+    who?: string;
+    wcag?: string;
+    howToFix?: string;
+    count?: number;
   }>) => `
-You are a senior accessibility engineer with deep WCAG 2.1 expertise. Your task is to interpret these accessibility violations for a frontend developer and produce specific, actionable fixes.
+You are a senior accessibility engineer with deep WCAG 2.1 expertise. Your task is to interpret these accessibility findings for a frontend developer and produce specific, actionable fixes.
 
-Issues found (${issues.length} total):
+IMPORTANT RULES:
+- Do NOT invent accessibility violations that are not in the input list.
+- Do NOT claim WCAG legal compliance — this is heuristic static analysis, not a legal audit.
+- Use the "status" field (confirmed/likely/manual-review) to calibrate your language — say "likely" or "may" for status=likely findings.
+- Use the structured fields (what/why/who/howToFix) when present — they are pre-computed from the analysis engine.
+
+Findings (${issues.length} total):
 ${JSON.stringify(issues, null, 2)}
 
 Rules for beforeCode / afterCode:

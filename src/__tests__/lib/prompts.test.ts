@@ -3,19 +3,14 @@ import { AI_PROMPTS } from '@/lib/ai/prompts';
 
 const mockLighthouseData = {
   performance: 72,
-  accessibility: 88,
-  bestPractices: 90,
-  seo: 95,
-  lcp: 3200,
-  fid: 55,
-  cls: 0.12,
+  scoreVersion: '2.0',
+  measurementMode: 'fetch-only',
   ttfb: 420,
-  networkSummary: {
-    totalRequests: 48,
-    totalBytes: 2_400_000,
-    failedRequests: 2,
-    slowRequests: 1,
-  },
+  estimatedLcp: 3200,
+  htmlBytes: 2_400_000,
+  renderBlockingCount: 3,
+  imageIssueCount: 5,
+  thirdPartyCount: 7,
 };
 
 const mockAccessibilityIssues = [
@@ -74,15 +69,16 @@ describe('AI_PROMPTS.performanceAnalysis()', () => {
     expect(AI_PROMPTS.performanceAnalysis(mockLighthouseData)).toContain('72');
   });
 
-  it('embeds LCP value', () => {
-    expect(AI_PROMPTS.performanceAnalysis(mockLighthouseData)).toContain('3200');
+  it('embeds estimated LCP value in seconds', () => {
+    // 3200ms → ~3.2s
+    expect(AI_PROMPTS.performanceAnalysis(mockLighthouseData)).toContain('3.2');
   });
 
-  it('embeds total network requests', () => {
-    expect(AI_PROMPTS.performanceAnalysis(mockLighthouseData)).toContain('48');
+  it('embeds render-blocking count', () => {
+    expect(AI_PROMPTS.performanceAnalysis(mockLighthouseData)).toContain('3');
   });
 
-  it('embeds page weight in KB', () => {
+  it('embeds HTML page size in KB', () => {
     // 2_400_000 / 1024 ≈ 2344 KB
     expect(AI_PROMPTS.performanceAnalysis(mockLighthouseData)).toContain('2344');
   });

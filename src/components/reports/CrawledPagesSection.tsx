@@ -1,8 +1,12 @@
+import { AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 /** Minimal shape accepted by this component — compatible with both DB type and test mocks */
 interface CrawledPageData {
   url: string;
+  /** URL before redirects */
+  requestedUrl?: string;
   /** HTTP status code (preferred field name) */
   status?: number;
   /** @deprecated use status */
@@ -15,6 +19,9 @@ interface CrawledPageData {
   title?: string;
   ttfb?: number;
   bytes?: number;
+  measurementMode?: 'full-fetch' | 'lightweight-fetch' | 'fetch-status-only';
+  auditLabel?: string;
+  measurementError?: { code: string; message: string; retryable: boolean };
 }
 
 interface Props {
@@ -100,25 +107,28 @@ export function CrawledPagesSection({ crawledPages, pages }: Props) {
           <CardTitle className="text-base">Page Results</CardTitle>
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm" role="table" aria-label="Crawled page results">
             <thead>
               <tr className="border-b border-border">
-                <th className="text-left px-4 py-2.5 text-muted-foreground/60 text-xs uppercase tracking-wider">Page</th>
-                <th className="text-right px-3 py-2.5 text-muted-foreground/60 text-xs uppercase tracking-wider">Status</th>
-                <th className="text-right px-3 py-2.5 text-muted-foreground/60 text-xs uppercase tracking-wider">Perf</th>
+                <th scope="col" className="text-left px-4 py-2.5 text-muted-foreground/60 text-xs uppercase tracking-wider">Page</th>
+                <th scope="col" className="text-left px-3 py-2.5 text-muted-foreground/60 text-xs uppercase tracking-wider whitespace-nowrap">Audit type</th>
+                <th scope="col" className="text-right px-3 py-2.5 text-muted-foreground/60 text-xs uppercase tracking-wider">Status</th>
+                <th scope="col" className="text-right px-3 py-2.5 text-muted-foreground/60 text-xs uppercase tracking-wider">Perf</th>
                 {data.some((p) => p.seo != null) && (
-                  <th className="text-right px-3 py-2.5 text-muted-foreground/60 text-xs uppercase tracking-wider">SEO</th>
+                  <th scope="col" className="text-right px-3 py-2.5 text-muted-foreground/60 text-xs uppercase tracking-wider">SEO</th>
                 )}
                 {data.some((p) => p.accessibility != null) && (
-                  <th className="text-right px-4 py-2.5 text-muted-foreground/60 text-xs uppercase tracking-wider">A11y</th>
+                  <th scope="col" className="text-right px-4 py-2.5 text-muted-foreground/60 text-xs uppercase tracking-wider">A11y</th>
                 )}
               </tr>
             </thead>
             <tbody>
               {data.map((page, i) => {
                 const statusCode = getStatusCode(page);
+                const failed = page.measurementMode === 'fetch-status-only' || !!page.measurementError;
+                const auditLabel = page.auditLabel ?? (page.measurementMode === 'full-fetch' ? 'Full fetch audit' : page.measurementMode === 'lightweight-fetch' ? 'Lightweight fetch audit' : null);
                 return (
-                  <tr key={i} className="border-b border-border hover:bg-white/[0.02] transition-colors">
+                  <tr key={i} className={`border-b border-border hover:bg-white/[0.02] transition-colors ${failed ? 'opacity-70' : ''}`}>
                     <td className="px-4 py-3 min-w-[260px] max-w-[480px]">
                       <div
                         className="text-sm text-muted-foreground font-mono break-all"
@@ -131,26 +141,48 @@ export function CrawledPagesSection({ crawledPages, pages }: Props) {
                           {page.title}
                         </div>
                       )}
-                      {(page.errors?.length ?? 0) > 0 && (
+                      {page.measurementError && (
+                        <div className="flex items-center gap-1 text-xs text-red-400 mt-0.5">
+                          <AlertTriangle className="h-3 w-3 shrink-0" aria-hidden />
+                          {page.measurementError.message}
+                        </div>
+                      )}
+                      {!page.measurementError && (page.errors?.length ?? 0) > 0 && (
                         <div className="text-xs text-red-400 mt-0.5">
                           {page.errors!.length} issue{page.errors!.length !== 1 ? 's' : ''}
                         </div>
                       )}
                     </td>
-                    <td className={`text-right px-3 py-3 font-mono text-sm ${statusCode ? statusColor(statusCode) : 'text-muted-foreground/40'}`}>
-                      {statusCode ?? '—'}
+                    <td className="px-3 py-3">
+                      {auditLabel ? (
+                        <Badge className={`text-[9px] border whitespace-nowrap ${
+                          page.measurementMode === 'full-fetch'
+                            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                            : page.measurementMode === 'lightweight-fetch'
+                            ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+                            : 'bg-red-500/10 text-red-500 border-red-500/20'
+                        }`}>
+                          {auditLabel}
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground/30 text-xs">—</span>
+                      )}
                     </td>
-                    <td className={`text-right px-3 py-3 ${scoreClass(page.performance)}`}>
-                      {page.performance != null && page.performance > 0 ? page.performance : '—'}
+                    <td className={`text-right px-3 py-3 font-mono text-sm ${statusCode ? statusColor(statusCode) : 'text-muted-foreground/40'}`}>
+                      {statusCode ? statusCode : '—'}
+                    </td>
+                    <td className={`text-right px-3 py-3 ${failed ? 'text-muted-foreground/30' : scoreClass(page.performance)}`}
+                        title={failed ? page.measurementError?.message : undefined}>
+                      {!failed && page.performance != null && page.performance > 0 ? page.performance : '—'}
                     </td>
                     {data.some((p) => p.seo != null) && (
-                      <td className={`text-right px-3 py-3 ${scoreClass(page.seo)}`}>
-                        {page.seo != null && page.seo > 0 ? page.seo : '—'}
+                      <td className={`text-right px-3 py-3 ${failed ? 'text-muted-foreground/30' : scoreClass(page.seo)}`}>
+                        {!failed && page.seo != null && page.seo > 0 ? page.seo : '—'}
                       </td>
                     )}
                     {data.some((p) => p.accessibility != null) && (
-                      <td className={`text-right px-4 py-3 ${scoreClass(page.accessibility)}`}>
-                        {page.accessibility != null && page.accessibility > 0 ? page.accessibility : '—'}
+                      <td className={`text-right px-4 py-3 ${failed ? 'text-muted-foreground/30' : scoreClass(page.accessibility)}`}>
+                        {!failed && page.accessibility != null && page.accessibility > 0 ? page.accessibility : '—'}
                       </td>
                     )}
                   </tr>
@@ -160,6 +192,12 @@ export function CrawledPagesSection({ crawledPages, pages }: Props) {
           </table>
         </CardContent>
       </Card>
+
+      <p className="text-xs text-muted-foreground/50">
+        Full fetch audit: root page measured 3× for TTFB stability.
+        Lightweight fetch audit: single request per crawled page with independent resource analysis.
+        Scores are not copied between pages — each page is measured independently.
+      </p>
     </section>
   );
 }

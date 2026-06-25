@@ -1,18 +1,33 @@
-import type { Scores, ScoreBreakdown } from './types';
+import { computeFetchOnlyScore } from './perf-score';
+import type { Scores, ScoreBreakdown, ResourceHints } from './types';
 
 export function clamp(n: number): number {
   return Math.min(100, Math.max(0, Math.round(n)));
 }
 
-export function analyzeHTML(html: string, response: Response, bytes: number, ttfb: number): Scores {
+export function analyzeHTML(
+  html: string,
+  response: Response,
+  bytes: number,
+  ttfb: number,
+  resourceHints?: ResourceHints,
+): Scores {
   const lower = html.toLowerCase();
 
-  // --- Performance ---
+  // --- Performance: delegate to the versioned scoring module ---
+  // All thresholds and weights live in ./thresholds — never hardcode them here.
   const estimatedLcp = ttfb + Math.round(bytes / 5000) * 100;
-  const lcpScore = estimatedLcp < 2500 ? 95 : estimatedLcp < 4000 ? 65 : 30;
-  const ttfbScore = ttfb < 800 ? 95 : ttfb < 1800 ? 65 : 30;
-  const sizeScore = bytes < 100_000 ? 95 : bytes < 300_000 ? 75 : bytes < 500_000 ? 50 : 25;
-  const performance = Math.round((lcpScore * 0.4) + (ttfbScore * 0.35) + (sizeScore * 0.25));
+  const { score: performance, breakdown: perfBreakdown } = computeFetchOnlyScore({
+    ttfb,
+    estimatedLcp,
+    htmlBytes: bytes,
+    renderBlockingCount: resourceHints?.renderBlockingCount ?? 0,
+    imageIssueCount:     resourceHints?.imageIssueCount     ?? 0,
+    totalImages:         resourceHints?.totalImages         ?? 0,
+    thirdPartyCount:     resourceHints?.thirdPartyCount     ?? 0,
+    testedUrl: response.url,
+    finalUrl:  response.url,
+  });
 
   // --- SEO ---
   const hasTitle = /<title[^>]*>[^<]{3,}<\/title>/i.test(html);
@@ -67,29 +82,13 @@ export function analyzeHTML(html: string, response: Response, bytes: number, ttf
   );
 
   const scoreBreakdown: ScoreBreakdown = {
-    performance: [
-      {
-        label: 'Time to First Byte (TTFB)',
-        passed: ttfb < 800,
-        details: ttfb < 800
-          ? `${ttfb}ms — good`
-          : `${ttfb}ms — target <800ms. Use a CDN, enable caching headers, or optimize server response time`,
-      },
-      {
-        label: 'Estimated Largest Contentful Paint',
-        passed: estimatedLcp < 2500,
-        details: estimatedLcp < 2500
-          ? `~${(estimatedLcp/1000).toFixed(1)}s — good`
-          : `~${(estimatedLcp/1000).toFixed(1)}s — target <2.5s. Reduce server response time and page weight`,
-      },
-      {
-        label: 'Page weight',
-        passed: bytes < 300_000,
-        details: bytes < 300_000
-          ? `${Math.round(bytes/1024)}KB — good`
-          : `${Math.round(bytes/1024)}KB HTML — reduce inline scripts/styles and avoid large embedded SVGs`,
-      },
-    ],
+    // Map the rich PerformanceScoreBreakdown[] from perf-score.ts to the legacy ScoreCheckItem[] format
+    // so ScoreBreakdownSection continues to work. The full breakdown is also in performanceAudit.
+    performance: perfBreakdown.map(b => ({
+      label: b.category,
+      passed: (b.normalizedScore ?? 0) >= 75,
+      details: b.reason,
+    })),
     bestPractices: [
       {
         label: 'HTTPS',
@@ -244,5 +243,7 @@ export function analyzeHTML(html: string, response: Response, bytes: number, ttf
     seo: clamp(seo),
     estimatedLcp,
     scoreBreakdown,
+    perfBreakdown,
+    scoreVersion,
   };
 }

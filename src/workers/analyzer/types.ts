@@ -36,6 +36,13 @@ export interface ScoreBreakdown {
   accessibility: ScoreCheckItem[];
 }
 
+export interface ResourceHints {
+  renderBlockingCount: number;
+  imageIssueCount: number;
+  totalImages: number;
+  thirdPartyCount: number;
+}
+
 export interface Scores {
   performance: number;
   accessibility: number;
@@ -43,6 +50,9 @@ export interface Scores {
   seo: number;
   estimatedLcp: number;
   scoreBreakdown: ScoreBreakdown;
+  /** Rich per-factor breakdown from the versioned perf-score module — used by index.ts to build performanceAudit */
+  perfBreakdown: import('./perf-score').PerformanceScoreBreakdown[];
+  scoreVersion: string;
 }
 
 export interface LLMReadiness {
@@ -62,6 +72,8 @@ export interface LLMReadiness {
 
 export interface CrawledPage {
   url: string;
+  requestedUrl?: string;
+  finalUrl?: string;
   statusCode: number;
   ttfb: number;
   bytes: number;
@@ -71,12 +83,35 @@ export interface CrawledPage {
   accessibility: number;
   llmReadiness: number;
   securityHeaders?: SecurityHeaderResult[];
+  measurementMode?: 'full-fetch' | 'lightweight-fetch' | 'fetch-status-only';
+  auditLabel?: 'Full fetch audit' | 'Lightweight fetch audit' | 'Fetch status only' | 'Measurement failed';
+  measurementError?: {
+    code: 'TIMEOUT' | 'BLOCKED' | 'DNS_ERROR' | 'TLS_ERROR' | 'HTTP_ERROR' | 'BROWSER_ERROR' | 'EMPTY_PAGE' | 'UNSUPPORTED' | 'UNKNOWN';
+    message: string;
+    retryable: boolean;
+  };
 }
 
 export interface ResourceAuditItem { url: string; type: 'script' | 'stylesheet'; }
 export interface ImageAuditItem { src: string; issues: string[]; }
 export interface ThirdPartyGroup { domain: string; count: number; types: string[]; }
 export interface MixedContentItem { url: string; tag: string; }
+
+export interface DetectedResource {
+  url: string;
+  type: 'script' | 'stylesheet' | 'image' | 'iframe' | 'font' | 'other';
+  isRenderBlocking: boolean;
+  isThirdParty: boolean;
+  initiator: 'head' | 'body' | 'unknown';
+  hasWidth?: boolean;
+  hasHeight?: boolean;
+  hasLazy?: boolean;
+  hasModernFormat?: boolean;
+  hasSrcset?: boolean;
+  transferredBytes: null;
+  decodedBytes: null;
+  durationMs: null;
+}
 
 export interface ResourceAudit {
   renderBlocking: ResourceAuditItem[];
@@ -90,6 +125,8 @@ export interface ResourceAudit {
   totalImages: number;
   lazyImages: number;
   inlineScriptCount: number;
+  /** Top resources detected from HTML — sanitized URLs, sizes unavailable in fetch-only */
+  detectedResources: DetectedResource[];
 }
 
 export interface SecurityHeaderResult {

@@ -897,12 +897,9 @@ function AccessibilityPage({
   styles: ReturnType<typeof makeStyles>;
   brandColor: string;
 }) {
-  const issues = (analysis.accessibility_issues ?? []) as AccessibilityIssue[];
+  const accessibilityAudit = (analysis.lighthouse_scores as any)?.accessibilityAudit as import('@/types/accessibility').AccessibilityAuditResult | undefined;
+  const legacyIssues = (analysis.accessibility_issues ?? []) as AccessibilityIssue[];
   const aiAcc = analysis.ai_insights?.accessibility;
-
-  const critical = issues.filter((i) => i.impact === 'critical').length;
-  const serious  = issues.filter((i) => i.impact === 'serious').length;
-  const moderate = issues.filter((i) => i.impact === 'moderate').length;
 
   const interpretedMap: Record<string, { plainEnglish?: string }> = {};
   if (aiAcc?.interpretedIssues) {
@@ -911,6 +908,107 @@ function AccessibilityPage({
     }
   }
 
+  // ── v2 path ────────────────────────────────────────────────────────────────
+  if (accessibilityAudit) {
+    const { findings, score, scoreBreakdown, manualReviewItems, mode } = accessibilityAudit;
+    const priority = findings
+      .filter(f => f.status === 'confirmed' || f.status === 'likely')
+      .sort((a, b) => {
+        const order = { critical: 0, serious: 1, moderate: 2, minor: 3, 'manual-review': 4 };
+        return (order[a.severity] ?? 99) - (order[b.severity] ?? 99);
+      });
+    const displayFindings = priority.slice(0, 5);
+
+    return (
+      <Page size="A4" style={styles.page}>
+        <HeaderBar styles={styles} brandColor={brandColor} agencyName={branding.agencyName} logoUrl={branding.logoUrl} pageLabel="Accessibility" />
+        <Text style={styles.sectionHeading}>Accessibility</Text>
+
+        {/* Score + mode */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+          <View style={{ alignItems: 'center', minWidth: 60 }}>
+            <Text style={{ fontSize: 32, fontWeight: 'bold', color: score >= 80 ? '#10b981' : score >= 50 ? '#f59e0b' : '#ef4444' }}>
+              {score}
+            </Text>
+            <Text style={{ fontSize: 9, color: '#6b7280' }}>/100</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 9, color: '#6b7280', marginBottom: 3 }}>
+              Mode: {mode === 'static-html-only' ? 'Static HTML scan' : mode}
+            </Text>
+            <Text style={{ fontSize: 8, color: '#9ca3af', lineHeight: 1.4 }}>
+              Static analysis only — not a legal WCAG compliance certification. Manual testing with screen readers required.
+            </Text>
+          </View>
+        </View>
+
+        {/* Severity summary */}
+        <View style={styles.statsRow}>
+          {[
+            { label: 'Critical',  count: scoreBreakdown.confirmedCritical + scoreBreakdown.likelyCritical,  bg: '#fef2f2', border: '#fecaca' },
+            { label: 'Serious',   count: scoreBreakdown.confirmedSerious  + scoreBreakdown.likelySerious,   bg: '#fff7ed', border: '#fed7aa' },
+            { label: 'Moderate',  count: scoreBreakdown.confirmedModerate + scoreBreakdown.likelyModerate,  bg: '#fffbeb', border: '#fde68a' },
+            { label: 'Manual',    count: scoreBreakdown.manualReviewItems, bg: '#eff6ff', border: '#bfdbfe' },
+          ].map(({ label, count, bg, border }) => (
+            <View key={label} style={[styles.statBox, { backgroundColor: bg, borderColor: border }]}>
+              <Text style={styles.statNumber}>{count}</Text>
+              <Text style={styles.statLabel}>{label}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Top findings */}
+        {displayFindings.map((finding, i) => {
+          const ai = interpretedMap[finding.id];
+          const description = ai?.plainEnglish ?? finding.what;
+          return (
+            <View key={i} style={styles.issueCard} wrap={false}>
+              <View style={styles.issueHeader}>
+                <View style={[styles.issueBadge, { backgroundColor: impactColor(finding.impact) }]}>
+                  <Text style={styles.issueBadgeText}>{finding.severity}</Text>
+                </View>
+                <Text style={styles.issueTitle}>
+                  {finding.id.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+                </Text>
+                <Text style={{ fontSize: 8, color: '#6b7280', marginLeft: 4 }}>{finding.wcag}</Text>
+              </View>
+              <Text style={styles.issueDescription}>{description}</Text>
+              {finding.howToFix && (
+                <Text style={{ fontSize: 8, color: '#4b5563', marginTop: 3 }}>Fix: {finding.howToFix.slice(0, 200)}</Text>
+              )}
+            </View>
+          );
+        })}
+
+        {priority.length > 5 && (
+          <Text style={[styles.tableCellMuted, { marginTop: 6, textAlign: 'center' }]}>
+            + {priority.length - 5} more findings — view the full report online
+          </Text>
+        )}
+
+        {/* Manual review checklist (partial) */}
+        {manualReviewItems.length > 0 && (
+          <View style={{ marginTop: 10 }} wrap={false}>
+            <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#374151', marginBottom: 4 }}>Manual Testing Required</Text>
+            {manualReviewItems.slice(0, 5).map((item, i) => (
+              <Text key={i} style={{ fontSize: 8, color: '#6b7280', marginBottom: 2 }}>☐ {item}</Text>
+            ))}
+            {manualReviewItems.length > 5 && (
+              <Text style={{ fontSize: 8, color: '#9ca3af' }}>+ {manualReviewItems.length - 5} more in online report</Text>
+            )}
+          </View>
+        )}
+
+        <PageFooter styles={styles} showPoweredBy={branding.showPoweredBy} agencyName={branding.agencyName} />
+      </Page>
+    );
+  }
+
+  // ── Legacy path ────────────────────────────────────────────────────────────
+  const issues = legacyIssues;
+  const critical = issues.filter((i) => i.impact === 'critical').length;
+  const serious  = issues.filter((i) => i.impact === 'serious').length;
+  const moderate = issues.filter((i) => i.impact === 'moderate').length;
   const displayIssues = issues.slice(0, 6);
 
   return (
@@ -918,7 +1016,6 @@ function AccessibilityPage({
       <HeaderBar styles={styles} brandColor={brandColor} agencyName={branding.agencyName} logoUrl={branding.logoUrl} pageLabel="Accessibility" />
       <Text style={styles.sectionHeading}>Accessibility</Text>
 
-      {/* Stats */}
       <View style={styles.statsRow}>
         {[
           { label: 'Critical',  count: critical,       bg: '#fef2f2', border: '#fecaca' },
@@ -933,7 +1030,6 @@ function AccessibilityPage({
         ))}
       </View>
 
-      {/* Issue list */}
       {displayIssues.map((issue, i) => {
         const ai = interpretedMap[issue.id];
         const description = ai?.plainEnglish ?? issue.description;
@@ -957,6 +1053,10 @@ function AccessibilityPage({
           + {issues.length - 6} more issues — view the full report online
         </Text>
       )}
+
+      <Text style={{ fontSize: 8, color: '#9ca3af', marginTop: 8 }}>
+        Based on static HTML analysis only — not a legal compliance certification.
+      </Text>
 
       <PageFooter styles={styles} showPoweredBy={branding.showPoweredBy} agencyName={branding.agencyName} />
     </Page>

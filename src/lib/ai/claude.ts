@@ -45,6 +45,8 @@ const performanceSchema = z.object({
     expectedImprovement: z.string().optional(),
   }).passthrough()).default([]),
   recommendations: z.array(z.string()).default([]),
+  quickWins: z.array(z.string()).default([]),
+  architecturalImprovements: z.array(z.string()).default([]),
   estimatedScoreAfterFixes: z.number().min(0).max(100).optional(),
 }).passthrough();
 
@@ -170,21 +172,36 @@ interface AnalysisInput {
 }
 
 export async function analyzeWithAI(input: AnalysisInput) {
-  const baseNetwork = input.networkSummary ?? {
-    totalRequests: 0, totalBytes: 0, failedRequests: 0, slowRequests: 0,
-  };
-  const resourceAudit = input.resourceAudit;
-  const enrichedNetwork = {
-    ...baseNetwork,
-    ...(resourceAudit != null && {
-      renderBlockingCount: resourceAudit.renderBlocking?.length ?? 0,
-      imageIssuesCount:    resourceAudit.imageIssues?.length ?? 0,
-      thirdPartyCount:     resourceAudit.thirdParty?.length ?? 0,
-    }),
-  };
-  const perfData = input.lighthouseScores
-    ? { ...input.lighthouseScores, networkSummary: enrichedNetwork }
-    : null;
+  const resourceAudit = input.resourceAudit ?? input.networkSummary?.resourceAudit;
+  const ls = input.lighthouseScores;
+
+  // Build a clean performance data object that accurately represents what was measured.
+  // Never pass fid/cls — they're always 0 from fetch-only analysis and would mislead the AI.
+  // Pass structured opportunities so Claude can reference real evidence
+  // instead of generating generic advice
+  const rawOpportunities: any[] = ls?.opportunities ?? [];
+  const opportunitiesForPrompt = rawOpportunities.slice(0, 10).map((o: any) => ({
+    id: o.id,
+    title: o.title,
+    severity: o.severity,
+    confidence: o.confidence,
+    evidence: (o.evidence ?? []).slice(0, 2),
+    estimatedSavingsMs: o.estimatedSavingsMs,
+    estimatedSavingsBytes: o.estimatedSavingsBytes,
+  }));
+
+  const perfData = ls ? {
+    performance:        ls.performance,
+    scoreVersion:       ls.scoreVersion ?? '1.0',
+    measurementMode:    ls.measurementMode ?? 'fetch-only',
+    ttfb:               ls.ttfb,
+    estimatedLcp:       ls.estimatedLcp ?? ls.lcp ?? undefined,
+    htmlBytes:          input.networkSummary?.totalBytes ?? undefined,
+    renderBlockingCount: resourceAudit?.renderBlocking?.length ?? 0,
+    imageIssueCount:     resourceAudit?.imageIssues?.length ?? 0,
+    thirdPartyCount:     resourceAudit?.thirdParty?.length ?? 0,
+    opportunities:      opportunitiesForPrompt.length > 0 ? opportunitiesForPrompt : undefined,
+  } : null;
 
   // Run all four AI calls in parallel with independent failure isolation.
   // Promise.allSettled means one failed call doesn't cancel the others —

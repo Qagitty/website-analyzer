@@ -1,6 +1,7 @@
 import { analyzeHTML } from './score';
 import { checkLLMReadiness } from './llm-readiness';
-import { analyzeSecurityHeaders } from './resources';
+import { analyzeSecurityHeaders, analyzeResources } from './resources';
+import { checkAccessibility } from './accessibility';
 import type { CrawledPage } from './types';
 
 // Path segments that indicate auth-gated or user-account pages.
@@ -80,12 +81,29 @@ export function crawlInternalLinks(html: string, baseUrl: string): string[] {
   return results;
 }
 
+function classifyFetchError(err: unknown, elapsed: number): CrawledPage['measurementError'] {
+  const msg = err instanceof Error ? err.message : String(err);
+  const lower = msg.toLowerCase();
+  if (lower.includes('abort') || lower.includes('timeout') || elapsed >= 9_500) {
+    return { code: 'TIMEOUT', message: 'Request timed out after 10 seconds', retryable: true };
+  }
+  if (lower.includes('dns') || lower.includes('getaddrinfo') || lower.includes('name_not_resolved')) {
+    return { code: 'DNS_ERROR', message: 'DNS lookup failed', retryable: false };
+  }
+  if (lower.includes('tls') || lower.includes('ssl') || lower.includes('certificate')) {
+    return { code: 'TLS_ERROR', message: 'TLS/SSL handshake failed', retryable: false };
+  }
+  return { code: 'UNKNOWN', message: msg.slice(0, 120), retryable: true };
+}
+
 export async function crawlPage(url: string, fetchHeaders: object): Promise<CrawledPage | null> {
+  const t0 = Date.now();
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 10_000);
+
   try {
-    const t0 = Date.now();
-    const ctrl = new AbortController();
-    setTimeout(() => ctrl.abort(), 10_000);
     const r = await fetch(url, { headers: fetchHeaders, redirect: 'follow', signal: ctrl.signal });
+    clearTimeout(timer);
     const ttfb = Date.now() - t0;
     const html = await r.text();
     const bytes = new TextEncoder().encode(html).length;
@@ -96,23 +114,53 @@ export async function crawlPage(url: string, fetchHeaders: object): Promise<Craw
     // Skip auth-gated pages: detected via title keywords or final URL after redirect
     if (isPrivatePage(title) || shouldSkipPath(new URL(r.url).pathname)) return null;
 
-    const scores = analyzeHTML(html, r, bytes, ttfb);
+    // HTTP errors — record status but do not fabricate scores
+    if (!r.ok) {
+      return {
+        url: r.url, requestedUrl: url, finalUrl: r.url,
+        statusCode: r.status, ttfb, bytes, title,
+        performance: 0, seo: 0, accessibility: 0, llmReadiness: 0,
+        measurementMode: 'fetch-status-only',
+        auditLabel: 'Measurement failed',
+        measurementError: { code: 'HTTP_ERROR', message: `HTTP ${r.status}`, retryable: r.status >= 500 },
+      };
+    }
+
+    // Run resource audit so each crawled page scores on its own resource footprint
+    const resourceAudit = analyzeResources(html, r, url);
+    const scores = analyzeHTML(html, r, bytes, ttfb, {
+      renderBlockingCount: resourceAudit.renderBlocking.length,
+      imageIssueCount:     resourceAudit.imageIssues.length,
+      totalImages:         resourceAudit.totalImages,
+      thirdPartyCount:     resourceAudit.thirdParty.length,
+    });
     const llmReadiness = checkLLMReadiness(html);
     const securityHeaders = analyzeSecurityHeaders(r);
+    const accessibilityAudit = checkAccessibility(html);
 
     return {
-      url: r.url,
-      statusCode: r.status,
-      ttfb,
-      bytes,
-      title,
+      url: r.url, requestedUrl: url, finalUrl: r.url,
+      statusCode: r.status, ttfb, bytes, title,
       performance: scores.performance,
       seo: scores.seo,
-      accessibility: scores.accessibility,
+      accessibility: accessibilityAudit.score,
       llmReadiness: llmReadiness.score,
       securityHeaders,
+      measurementMode: 'lightweight-fetch',
+      auditLabel: 'Lightweight fetch audit',
+      accessibilityFindingCount: accessibilityAudit.findings.filter(f => f.status === 'confirmed' || f.status === 'likely').length,
+      accessibilityAuditLabel: 'Static accessibility scan',
     };
-  } catch {
-    return null;
+  } catch (err) {
+    clearTimeout(timer);
+    const elapsed = Date.now() - t0;
+    return {
+      url, requestedUrl: url, finalUrl: url,
+      statusCode: 0, ttfb: elapsed, bytes: 0, title: url,
+      performance: 0, seo: 0, accessibility: 0, llmReadiness: 0,
+      measurementMode: 'fetch-status-only',
+      auditLabel: 'Measurement failed',
+      measurementError: classifyFetchError(err, elapsed),
+    };
   }
 }
