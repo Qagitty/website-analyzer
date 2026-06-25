@@ -46,13 +46,23 @@ export function TrackIssueButton({ issue, analysisId, url, trackedId, onChange }
           toast.info('Already tracked');
           return;
         }
+        if (res.status === 402 || res.status === 403) {
+          const data = await res.json().catch(() => ({}));
+          if (data.code === 'FEATURE_GATE_REMEDIATIONBOARD') {
+            toast.error('Remediation tracking requires a Pro plan or higher.', {
+              description: 'Upgrade in Settings → Billing to unlock issue tracking.',
+              duration: 6000,
+            });
+            return;
+          }
+        }
         if (!res.ok) throw new Error('Failed to track');
         const data = await res.json();
         onChange(issue.id, data.id);
         toast.success('Added to remediation tracker');
       }
     } catch {
-      toast.error('Something went wrong. Please try again.');
+      toast.error('Could not save. Please try again.');
     } finally {
       setLoading(false);
     }
