@@ -114,7 +114,7 @@ async function runAnalysis(req: AnalysisRequest): Promise<void> {
     const internalLinks = crawlInternalLinks(html, req.url);
     for (const link of internalLinks.slice(0, 4)) {
       const page = await crawlPage(link, fetchHeaders);
-      crawledPages.push(page);
+      if (page) crawledPages.push(page);
     }
 
     await sendCallback(req.callbackUrl, req.authToken, {
