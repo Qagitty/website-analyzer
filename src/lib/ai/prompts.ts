@@ -271,6 +271,15 @@ Be thorough and specific. Mention exact CSS properties when suggesting fixes.
     seoScore: number;
     errorCount: number;
     accessibilityIssueCount: number;
+    seoAuditSummary?: {
+      criticalCount: number;
+      highCount: number;
+      isIndexable: boolean;
+      hasCanonical: boolean;
+      hasStructuredData: boolean;
+      titleStatus: string;
+      descriptionStatus: string;
+    } | null;
   }) => `
 You are a web quality expert. Write an executive summary for a website analysis report aimed at a non-technical business owner.
 
@@ -281,10 +290,19 @@ Site: ${data.url}
 - SEO: ${data.seoScore}/100
 - Console errors: ${data.errorCount}
 - Accessibility issues: ${data.accessibilityIssueCount}
-
+${data.seoAuditSummary ? `
+SEO audit facts (use ONLY these — do not invent SEO findings):
+- Indexable: ${data.seoAuditSummary.isIndexable}
+- Critical SEO issues: ${data.seoAuditSummary.criticalCount}
+- High SEO issues: ${data.seoAuditSummary.highCount}
+- Has canonical tag: ${data.seoAuditSummary.hasCanonical}
+- Has structured data: ${data.seoAuditSummary.hasStructuredData}
+- Title status: ${data.seoAuditSummary.titleStatus}
+- Description status: ${data.seoAuditSummary.descriptionStatus}
+` : ''}
 Return ONLY valid JSON in this exact format:
 {
-  "summary": "<3-4 sentences in plain English, no jargon. State the overall health, the most critical issue to fix first, and an encouraging note about improvement potential. Write for a non-technical business owner.>",
+  "summary": "<3-4 sentences in plain English, no jargon. State the overall health, the most critical issue to fix first, and an encouraging note about improvement potential. Write for a non-technical business owner. Only mention SEO findings that are factually supported by the audit data above.>",
   "overallGrade": "A" | "B" | "C" | "D" | "F",
   "topPriority": "<Single most important action the business owner should take first, in one plain sentence>",
   "estimatedFixTime": "<e.g. 'Most critical issues fixable in 2–3 hours'>",

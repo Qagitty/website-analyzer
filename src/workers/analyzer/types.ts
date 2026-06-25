@@ -90,6 +90,7 @@ export interface CrawledPage {
     message: string;
     retryable: boolean;
   };
+  seoResult?: import('../../types/seo').SeoPageResult;
 }
 
 export interface ResourceAuditItem { url: string; type: 'script' | 'stylesheet'; }

@@ -17,6 +17,7 @@ import { CrawledPagesSection } from '@/components/reports/CrawledPagesSection';
 import { SecurityHeadersSection } from '@/components/reports/SecurityHeadersSection';
 import { ResourceAuditSection } from '@/components/reports/ResourceAuditSection';
 import { ScoreBreakdownSection } from '@/components/reports/ScoreBreakdownSection';
+import { SEOSection } from '@/components/reports/SEOSection';
 import type { Analysis } from '@/types/analysis';
 
 export const metadata: Metadata = { title: 'Report' };
@@ -113,6 +114,11 @@ export default async function ReportPage(props: { params: Promise<{ id: string }
           url={analysis.url}
         />
       ) : null}
+      <SEOSection
+        seoAudit={(analysis.lighthouse_scores as any)?.seoAudit ?? null}
+        legacyScore={analysis.lighthouse_scores?.seo}
+        legacyChecks={(analysis.lighthouse_scores as any)?.scoreBreakdown?.seo}
+      />
       {analysis.console_errors && (
         <ConsoleErrorsSection errors={analysis.console_errors as any} />
       )}

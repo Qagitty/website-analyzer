@@ -2,6 +2,7 @@ import { validateWebsiteUrl } from './validate';
 import { analyzeHTML } from './score';
 import { buildFetchOnlyAudit } from './perf-score';
 import { checkAccessibility } from './accessibility';
+import { checkSEO } from './seo';
 import { checkCommonErrors } from './errors';
 import { checkLLMReadiness } from './llm-readiness';
 import { crawlInternalLinks, crawlPage } from './crawl';
@@ -140,6 +141,7 @@ async function runAnalysis(req: AnalysisRequest): Promise<void> {
     const consoleErrors = checkCommonErrors(html, response);
     const llmReadiness = checkLLMReadiness(html);
     const securityHeaders = analyzeSecurityHeaders(response);
+    const seoAudit = await checkSEO(html, response, req.url, req.analysisId);
 
     const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
     const homepageTitle = titleMatch ? titleMatch[1].trim() : req.url;
@@ -172,7 +174,7 @@ async function runAnalysis(req: AnalysisRequest): Promise<void> {
         bytes: pageBytes,
         title: homepageTitle,
         performance: scores.performance,
-        seo: scores.seo,
+        seo: seoAudit.score ?? scores.seo,
         accessibility: accessibilityAudit.score,
         llmReadiness: llmReadiness.score,
         securityHeaders,
@@ -180,6 +182,27 @@ async function runAnalysis(req: AnalysisRequest): Promise<void> {
         auditLabel: 'Full fetch audit',
         accessibilityFindingCount: accessibilityAudit.findings.filter(f => f.status === 'confirmed' || f.status === 'likely').length,
         accessibilityAuditLabel: 'Static accessibility scan',
+        seoResult: {
+          requestedUrl: req.url,
+          finalUrl: response.url,
+          httpStatus: response.status,
+          title: seoAudit.metadata.title,
+          titleLength: seoAudit.metadata.titleLength,
+          titleStatus: seoAudit.metadata.titleStatus,
+          description: seoAudit.metadata.description,
+          descriptionLength: seoAudit.metadata.descriptionLength,
+          h1: seoAudit.metadata.h1,
+          h1Count: seoAudit.metadata.h1Count,
+          canonical: null,
+          canonicalStatus: 'self',
+          isIndexable: seoAudit.indexability.isIndexable,
+          noindex: seoAudit.indexability.noindex,
+          robotsDirectives: seoAudit.indexability.effectiveDirectives,
+          structuredDataTypes: seoAudit.structuredData.types,
+          score: seoAudit.score,
+          auditLabel: 'Full SEO audit',
+          coverage: seoAudit.coverage.percentage,
+        },
       },
     ];
 
@@ -216,7 +239,7 @@ async function runAnalysis(req: AnalysisRequest): Promise<void> {
         performance: scores.performance,
         accessibility: accessibilityAudit.score,
         bestPractices: scores.bestPractices,
-        seo: scores.seo,
+        seo: seoAudit.score ?? scores.seo,
         // Keep lcp for backward compat with stored reports; estimatedLcp is the canonical name
         lcp: scores.estimatedLcp,
         estimatedLcp: scores.estimatedLcp,
@@ -250,6 +273,7 @@ async function runAnalysis(req: AnalysisRequest): Promise<void> {
         scoreBreakdown: scores.scoreBreakdown,
         opportunities,
         accessibilityAudit,
+        seoAudit,
       },
       consoleErrors,
       accessibilityIssues,

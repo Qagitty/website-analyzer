@@ -1063,6 +1063,138 @@ function AccessibilityPage({
   );
 }
 
+// ─── SEO Page ─────────────────────────────────────────────────────────────────
+
+function SEOPage({
+  analysis,
+  branding,
+  styles,
+  brandColor,
+}: {
+  analysis: Analysis;
+  branding: Required<Branding>;
+  styles: ReturnType<typeof makeStyles>;
+  brandColor: string;
+}) {
+  const seoAudit = (analysis.lighthouse_scores as any)?.seoAudit as import('@/types/seo').SeoAuditResult | undefined;
+  if (!seoAudit) return null;
+
+  const { score, summary, findings, coverage, metadata, indexability, structuredData } = seoAudit;
+
+  const SCOLOR = score === null ? '#9ca3af' : score >= 80 ? '#10b981' : score >= 50 ? '#f59e0b' : '#ef4444';
+
+  // Top findings to show (failed/warning, sorted by severity)
+  const SEV_ORDER: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
+  const priorityFindings = findings
+    .filter(f => f.status === 'failed' || f.status === 'warning')
+    .sort((a, b) => (SEV_ORDER[a.severity] ?? 9) - (SEV_ORDER[b.severity] ?? 9))
+    .slice(0, 6);
+
+  return (
+    <Page size="A4" style={styles.page}>
+      <HeaderBar styles={styles} brandColor={brandColor} agencyName={branding.agencyName} logoUrl={branding.logoUrl} pageLabel="SEO" />
+      <Text style={styles.sectionHeading}>SEO Audit</Text>
+
+      {/* Score + mode */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+        <View style={{ alignItems: 'center', minWidth: 60 }}>
+          <Text style={{ fontSize: 32, fontWeight: 'bold', color: SCOLOR }}>
+            {score !== null ? score : '–'}
+          </Text>
+          <Text style={{ fontSize: 9, color: '#6b7280' }}>/100</Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: 9, color: '#6b7280', marginBottom: 3 }}>
+            Mode: Fetch-only · {coverage.percentage}% coverage ({coverage.executedChecks}/{coverage.supportedChecks} checks)
+          </Text>
+          <Text style={{ fontSize: 8, color: '#9ca3af', lineHeight: 1.4 }}>
+            Static analysis from HTML + HTTP headers + robots.txt + sitemap.xml. JS-rendered metadata not detected.
+          </Text>
+        </View>
+      </View>
+
+      {/* Summary tiles */}
+      <View style={styles.statsRow}>
+        {[
+          { label: 'Critical', count: summary.critical,   bg: '#fef2f2', border: '#fecaca' },
+          { label: 'High',     count: summary.high,       bg: '#fff7ed', border: '#fed7aa' },
+          { label: 'Warnings', count: summary.medium + summary.low, bg: '#fffbeb', border: '#fde68a' },
+          { label: 'Passed',   count: summary.passed,     bg: '#f0fdf4', border: '#bbf7d0' },
+        ].map(({ label, count, bg, border }) => (
+          <View key={label} style={[styles.statBox, { backgroundColor: bg, borderColor: border }]}>
+            <Text style={styles.statNumber}>{count}</Text>
+            <Text style={styles.statLabel}>{label}</Text>
+          </View>
+        ))}
+      </View>
+
+      {/* Metadata row */}
+      <View style={{ marginBottom: 10 }}>
+        <Text style={[styles.subsectionHeading, { fontSize: 10, marginBottom: 4 }]}>Metadata</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+          {[
+            { k: 'Title', v: metadata.titleStatus, extra: metadata.titleLength ? `${metadata.titleLength}ch` : '' },
+            { k: 'Description', v: metadata.descriptionStatus, extra: metadata.descriptionLength ? `${metadata.descriptionLength}ch` : '' },
+            { k: 'H1', v: metadata.h1Count === 1 ? 'good' : metadata.h1Count === 0 ? 'missing' : 'multiple', extra: '' },
+            { k: 'lang', v: metadata.htmlLang ? 'good' : 'missing', extra: metadata.htmlLang ?? '' },
+            { k: 'Indexable', v: indexability.isIndexable ? 'good' : 'noindex', extra: '' },
+            { k: 'Schema', v: structuredData.found ? 'good' : 'none', extra: structuredData.count > 0 ? `${structuredData.count}` : '' },
+          ].map(({ k, v, extra }) => {
+            const isGood = v === 'good';
+            const dotColor = isGood ? '#16a34a' : (v === 'missing' || v === 'multiple' || v === 'noindex') ? '#dc2626' : '#d97706';
+            return (
+              <View key={k} style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginBottom: 2 }}>
+                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: dotColor }} />
+                <Text style={{ fontSize: 8, color: '#374151' }}>{k}: </Text>
+                <Text style={{ fontSize: 8, color: dotColor, fontWeight: 'bold' }}>{v}{extra ? ` (${extra})` : ''}</Text>
+              </View>
+            );
+          })}
+        </View>
+      </View>
+
+      {/* Priority findings */}
+      {priorityFindings.length > 0 && (
+        <>
+          <Text style={[styles.subsectionHeading, { fontSize: 10, marginBottom: 6 }]}>
+            Priority Issues ({priorityFindings.length} shown)
+          </Text>
+          {priorityFindings.map((finding, i) => (
+            <View key={i} style={styles.issueCard} wrap={false}>
+              <View style={styles.issueHeader}>
+                <View style={[styles.issueBadge, {
+                  backgroundColor: finding.severity === 'critical' ? '#fef2f2' : finding.severity === 'high' ? '#fff7ed' : '#fffbeb',
+                }]}>
+                  <Text style={styles.issueBadgeText}>{finding.severity}</Text>
+                </View>
+                <Text style={[styles.issueTitle, { flex: 1 }]} numberOfLines={2}>{finding.title}</Text>
+              </View>
+              {finding.description && (
+                <Text style={styles.issueDesc} numberOfLines={2}>{finding.description}</Text>
+              )}
+              {finding.recommendation && (
+                <Text style={[styles.issueDesc, { color: '#4f46e5', marginTop: 2 }]} numberOfLines={1}>
+                  → {finding.recommendation}
+                </Text>
+              )}
+            </View>
+          ))}
+        </>
+      )}
+
+      {priorityFindings.length === 0 && (
+        <View style={{ padding: 12, backgroundColor: '#f0fdf4', borderRadius: 6, marginTop: 8 }}>
+          <Text style={{ fontSize: 10, color: '#16a34a', textAlign: 'center' }}>
+            No critical or high-priority SEO issues detected.
+          </Text>
+        </View>
+      )}
+
+      <PageFooter styles={styles} showPoweredBy={branding.showPoweredBy} agencyName={branding.agencyName} />
+    </Page>
+  );
+}
+
 // ─── Main Document ────────────────────────────────────────────────────────────
 
 function ReportDocument({
@@ -1080,6 +1212,7 @@ function ReportDocument({
   const hasPerformance   = analysis.lighthouse_scores != null;
   const hasRoadmap       = (analysis.ai_insights?.insights ?? []).length > 0;
   const hasAccessibility = (analysis.accessibility_issues ?? []).length > 0;
+  const hasSeoAudit      = !!(analysis.lighthouse_scores as any)?.seoAudit;
 
   return (
     <Document
@@ -1111,6 +1244,14 @@ function ReportDocument({
       )}
       {hasAccessibility && (
         <AccessibilityPage
+          analysis={analysis}
+          branding={branding}
+          styles={styles}
+          brandColor={brandColor}
+        />
+      )}
+      {hasSeoAudit && (
+        <SEOPage
           analysis={analysis}
           branding={branding}
           styles={styles}

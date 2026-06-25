@@ -1,5 +1,6 @@
 import type { PerformanceAuditResult, PerformanceOpportunity, ResourceSummaryData } from './performance';
 import type { AccessibilityAuditResult } from './accessibility';
+import type { SeoAuditResult, SeoPageResult } from './seo';
 
 export type AnalysisStatus = 'pending' | 'queued' | 'running' | 'completed' | 'failed';
 
@@ -59,6 +60,8 @@ export interface LighthouseScores {
   opportunities?: PerformanceOpportunity[];
   /** Full structured accessibility audit — present on analyses created with accessibility-v2+ */
   accessibilityAudit?: AccessibilityAuditResult;
+  /** Full structured SEO audit — present on analyses created with SEO-v1+ */
+  seoAudit?: SeoAuditResult;
   llmReadiness?: number;
   llmChecks?: Record<string, boolean>;
   llmSignals?: string[];
@@ -95,6 +98,8 @@ export interface CrawledPage {
     message: string;
     retryable: boolean;
   };
+  /** Lightweight per-page SEO scan result — present on crawled pages after SEO-v1+ */
+  seoResult?: SeoPageResult;
 }
 
 export interface ConsoleError {

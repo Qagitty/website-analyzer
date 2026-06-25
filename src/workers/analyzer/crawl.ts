@@ -2,6 +2,7 @@ import { analyzeHTML } from './score';
 import { checkLLMReadiness } from './llm-readiness';
 import { analyzeSecurityHeaders, analyzeResources } from './resources';
 import { checkAccessibility } from './accessibility';
+import { checkSEOLightweight } from './seo';
 import type { CrawledPage } from './types';
 
 // Path segments that indicate auth-gated or user-account pages.
@@ -137,12 +138,13 @@ export async function crawlPage(url: string, fetchHeaders: object): Promise<Craw
     const llmReadiness = checkLLMReadiness(html);
     const securityHeaders = analyzeSecurityHeaders(r);
     const accessibilityAudit = checkAccessibility(html);
+    const seoResult = checkSEOLightweight(html, r, url);
 
     return {
       url: r.url, requestedUrl: url, finalUrl: r.url,
       statusCode: r.status, ttfb, bytes, title,
       performance: scores.performance,
-      seo: scores.seo,
+      seo: seoResult.score ?? scores.seo,
       accessibility: accessibilityAudit.score,
       llmReadiness: llmReadiness.score,
       securityHeaders,
@@ -150,6 +152,7 @@ export async function crawlPage(url: string, fetchHeaders: object): Promise<Craw
       auditLabel: 'Lightweight fetch audit',
       accessibilityFindingCount: accessibilityAudit.findings.filter(f => f.status === 'confirmed' || f.status === 'likely').length,
       accessibilityAuditLabel: 'Static accessibility scan',
+      seoResult,
     };
   } catch (err) {
     clearTimeout(timer);
