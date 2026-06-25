@@ -119,15 +119,15 @@ export function CrawledPagesSection({ crawledPages, pages }: Props) {
                 const statusCode = getStatusCode(page);
                 return (
                   <tr key={i} className="border-b border-border hover:bg-white/[0.02] transition-colors">
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 min-w-[260px] max-w-[480px]">
                       <div
-                        className="text-sm text-muted-foreground font-mono truncate max-w-[200px]"
+                        className="text-sm text-muted-foreground font-mono break-all"
                         title={page.url}
                       >
-                        {truncateUrl(page.url)}
+                        {(() => { try { const u = new URL(page.url); return u.hostname + u.pathname; } catch { return page.url; } })()}
                       </div>
                       {page.title && page.title !== page.url && (
-                        <div className="text-sm text-foreground truncate max-w-[200px]">
+                        <div className="text-sm text-foreground truncate max-w-[440px]">
                           {page.title}
                         </div>
                       )}
