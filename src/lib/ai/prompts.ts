@@ -311,4 +311,72 @@ Return ONLY valid JSON in this exact format:
   ]
 }
 `,
+  /**
+   * Interprets Best Practices audit data and provides actionable, prioritised recommendations.
+   *
+   * SAFETY CONSTRAINTS — these must be respected in every response:
+   * - NEVER output a ready-to-enforce CSP value. Always recommend starting with Report-Only mode.
+   * - NEVER recommend HSTS with includeSubDomains; preload without explicit validation steps.
+   * - NEVER suggest copy-paste values for Permissions-Policy without noting that capabilities must be reviewed first.
+   * - Any security header recommendation that can break the site must include a staged rollout note.
+   * - Runtime findings (console errors, unhandled promises, failed resource loads) are UNAVAILABLE in this
+   *   audit — do NOT invent or guess about them. If the issue comes from a runtime source, mark it as
+   *   "requires browser verification".
+   * - Do NOT inflate severity. Only mark something "critical" if it is: HTTP (not HTTPS), active mixed
+   *   content blocking scripts/iframes, or a missing HSTS on an HTTPS site.
+   */
+  bestPracticesAnalysis: (data: {
+    url: string;
+    score: number | null;
+    isHttps: boolean;
+    summary: { critical: number; high: number; medium: number; warnings: number; passed: number };
+    topFindings: Array<{ title: string; severity: string; status: string; category: string; recommendation: string; safeToApplyDirectly: boolean }>;
+    securityHeadersSummary: { present: number; total: number; absentHeaders: string[] };
+    auditMode: string;
+    coveragePercentage: number;
+  }) => `
+You are a web security and best-practices expert. Interpret this automated Best Practices audit and produce prioritised, actionable recommendations for a development team.
+
+Audit data:
+- URL: ${data.url}
+- Score: ${data.score !== null ? `${data.score}/100` : 'unavailable'}
+- HTTPS: ${data.isHttps ? 'yes' : 'NO — page is served over HTTP'}
+- Critical findings: ${data.summary.critical}
+- High findings: ${data.summary.high}
+- Warnings: ${data.summary.warnings}
+- Passed checks: ${data.summary.passed}
+- Security headers present: ${data.securityHeadersSummary.present}/${data.securityHeadersSummary.total}
+- Absent headers: ${data.securityHeadersSummary.absentHeaders.join(', ') || 'none'}
+- Audit mode: ${data.auditMode} (coverage: ${data.coveragePercentage}%)
+
+Top findings:
+${data.topFindings.map((f, i) => `${i + 1}. [${f.severity}] ${f.title} (${f.status}, ${f.category}) — ${f.safeToApplyDirectly ? 'safe to apply directly' : 'staged rollout required'}`).join('\n')}
+
+IMPORTANT SAFETY RULES for your response:
+1. Do NOT include an enforcement-ready Content-Security-Policy value. Always say: introduce in Report-Only mode first, collect violation reports, then enforce.
+2. Do NOT recommend adding HSTS with includeSubDomains or preload without verification steps. Start with max-age=300.
+3. For Permissions-Policy: note that the policy must be tailored to what the site actually uses. Do not provide a generic deny-all value.
+4. Mark any security header recommendation as "staged rollout required" if applying it incorrectly could break the site.
+5. Do NOT mention console errors, unhandled promise rejections, or runtime failures — these are unavailable in static mode.
+6. Only flag something as critical if it genuinely is (HTTP page, active mixed content, missing HSTS on HTTPS).
+
+Return ONLY valid JSON:
+{
+  "summary": "<3-4 sentences: overall security posture, most critical item, one actionable quick win. Plain English, no jargon, suitable for a technical lead.>",
+  "prioritisedActions": [
+    {
+      "rank": 1,
+      "title": "<concise action title>",
+      "why": "<1-2 sentences on the security or quality impact>",
+      "how": "<specific implementation guidance — for security headers, always include staged rollout note where applicable>",
+      "effort": "low" | "medium" | "high",
+      "impact": "low" | "medium" | "high",
+      "safeToApplyDirectly": true | false,
+      "stagedRolloutRequired": true | false
+    }
+  ],
+  "quickWins": ["<action that takes < 30 min and is safe to apply directly>"],
+  "requiresBrowserVerification": ["<item that needs a real browser check to confirm>"]
+}
+`,
 };

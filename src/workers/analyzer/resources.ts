@@ -217,33 +217,33 @@ export function analyzeSecurityHeaders(response: Response): SecurityHeaderResult
   const checks = [
     {
       header: 'content-security-policy', severity: 'critical' as const,
-      description: 'Prevents XSS by whitelisting trusted content sources.',
-      recommendation: "Content-Security-Policy: default-src 'self'; script-src 'self'",
+      description: 'Declares which content sources are trusted, mitigating XSS attacks.',
+      recommendation: 'Introduce in Report-Only mode first. A production CSP must be tailored to this site\'s actual scripts, styles, and origins — a generic policy will break analytics, payments, and third-party services.',
     },
     {
       header: 'strict-transport-security', severity: 'high' as const,
-      description: 'Forces HTTPS and prevents SSL-stripping attacks.',
-      recommendation: 'Strict-Transport-Security: max-age=31536000; includeSubDomains',
+      description: 'Instructs browsers to always connect via HTTPS, preventing SSL-stripping.',
+      recommendation: 'Start with max-age=300 in staging. Increase gradually. Add includeSubDomains only after verifying all subdomains support HTTPS.',
     },
     {
-      header: 'x-frame-options', severity: 'high' as const,
-      description: 'Prevents clickjacking by blocking iframe embedding.',
-      recommendation: 'X-Frame-Options: SAMEORIGIN',
+      header: 'x-frame-options', severity: 'medium' as const,
+      description: 'Prevents clickjacking by controlling whether the page can be embedded in iframes.',
+      recommendation: 'X-Frame-Options: SAMEORIGIN — or use CSP frame-ancestors for modern browsers.',
     },
     {
       header: 'x-content-type-options', severity: 'medium' as const,
-      description: 'Stops MIME-type sniffing that can expose XSS vectors.',
-      recommendation: 'X-Content-Type-Options: nosniff',
+      description: 'Prevents MIME-type sniffing, which can enable XSS via misclassified responses.',
+      recommendation: 'X-Content-Type-Options: nosniff — safe to add directly.',
     },
     {
       header: 'referrer-policy', severity: 'medium' as const,
-      description: 'Controls how much referrer info is sent with requests.',
-      recommendation: 'Referrer-Policy: strict-origin-when-cross-origin',
+      description: 'Controls how much referrer information is sent with navigation and resource requests.',
+      recommendation: 'Referrer-Policy: strict-origin-when-cross-origin — balances analytics and privacy.',
     },
     {
       header: 'permissions-policy', severity: 'low' as const,
-      description: 'Restricts browser API access (camera, microphone, geolocation).',
-      recommendation: 'Permissions-Policy: camera=(), microphone=(), geolocation=()',
+      description: 'Scopes browser capability access (camera, microphone, geolocation) for the page and its iframes.',
+      recommendation: 'Review which browser capabilities the site requires before setting. Do not disable capabilities the site genuinely uses. Test in staging.',
     },
   ];
   return checks.map(c => ({

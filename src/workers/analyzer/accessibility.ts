@@ -775,11 +775,11 @@ export function checkAccessibility(html: string): AccessibilityAuditResult {
       { what: `Page has ${h1Count} <h1> elements — should be exactly one` }));
   }
 
-  const usedLevels = ([1, 2, 3, 4, 5, 6] as const)
+  const usedLevels = ([1, 2, 3, 4, 5, 6] as number[])
     .map(n => ((html.match(new RegExp(`<h${n}[\\s>]`, 'gi')) || []).length > 0 ? n : null))
     .filter((n): n is number => n !== null);
   for (let i = 1; i < usedLevels.length; i++) {
-    if (usedLevels[i] - usedLevels[i - 1] > 1) {
+    if (usedLevels[i]! - usedLevels[i - 1]! > 1) {
       findings.push(buildFinding('heading-skipped', 'confirmed', 1, [],
         { what: `Heading level skipped: <h${usedLevels[i - 1]}> jumps to <h${usedLevels[i]}>` }));
       break;

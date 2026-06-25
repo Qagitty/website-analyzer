@@ -3,6 +3,7 @@ import { analyzeHTML } from './score';
 import { buildFetchOnlyAudit } from './perf-score';
 import { checkAccessibility } from './accessibility';
 import { checkSEO } from './seo';
+import { checkBestPractices } from './best-practices';
 import { checkCommonErrors } from './errors';
 import { checkLLMReadiness } from './llm-readiness';
 import { crawlInternalLinks, crawlPage } from './crawl';
@@ -142,6 +143,7 @@ async function runAnalysis(req: AnalysisRequest): Promise<void> {
     const llmReadiness = checkLLMReadiness(html);
     const securityHeaders = analyzeSecurityHeaders(response);
     const seoAudit = await checkSEO(html, response, req.url, req.analysisId);
+    const bestPracticesAudit = checkBestPractices(html, response, req.url);
 
     const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
     const homepageTitle = titleMatch ? titleMatch[1].trim() : req.url;
@@ -191,6 +193,7 @@ async function runAnalysis(req: AnalysisRequest): Promise<void> {
           titleStatus: seoAudit.metadata.titleStatus,
           description: seoAudit.metadata.description,
           descriptionLength: seoAudit.metadata.descriptionLength,
+          descriptionStatus: seoAudit.metadata.descriptionStatus,
           h1: seoAudit.metadata.h1,
           h1Count: seoAudit.metadata.h1Count,
           canonical: null,
@@ -202,6 +205,19 @@ async function runAnalysis(req: AnalysisRequest): Promise<void> {
           score: seoAudit.score,
           auditLabel: 'Full SEO audit',
           coverage: seoAudit.coverage.percentage,
+        },
+        bestPracticesResult: {
+          requestedUrl: req.url,
+          finalUrl: response.url,
+          httpStatus: response.status,
+          isHttps: bestPracticesAudit.isHttps,
+          score: bestPracticesAudit.score,
+          coverage: bestPracticesAudit.coverage.percentage,
+          auditLabel: 'Full BP audit',
+          securityHeadersPresent: bestPracticesAudit.securityHeaders.filter(h => h.present).length,
+          securityHeadersTotal: bestPracticesAudit.securityHeaders.length,
+          criticalFindings: bestPracticesAudit.summary.critical,
+          highFindings: bestPracticesAudit.summary.high,
         },
       },
     ];
@@ -238,7 +254,7 @@ async function runAnalysis(req: AnalysisRequest): Promise<void> {
       lighthouseScores: {
         performance: scores.performance,
         accessibility: accessibilityAudit.score,
-        bestPractices: scores.bestPractices,
+        bestPractices: bestPracticesAudit.score ?? scores.bestPractices,
         seo: seoAudit.score ?? scores.seo,
         // Keep lcp for backward compat with stored reports; estimatedLcp is the canonical name
         lcp: scores.estimatedLcp,
@@ -274,6 +290,7 @@ async function runAnalysis(req: AnalysisRequest): Promise<void> {
         opportunities,
         accessibilityAudit,
         seoAudit,
+        bestPracticesAudit,
       },
       consoleErrors,
       accessibilityIssues,

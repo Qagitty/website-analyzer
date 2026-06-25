@@ -1,6 +1,7 @@
 import type { PerformanceAuditResult, PerformanceOpportunity, ResourceSummaryData } from './performance';
 import type { AccessibilityAuditResult } from './accessibility';
 import type { SeoAuditResult, SeoPageResult } from './seo';
+import type { BestPracticesAuditResult, BestPracticesPageResult } from './best-practices';
 
 export type AnalysisStatus = 'pending' | 'queued' | 'running' | 'completed' | 'failed';
 
@@ -62,6 +63,8 @@ export interface LighthouseScores {
   accessibilityAudit?: AccessibilityAuditResult;
   /** Full structured SEO audit — present on analyses created with SEO-v1+ */
   seoAudit?: SeoAuditResult;
+  /** Full structured Best Practices audit — present on analyses created with bp-v1+ */
+  bestPracticesAudit?: BestPracticesAuditResult;
   llmReadiness?: number;
   llmChecks?: Record<string, boolean>;
   llmSignals?: string[];
@@ -100,6 +103,8 @@ export interface CrawledPage {
   };
   /** Lightweight per-page SEO scan result — present on crawled pages after SEO-v1+ */
   seoResult?: SeoPageResult;
+  /** Lightweight per-page Best Practices scan result — present on crawled pages after bp-v1+ */
+  bestPracticesResult?: BestPracticesPageResult;
 }
 
 export interface ConsoleError {

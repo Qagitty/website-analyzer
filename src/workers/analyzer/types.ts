@@ -91,6 +91,7 @@ export interface CrawledPage {
     retryable: boolean;
   };
   seoResult?: import('../../types/seo').SeoPageResult;
+  bestPracticesResult?: import('../../types/best-practices').BestPracticesPageResult;
 }
 
 export interface ResourceAuditItem { url: string; type: 'script' | 'stylesheet'; }

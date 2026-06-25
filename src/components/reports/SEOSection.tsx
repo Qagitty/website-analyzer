@@ -249,13 +249,13 @@ export function SEOSection({ seoAudit, legacyScore, legacyChecks }: Props) {
 
   const totalIssues = summary.critical + summary.high + summary.medium + summary.low;
 
-  const FILTERS: Array<{ key: SeoFindingStatus | 'all'; label: string; count?: number }> = [
-    { key: 'all', label: 'All', count: findings.length },
-    { key: 'failed', label: 'Failed', count: findings.filter(f => f.status === 'failed').length },
-    { key: 'warning', label: 'Warnings', count: findings.filter(f => f.status === 'warning').length },
-    { key: 'manual-review', label: 'Manual Review', count: summary.manualReview },
-    { key: 'passed', label: 'Passed', count: summary.passed },
-  ].filter(f => f.count! > 0 || f.key === 'all');
+  const FILTERS = ([
+    { key: 'all' as const,           label: 'All',           count: findings.length },
+    { key: 'failed' as const,        label: 'Failed',        count: findings.filter(f => f.status === 'failed').length },
+    { key: 'warning' as const,       label: 'Warnings',      count: findings.filter(f => f.status === 'warning').length },
+    { key: 'manual-review' as const, label: 'Manual Review', count: summary.manualReview },
+    { key: 'passed' as const,        label: 'Passed',        count: summary.passed },
+  ] satisfies Array<{ key: SeoFindingStatus | 'all'; label: string; count?: number }>).filter(f => f.count! > 0 || f.key === 'all');
 
   return (
     <section className="space-y-6">

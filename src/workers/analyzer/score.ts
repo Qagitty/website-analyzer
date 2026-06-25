@@ -17,7 +17,7 @@ export function analyzeHTML(
   // --- Performance: delegate to the versioned scoring module ---
   // All thresholds and weights live in ./thresholds — never hardcode them here.
   const estimatedLcp = ttfb + Math.round(bytes / 5000) * 100;
-  const { score: performance, breakdown: perfBreakdown } = computeFetchOnlyScore({
+  const { score: performance, scoreVersion, breakdown: perfBreakdown } = computeFetchOnlyScore({
     ttfb,
     estimatedLcp,
     htmlBytes: bytes,

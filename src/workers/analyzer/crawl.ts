@@ -3,6 +3,7 @@ import { checkLLMReadiness } from './llm-readiness';
 import { analyzeSecurityHeaders, analyzeResources } from './resources';
 import { checkAccessibility } from './accessibility';
 import { checkSEOLightweight } from './seo';
+import { checkBestPracticesLightweight } from './best-practices';
 import type { CrawledPage } from './types';
 
 // Path segments that indicate auth-gated or user-account pages.
@@ -139,6 +140,7 @@ export async function crawlPage(url: string, fetchHeaders: object): Promise<Craw
     const securityHeaders = analyzeSecurityHeaders(r);
     const accessibilityAudit = checkAccessibility(html);
     const seoResult = checkSEOLightweight(html, r, url);
+    const bestPracticesResult = checkBestPracticesLightweight(html, r, url);
 
     return {
       url: r.url, requestedUrl: url, finalUrl: r.url,
@@ -153,6 +155,7 @@ export async function crawlPage(url: string, fetchHeaders: object): Promise<Craw
       accessibilityFindingCount: accessibilityAudit.findings.filter(f => f.status === 'confirmed' || f.status === 'likely').length,
       accessibilityAuditLabel: 'Static accessibility scan',
       seoResult,
+      bestPracticesResult,
     };
   } catch (err) {
     clearTimeout(timer);

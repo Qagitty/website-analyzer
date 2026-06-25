@@ -1130,7 +1130,7 @@ function SEOPage({
 
       {/* Metadata row */}
       <View style={{ marginBottom: 10 }}>
-        <Text style={[styles.subsectionHeading, { fontSize: 10, marginBottom: 4 }]}>Metadata</Text>
+        <Text style={[styles.sectionHeading, { fontSize: 10, marginBottom: 4 }]}>Metadata</Text>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
           {[
             { k: 'Title', v: metadata.titleStatus, extra: metadata.titleLength ? `${metadata.titleLength}ch` : '' },
@@ -1156,7 +1156,7 @@ function SEOPage({
       {/* Priority findings */}
       {priorityFindings.length > 0 && (
         <>
-          <Text style={[styles.subsectionHeading, { fontSize: 10, marginBottom: 6 }]}>
+          <Text style={[styles.sectionHeading, { fontSize: 10, marginBottom: 6 }]}>
             Priority Issues ({priorityFindings.length} shown)
           </Text>
           {priorityFindings.map((finding, i) => (
@@ -1167,13 +1167,13 @@ function SEOPage({
                 }]}>
                   <Text style={styles.issueBadgeText}>{finding.severity}</Text>
                 </View>
-                <Text style={[styles.issueTitle, { flex: 1 }]} numberOfLines={2}>{finding.title}</Text>
+                <Text style={[styles.issueTitle, { flex: 1 }]}>{finding.title}</Text>
               </View>
               {finding.description && (
-                <Text style={styles.issueDesc} numberOfLines={2}>{finding.description}</Text>
+                <Text style={styles.issueDescription}>{finding.description}</Text>
               )}
               {finding.recommendation && (
-                <Text style={[styles.issueDesc, { color: '#4f46e5', marginTop: 2 }]} numberOfLines={1}>
+                <Text style={[styles.issueDescription, { color: '#4f46e5', marginTop: 2 }]}>
                   → {finding.recommendation}
                 </Text>
               )}
@@ -1186,6 +1186,164 @@ function SEOPage({
         <View style={{ padding: 12, backgroundColor: '#f0fdf4', borderRadius: 6, marginTop: 8 }}>
           <Text style={{ fontSize: 10, color: '#16a34a', textAlign: 'center' }}>
             No critical or high-priority SEO issues detected.
+          </Text>
+        </View>
+      )}
+
+      <PageFooter styles={styles} showPoweredBy={branding.showPoweredBy} agencyName={branding.agencyName} />
+    </Page>
+  );
+}
+
+// ─── Best Practices PDF Page ──────────────────────────────────────────────────
+
+function BestPracticesPage({
+  analysis, branding, styles, brandColor,
+}: {
+  analysis: Analysis;
+  branding: Required<Branding>;
+  styles: ReturnType<typeof makeStyles>;
+  brandColor: string;
+}) {
+  const bpAudit = (analysis.lighthouse_scores as any)?.bestPracticesAudit as
+    import('@/types/best-practices').BestPracticesAuditResult | undefined;
+  if (!bpAudit) return null;
+
+  const { score, summary, findings, securityHeaders, isHttps, coverage } = bpAudit;
+  const BCOLOR = score === null ? '#9ca3af' : score >= 80 ? '#10b981' : score >= 50 ? '#f59e0b' : '#ef4444';
+
+  const SEV_ORDER: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
+  const priorityFindings = findings
+    .filter(f => f.status === 'failed' || f.status === 'warning')
+    .sort((a, b) => (SEV_ORDER[a.severity] ?? 9) - (SEV_ORDER[b.severity] ?? 9))
+    .slice(0, 6);
+
+  const presentHeaders = securityHeaders.filter(h => h.present);
+  const absentHeaders = securityHeaders.filter(h => !h.present);
+
+  return (
+    <Page size="A4" style={styles.page}>
+      <HeaderBar styles={styles} brandColor={brandColor} agencyName={branding.agencyName} logoUrl={branding.logoUrl} pageLabel="Best Practices" />
+      <Text style={styles.sectionHeading}>Best Practices Audit</Text>
+
+      {/* Score row */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+        <View style={{ alignItems: 'center', minWidth: 60 }}>
+          <Text style={{ fontSize: 32, fontWeight: 'bold', color: BCOLOR }}>
+            {score !== null ? score : '–'}
+          </Text>
+          <Text style={{ fontSize: 9, color: '#6b7280' }}>/100</Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: 9, color: '#6b7280', marginBottom: 3 }}>
+            {isHttps ? 'HTTPS ✓' : 'HTTP — not encrypted'}{' '}
+            · Static/fetch-only mode · {coverage.executedChecks}/{coverage.supportedChecks} checks
+          </Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>
+            {summary.critical > 0 && (
+              <View style={{ backgroundColor: '#fef2f2', borderRadius: 3, paddingHorizontal: 5, paddingVertical: 2 }}>
+                <Text style={{ fontSize: 8, color: '#dc2626' }}>{summary.critical} critical</Text>
+              </View>
+            )}
+            {summary.high > 0 && (
+              <View style={{ backgroundColor: '#fff7ed', borderRadius: 3, paddingHorizontal: 5, paddingVertical: 2 }}>
+                <Text style={{ fontSize: 8, color: '#ea580c' }}>{summary.high} high</Text>
+              </View>
+            )}
+            {summary.warnings > 0 && (
+              <View style={{ backgroundColor: '#fffbeb', borderRadius: 3, paddingHorizontal: 5, paddingVertical: 2 }}>
+                <Text style={{ fontSize: 8, color: '#d97706' }}>{summary.warnings} warnings</Text>
+              </View>
+            )}
+            {summary.passed > 0 && (
+              <View style={{ backgroundColor: '#f0fdf4', borderRadius: 3, paddingHorizontal: 5, paddingVertical: 2 }}>
+                <Text style={{ fontSize: 8, color: '#16a34a' }}>{summary.passed} passed</Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </View>
+
+      {/* Security headers table */}
+      <Text style={[styles.sectionHeading, { fontSize: 11, marginBottom: 5 }]}>Security Headers</Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginBottom: 10 }}>
+        {securityHeaders.map(h => (
+          <View
+            key={h.header}
+            style={{
+              flexDirection: 'row', alignItems: 'center', gap: 3,
+              backgroundColor: h.present ? '#f0fdf4' : '#fef2f2',
+              borderRadius: 4, paddingHorizontal: 5, paddingVertical: 3,
+            }}
+          >
+            <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: h.present ? '#16a34a' : '#dc2626' }} />
+            <Text style={{ fontSize: 7, color: h.present ? '#15803d' : '#dc2626', fontWeight: 'bold' }}>
+              {h.header.replace('Content-Security-Policy', 'CSP')
+                       .replace('Strict-Transport-Security', 'HSTS')
+                       .replace('X-Content-Type-Options', 'XCTO')
+                       .replace('Referrer-Policy', 'Referrer')
+                       .replace('Permissions-Policy', 'Permissions')
+                       .replace('X-Frame-Options', 'XFO')
+                       .replace('Cross-Origin-Opener-Policy', 'COOP')}
+            </Text>
+          </View>
+        ))}
+      </View>
+
+      {/* Absent headers - safe vs staged rollout */}
+      {absentHeaders.length > 0 && (
+        <View style={{ marginBottom: 10 }}>
+          {absentHeaders.filter(h => h.safeToApplyDirectly).map(h => (
+            <View key={h.header} style={{ flexDirection: 'row', gap: 4, marginBottom: 3 }}>
+              <Text style={{ fontSize: 8, color: '#374151', width: 120 }}>{h.header}</Text>
+              <Text style={{ fontSize: 8, color: '#6b7280', flex: 1 }}>{h.recommendation.slice(0, 100)}{h.recommendation.length > 100 ? '…' : ''}</Text>
+            </View>
+          ))}
+          {absentHeaders.filter(h => !h.safeToApplyDirectly).map(h => (
+            <View key={h.header} style={{ flexDirection: 'row', gap: 4, marginBottom: 3 }}>
+              <Text style={{ fontSize: 8, color: '#374151', width: 120 }}>{h.header}</Text>
+              <Text style={{ fontSize: 8, color: '#d97706', flex: 1 }}>⚠ Staged rollout — {h.recommendation.slice(0, 80)}{h.recommendation.length > 80 ? '…' : ''}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Priority findings */}
+      {priorityFindings.length > 0 && (
+        <>
+          <Text style={[styles.sectionHeading, { fontSize: 11, marginBottom: 6 }]}>
+            Priority Issues ({priorityFindings.length} shown)
+          </Text>
+          {priorityFindings.map((finding, i) => (
+            <View key={i} style={styles.issueCard} wrap={false}>
+              <View style={styles.issueHeader}>
+                <View style={[styles.issueBadge, {
+                  backgroundColor: finding.severity === 'critical' ? '#fef2f2' : finding.severity === 'high' ? '#fff7ed' : '#fffbeb',
+                }]}>
+                  <Text style={styles.issueBadgeText}>{finding.severity}</Text>
+                </View>
+                <Text style={[styles.issueTitle, { flex: 1 }]}>{finding.title}</Text>
+              </View>
+              {finding.description && (
+                <Text style={styles.issueDescription}>{finding.description.slice(0, 180)}{finding.description.length > 180 ? '…' : ''}</Text>
+              )}
+              {finding.recommendation && (
+                <Text style={[styles.issueDescription, { color: '#4f46e5', marginTop: 2 }]}>
+                  → {finding.recommendation.slice(0, 140)}{finding.recommendation.length > 140 ? '…' : ''}
+                </Text>
+              )}
+              {!finding.safeToApplyDirectly && (
+                <Text style={{ fontSize: 7, color: '#d97706', marginTop: 2 }}>⚠ Requires staged rollout — test in staging before applying.</Text>
+              )}
+            </View>
+          ))}
+        </>
+      )}
+
+      {priorityFindings.length === 0 && (
+        <View style={{ padding: 12, backgroundColor: '#f0fdf4', borderRadius: 6, marginTop: 8 }}>
+          <Text style={{ fontSize: 10, color: '#16a34a', textAlign: 'center' }}>
+            No critical or high-priority Best Practices issues detected.
           </Text>
         </View>
       )}
@@ -1213,6 +1371,7 @@ function ReportDocument({
   const hasRoadmap       = (analysis.ai_insights?.insights ?? []).length > 0;
   const hasAccessibility = (analysis.accessibility_issues ?? []).length > 0;
   const hasSeoAudit      = !!(analysis.lighthouse_scores as any)?.seoAudit;
+  const hasBpAudit       = !!(analysis.lighthouse_scores as any)?.bestPracticesAudit;
 
   return (
     <Document
@@ -1252,6 +1411,14 @@ function ReportDocument({
       )}
       {hasSeoAudit && (
         <SEOPage
+          analysis={analysis}
+          branding={branding}
+          styles={styles}
+          brandColor={brandColor}
+        />
+      )}
+      {hasBpAudit && (
+        <BestPracticesPage
           analysis={analysis}
           branding={branding}
           styles={styles}
