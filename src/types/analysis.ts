@@ -2,6 +2,7 @@ import type { PerformanceAuditResult, PerformanceOpportunity, ResourceSummaryDat
 import type { AccessibilityAuditResult } from './accessibility';
 import type { SeoAuditResult, SeoPageResult } from './seo';
 import type { BestPracticesAuditResult, BestPracticesPageResult } from './best-practices';
+import type { LlmReadinessAuditResult, LlmReadinessPageResult } from './llm-readiness';
 
 export type AnalysisStatus = 'pending' | 'queued' | 'running' | 'completed' | 'failed';
 
@@ -65,8 +66,13 @@ export interface LighthouseScores {
   seoAudit?: SeoAuditResult;
   /** Full structured Best Practices audit — present on analyses created with bp-v1+ */
   bestPracticesAudit?: BestPracticesAuditResult;
+  /** Full structured LLM Readiness audit — present on analyses created with llm-readiness-v2+ */
+  llmReadinessAudit?: LlmReadinessAuditResult;
+  /** Legacy: flat score (v1) */
   llmReadiness?: number;
+  /** Legacy: flat checks map (v1) */
   llmChecks?: Record<string, boolean>;
+  /** Legacy: improvement signals (v1) */
   llmSignals?: string[];
   securityHeaders?: SecurityHeaderResult[];
   scoreBreakdown?: ScoreBreakdown;
@@ -105,6 +111,8 @@ export interface CrawledPage {
   seoResult?: SeoPageResult;
   /** Lightweight per-page Best Practices scan result — present on crawled pages after bp-v1+ */
   bestPracticesResult?: BestPracticesPageResult;
+  /** Lightweight per-page LLM Readiness scan result — present on crawled pages after llm-readiness-v2+ */
+  llmReadinessResult?: LlmReadinessPageResult;
 }
 
 export interface ConsoleError {

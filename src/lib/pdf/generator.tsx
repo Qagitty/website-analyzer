@@ -1353,6 +1353,155 @@ function BestPracticesPage({
   );
 }
 
+// ─── LLM Readiness PDF Page ──────────────────────────────────────────────────
+
+function LLMReadinessPage({
+  analysis, branding, styles, brandColor,
+}: {
+  analysis: Analysis;
+  branding: Required<Branding>;
+  styles: ReturnType<typeof makeStyles>;
+  brandColor: string;
+}) {
+  const llmAudit = (analysis.lighthouse_scores as any)?.llmReadinessAudit as
+    import('@/types/llm-readiness').LlmReadinessAuditResult | undefined;
+  if (!llmAudit) return null;
+
+  const { score, coverage, findings, categoryScores, detectedSignals, scoreVersion } = llmAudit;
+  const SCOLOR = score === null ? '#9ca3af' : score >= 80 ? '#10b981' : score >= 50 ? '#f59e0b' : '#ef4444';
+
+  const SEV_ORDER: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
+  const priorityFindings = findings
+    .filter(f => f.status === 'failed' || f.status === 'warning')
+    .sort((a, b) => (SEV_ORDER[a.severity] ?? 9) - (SEV_ORDER[b.severity] ?? 9))
+    .slice(0, 7);
+
+  const allowedCount = detectedSignals.aiCrawlerAccess.filter(c => c.allowed === true).length;
+  const blockedCount = detectedSignals.aiCrawlerAccess.filter(c => c.allowed === false).length;
+
+  return (
+    <Page size="A4" style={styles.page}>
+      <HeaderBar
+        styles={styles}
+        brandColor={brandColor}
+        agencyName={branding.agencyName}
+        logoUrl={branding.logoUrl}
+        pageLabel="AI & LLM Readiness"
+      />
+      <View style={{ marginBottom: 6 }}>
+        <Text style={{ fontSize: 7, color: '#9ca3af' }}>{analysis.url}</Text>
+      </View>
+
+      {/* Disclaimer */}
+      <View style={{ backgroundColor: '#1e1e2e', borderRadius: 6, padding: 8, marginBottom: 10 }}>
+        <Text style={{ fontSize: 7, color: '#9ca3af', lineHeight: 1.4 }}>
+          This score evaluates technical and content signals that may help AI systems crawl, parse, and cite content.
+          It does not guarantee inclusion, ranking, citation, or visibility in any AI product.
+          Score version: {scoreVersion} · Mode: fetch-only · Coverage: {coverage.percentage}%
+        </Text>
+      </View>
+
+      {/* Score row */}
+      <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
+        <View style={{ flex: 1, backgroundColor: '#13131A', borderRadius: 8, padding: 10, alignItems: 'center' }}>
+          <Text style={{ fontSize: 26, fontWeight: 700, color: SCOLOR }}>
+            {score !== null ? String(score) : 'n/a'}
+          </Text>
+          <Text style={{ fontSize: 7, color: '#9ca3af', marginTop: 2 }}>LLM Readiness Score</Text>
+        </View>
+        <View style={{ flex: 1, backgroundColor: '#13131A', borderRadius: 8, padding: 10, alignItems: 'center' }}>
+          <Text style={{ fontSize: 26, fontWeight: 700, color: '#6366f1' }}>{coverage.percentage}%</Text>
+          <Text style={{ fontSize: 7, color: '#9ca3af', marginTop: 2 }}>Audit Coverage</Text>
+        </View>
+        <View style={{ flex: 1, backgroundColor: '#13131A', borderRadius: 8, padding: 10, alignItems: 'center' }}>
+          <Text style={{ fontSize: 26, fontWeight: 700, color: coverage.failedSignals > 0 ? '#ef4444' : '#10b981' }}>
+            {coverage.failedSignals}
+          </Text>
+          <Text style={{ fontSize: 7, color: '#9ca3af', marginTop: 2 }}>Failed signals</Text>
+        </View>
+        <View style={{ flex: 1, backgroundColor: '#13131A', borderRadius: 8, padding: 10, alignItems: 'center' }}>
+          <Text style={{ fontSize: 26, fontWeight: 700, color: blockedCount > 0 ? '#f59e0b' : '#10b981' }}>
+            {blockedCount > 0 ? `${blockedCount}` : allowedCount > 0 ? String(allowedCount) : '—'}
+          </Text>
+          <Text style={{ fontSize: 7, color: '#9ca3af', marginTop: 2 }}>
+            {blockedCount > 0 ? 'Crawlers blocked' : 'Crawlers allowed'}
+          </Text>
+        </View>
+      </View>
+
+      {/* Category scores */}
+      <Text style={[styles.sectionHeading, { marginBottom: 6 }]}>Score by Category</Text>
+      <View style={{ gap: 4, marginBottom: 12 }}>
+        {categoryScores
+          .filter(c => c.weight > 0 && c.score !== null)
+          .sort((a, b) => b.weight - a.weight)
+          .slice(0, 6)
+          .map(c => {
+            const barColor = c.score! >= 80 ? '#10b981' : c.score! >= 50 ? '#f59e0b' : '#ef4444';
+            return (
+              <View key={c.category} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={{ fontSize: 7, color: '#9ca3af', width: 120 }}>{c.label}</Text>
+                <View style={{ flex: 1, height: 4, backgroundColor: '#1e1e2e', borderRadius: 2 }}>
+                  <View style={{ width: `${c.score}%`, height: 4, backgroundColor: barColor, borderRadius: 2 }} />
+                </View>
+                <Text style={{ fontSize: 7, color: barColor, width: 30, textAlign: 'right' }}>{c.score}/100</Text>
+                <Text style={{ fontSize: 6, color: '#6b7280', width: 24, textAlign: 'right' }}>{(c.weight * 100).toFixed(0)}%</Text>
+              </View>
+            );
+          })}
+      </View>
+
+      {/* Key signals */}
+      <Text style={[styles.sectionHeading, { marginBottom: 6 }]}>Detected Signals</Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginBottom: 12 }}>
+        {[
+          { label: 'HTTPS',            ok: detectedSignals.isHttps },
+          { label: 'Structured data',  ok: detectedSignals.hasJsonLd },
+          { label: 'Organization schema', ok: detectedSignals.hasOrganizationSchema },
+          { label: 'Canonical URL',    ok: detectedSignals.hasCanonical },
+          { label: 'Meta description', ok: detectedSignals.hasMetaDescription },
+          { label: 'Open Graph',       ok: detectedSignals.hasOpenGraph },
+          { label: 'Author signal',    ok: detectedSignals.hasAuthorSignal },
+          { label: 'Date signal',      ok: detectedSignals.hasDateSignal },
+          { label: 'Main landmark',    ok: detectedSignals.hasMainLandmark },
+          { label: 'robots.txt checked', ok: detectedSignals.robotsTxtFetched },
+        ].map(({ label, ok }) => (
+          <View key={label} style={{ flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#13131A', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 3 }}>
+            <Text style={{ fontSize: 6, color: ok ? '#10b981' : '#6b7280' }}>{ok ? '✓' : '✗'}</Text>
+            <Text style={{ fontSize: 6, color: ok ? '#e2e8f0' : '#6b7280' }}>{label}</Text>
+          </View>
+        ))}
+      </View>
+
+      {/* Priority findings */}
+      {priorityFindings.length > 0 && (
+        <>
+          <Text style={[styles.sectionHeading, { marginBottom: 6 }]}>Priority Findings</Text>
+          <View style={{ gap: 5 }}>
+            {priorityFindings.map((f, i) => {
+              const dotColor = f.status === 'failed' ? '#ef4444' : '#f59e0b';
+              return (
+                <View key={i} style={{ flexDirection: 'row', gap: 6, backgroundColor: '#13131A', borderRadius: 6, padding: 7 }}>
+                  <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: dotColor, marginTop: 2 }} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 8, fontWeight: 600, color: '#e2e8f0' }}>
+                      {f.title}{f.experimental ? ' (experimental)' : ''}
+                    </Text>
+                    <Text style={{ fontSize: 7, color: '#9ca3af', marginTop: 1 }}>{f.description.slice(0, 120)}</Text>
+                    <Text style={{ fontSize: 7, color: '#a5b4fc', marginTop: 2 }}>{f.recommendation.slice(0, 120)}</Text>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        </>
+      )}
+
+      <PageFooter styles={styles} showPoweredBy={branding.showPoweredBy} agencyName={branding.agencyName} />
+    </Page>
+  );
+}
+
 // ─── Main Document ────────────────────────────────────────────────────────────
 
 function ReportDocument({
@@ -1372,6 +1521,7 @@ function ReportDocument({
   const hasAccessibility = (analysis.accessibility_issues ?? []).length > 0;
   const hasSeoAudit      = !!(analysis.lighthouse_scores as any)?.seoAudit;
   const hasBpAudit       = !!(analysis.lighthouse_scores as any)?.bestPracticesAudit;
+  const hasLlmAudit      = !!(analysis.lighthouse_scores as any)?.llmReadinessAudit;
 
   return (
     <Document
@@ -1419,6 +1569,14 @@ function ReportDocument({
       )}
       {hasBpAudit && (
         <BestPracticesPage
+          analysis={analysis}
+          branding={branding}
+          styles={styles}
+          brandColor={brandColor}
+        />
+      )}
+      {hasLlmAudit && (
+        <LLMReadinessPage
           analysis={analysis}
           branding={branding}
           styles={styles}

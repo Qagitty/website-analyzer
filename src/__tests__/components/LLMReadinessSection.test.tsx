@@ -13,16 +13,16 @@ describe('LLMReadinessSection', () => {
     expect(screen.getByText('75/100')).toBeInTheDocument();
   });
 
-  it('shows green text for score >= 80', () => {
+  it('shows emerald styling for score >= 80', () => {
     render(<LLMReadinessSection scores={{ llmReadiness: 80 }} />);
     const scoreEl = screen.getByText('80/100');
-    expect(scoreEl.className).toContain('green');
+    expect(scoreEl.className).toContain('emerald');
   });
 
-  it('shows yellow text for score between 50 and 79', () => {
+  it('shows amber styling for score between 50 and 79', () => {
     render(<LLMReadinessSection scores={{ llmReadiness: 62 }} />);
     const scoreEl = screen.getByText('62/100');
-    expect(scoreEl.className).toContain('yellow');
+    expect(scoreEl.className).toContain('amber');
   });
 
   it('shows improvement tips when llmSignals has items', () => {

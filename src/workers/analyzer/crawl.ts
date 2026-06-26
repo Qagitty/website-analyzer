@@ -1,5 +1,5 @@
 import { analyzeHTML } from './score';
-import { checkLLMReadiness } from './llm-readiness';
+import { checkLLMReadinessLightweight } from './llm-readiness';
 import { analyzeSecurityHeaders, analyzeResources } from './resources';
 import { checkAccessibility } from './accessibility';
 import { checkSEOLightweight } from './seo';
@@ -136,7 +136,7 @@ export async function crawlPage(url: string, fetchHeaders: object): Promise<Craw
       totalImages:         resourceAudit.totalImages,
       thirdPartyCount:     resourceAudit.thirdParty.length,
     });
-    const llmReadiness = checkLLMReadiness(html);
+    const llmReadinessResult = checkLLMReadinessLightweight(html, r, url);
     const securityHeaders = analyzeSecurityHeaders(r);
     const accessibilityAudit = checkAccessibility(html);
     const seoResult = checkSEOLightweight(html, r, url);
@@ -148,7 +148,7 @@ export async function crawlPage(url: string, fetchHeaders: object): Promise<Craw
       performance: scores.performance,
       seo: seoResult.score ?? scores.seo,
       accessibility: accessibilityAudit.score,
-      llmReadiness: llmReadiness.score,
+      llmReadiness: llmReadinessResult.score ?? 0,
       securityHeaders,
       measurementMode: 'lightweight-fetch',
       auditLabel: 'Lightweight fetch audit',
@@ -156,6 +156,7 @@ export async function crawlPage(url: string, fetchHeaders: object): Promise<Craw
       accessibilityAuditLabel: 'Static accessibility scan',
       seoResult,
       bestPracticesResult,
+      llmReadinessResult,
     };
   } catch (err) {
     clearTimeout(timer);

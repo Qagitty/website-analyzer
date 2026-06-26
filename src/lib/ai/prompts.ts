@@ -379,4 +379,90 @@ Return ONLY valid JSON:
   "requiresBrowserVerification": ["<item that needs a real browser check to confirm>"]
 }
 `,
+
+  llmReadinessAnalysis: (data: {
+    url: string;
+    score: number | null;
+    scoreVersion: string;
+    auditMode: string;
+    coverage: number;
+    pageType: string;
+    failedFindings: Array<{ ruleId: string; title: string; severity: string; category: string; recommendation: string; source: string; experimental: boolean }>;
+    warningFindings: Array<{ ruleId: string; title: string; severity: string; category: string; recommendation: string; source: string; experimental: boolean }>;
+    detectedSignals: {
+      hasJsonLd: boolean;
+      schemaTypes: string[];
+      hasOrganizationSchema: boolean;
+      hasAuthorSignal: boolean;
+      hasDateSignal: boolean;
+      rawTextLength: number;
+      h1Count: number;
+      hasMetaDescription: boolean;
+      hasCanonical: boolean;
+      hasOpenGraph: boolean;
+      isHttps: boolean;
+      llmsTxtStatus: string;
+      robotsTxtFetched: boolean;
+    };
+    blockedCrawlers: Array<{ crawlerName: string; category: string; matchedRule: string | null }>;
+  }) => `You are an expert in web content strategy, technical SEO, and AI/LLM accessibility. Analyze the following LLM Readiness audit results for ${data.url} and provide prioritized, evidence-based recommendations.
+
+AUDIT SUMMARY:
+- Score: ${data.score !== null ? `${data.score}/100` : 'unavailable'} (${data.scoreVersion})
+- Audit mode: ${data.auditMode} — rendered-DOM checks were NOT performed
+- Coverage: ${data.coverage}%
+- Page type: ${data.pageType}
+
+DETECTED SIGNALS:
+- HTTPS: ${data.detectedSignals.isHttps ? 'Yes' : 'No'}
+- Raw text length: ${data.detectedSignals.rawTextLength} characters
+- H1 headings: ${data.detectedSignals.h1Count}
+- Structured data: ${data.detectedSignals.hasJsonLd ? `Yes (${data.detectedSignals.schemaTypes.join(', ') || 'no @type'})` : 'None'}
+- Organization schema: ${data.detectedSignals.hasOrganizationSchema ? 'Yes' : 'No'}
+- Author signal: ${data.detectedSignals.hasAuthorSignal ? 'Detected' : 'None'}
+- Date signal: ${data.detectedSignals.hasDateSignal ? 'Detected' : 'None'}
+- Meta description: ${data.detectedSignals.hasMetaDescription ? 'Present' : 'Missing'}
+- Canonical URL: ${data.detectedSignals.hasCanonical ? 'Present' : 'Missing'}
+- Open Graph: ${data.detectedSignals.hasOpenGraph ? 'Present' : 'Missing'}
+- llms.txt: ${data.detectedSignals.llmsTxtStatus}
+- robots.txt fetched: ${data.detectedSignals.robotsTxtFetched ? 'Yes' : 'No'}
+
+FAILED SIGNALS (${data.failedFindings.length}):
+${data.failedFindings.map(f => `- [${f.severity.toUpperCase()}] ${f.title} (${f.category}${f.experimental ? ', experimental' : ''})`).join('\n') || 'None'}
+
+WARNING SIGNALS (${data.warningFindings.length}):
+${data.warningFindings.map(f => `- ${f.title} (${f.category}${f.experimental ? ', experimental' : ''})`).join('\n') || 'None'}
+
+BLOCKED AI CRAWLERS (${data.blockedCrawlers.length}):
+${data.blockedCrawlers.map(c => `- ${c.crawlerName} (${c.category}): ${c.matchedRule ?? 'unknown rule'}`).join('\n') || 'None'}
+
+STRICT SAFETY RULES — you MUST follow all of these:
+1. NEVER claim this page will be indexed, ranked, cited, or used by any AI system.
+2. NEVER make provider-specific claims (do not mention ChatGPT, Claude, Perplexity, Gemini, or any other AI product by name).
+3. NEVER invent signals, findings, or data that are not in the input above.
+4. Treat llms.txt as OPTIONAL and EXPERIMENTAL — never classify its absence as a critical issue.
+5. Blocked training crawlers are NOT automatically a problem — a publisher may intentionally block training while allowing search retrieval.
+6. NEVER recommend keyword stuffing, mass-produced AI content, hidden text, duplicate FAQ blocks, or schema that does not match visible content.
+7. Distinguish deterministic findings (from structured data above) from heuristic observations.
+8. Acknowledge fetch-only limitations — do not speculate about JavaScript-rendered content you cannot see.
+9. Provide verification steps the user can actually perform.
+10. Prioritize crawlability, server-rendered content, entity clarity, structured data, and citation readiness over experimental signals.
+
+Return ONLY valid JSON in this exact format:
+{
+  "summary": "<2-3 sentences describing the overall LLM readiness posture based only on the data above>",
+  "prioritisedActions": [
+    {
+      "priority": 1,
+      "category": "<category from findings>",
+      "action": "<specific, actionable fix>",
+      "why": "<why this may help machine systems understand or access the content>",
+      "verificationSteps": "<how to verify the fix worked>",
+      "experimental": false
+    }
+  ],
+  "quickWins": ["<action completable in < 30 min with no risk>"],
+  "limitations": ["<what this fetch-only audit could not assess>"]
+}
+`,
 };

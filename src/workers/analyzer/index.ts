@@ -140,10 +140,12 @@ async function runAnalysis(req: AnalysisRequest): Promise<void> {
       truncated: !!accessibilityAudit.error,
     });
     const consoleErrors = checkCommonErrors(html, response);
-    const llmReadiness = checkLLMReadiness(html);
     const securityHeaders = analyzeSecurityHeaders(response);
-    const seoAudit = await checkSEO(html, response, req.url, req.analysisId);
-    const bestPracticesAudit = checkBestPractices(html, response, req.url);
+    const [seoAudit, bestPracticesAudit, llmReadinessAudit] = await Promise.all([
+      checkSEO(html, response, req.url, req.analysisId),
+      Promise.resolve(checkBestPractices(html, response, req.url)),
+      checkLLMReadiness(html, response, req.url),
+    ]);
 
     const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
     const homepageTitle = titleMatch ? titleMatch[1].trim() : req.url;
@@ -178,7 +180,7 @@ async function runAnalysis(req: AnalysisRequest): Promise<void> {
         performance: scores.performance,
         seo: seoAudit.score ?? scores.seo,
         accessibility: accessibilityAudit.score,
-        llmReadiness: llmReadiness.score,
+        llmReadiness: llmReadinessAudit.score ?? 0,
         securityHeaders,
         measurementMode: 'full-fetch',
         auditLabel: 'Full fetch audit',
@@ -218,6 +220,24 @@ async function runAnalysis(req: AnalysisRequest): Promise<void> {
           securityHeadersTotal: bestPracticesAudit.securityHeaders.length,
           criticalFindings: bestPracticesAudit.summary.critical,
           highFindings: bestPracticesAudit.summary.high,
+        },
+        llmReadinessResult: {
+          requestedUrl: req.url,
+          finalUrl: response.url,
+          httpStatus: response.status,
+          auditMode: 'fetch-only',
+          title: llmReadinessAudit.detectedSignals.rawTextLength > 0 ? homepageTitle : null,
+          h1: llmReadinessAudit.detectedSignals.h1Count > 0 ? null : null,
+          canonical: llmReadinessAudit.detectedSignals.canonicalUrl,
+          schemaTypes: llmReadinessAudit.detectedSignals.schemaTypes,
+          hasAuthorSignal: llmReadinessAudit.detectedSignals.hasAuthorSignal,
+          hasDateSignal: llmReadinessAudit.detectedSignals.hasDateSignal,
+          isIndexable: !llmReadinessAudit.detectedSignals.robotsMetaDirectives.some(d => d.includes('noindex')),
+          score: llmReadinessAudit.score,
+          coverage: llmReadinessAudit.coverage.percentage,
+          auditLabel: 'Full LLM readiness audit',
+          topIssue: llmReadinessAudit.findings.find(f => f.status === 'failed' && f.severity === 'critical')?.title ??
+            llmReadinessAudit.findings.find(f => f.status === 'failed' && f.severity === 'high')?.title ?? null,
         },
       },
     ];
@@ -282,10 +302,9 @@ async function runAnalysis(req: AnalysisRequest): Promise<void> {
           scores.scoreVersion,
           scores.perfBreakdown,
         ),
-        llmReadiness: llmReadiness.score,
-        llmChecks: llmReadiness.checks,
-        llmSignals: llmReadiness.signals,
+        llmReadiness: llmReadinessAudit.score ?? 0,
         securityHeaders,
+        llmReadinessAudit,
         scoreBreakdown: scores.scoreBreakdown,
         opportunities,
         accessibilityAudit,

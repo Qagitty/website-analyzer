@@ -92,6 +92,7 @@ export interface CrawledPage {
   };
   seoResult?: import('../../types/seo').SeoPageResult;
   bestPracticesResult?: import('../../types/best-practices').BestPracticesPageResult;
+  llmReadinessResult?: import('../../types/llm-readiness').LlmReadinessPageResult;
 }
 
 export interface ResourceAuditItem { url: string; type: 'script' | 'stylesheet'; }
