@@ -80,6 +80,14 @@ export interface LighthouseScores {
   scoreBreakdown?: ScoreBreakdown;
 }
 
+export type PageAuditLevel =
+  | 'full-browser'
+  | 'hybrid'
+  | 'static'
+  | 'fetch-only'
+  | 'status-only'
+  | 'not-analyzed';
+
 export interface CrawledPage {
   url: string;
   /** URL before any redirects */
@@ -90,11 +98,22 @@ export interface CrawledPage {
   ttfb: number;
   bytes: number;
   title: string;
-  performance: number;
-  seo: number;
-  accessibility: number;
-  llmReadiness: number;
+  /** null when the page was not successfully analyzed (HTTP error, network error) */
+  performance: number | null;
+  seo: number | null;
+  accessibility: number | null;
+  llmReadiness: number | null;
   securityHeaders?: SecurityHeaderResult[];
+  /** Stable identifier for this page within the analysis job */
+  pageId?: string;
+  /** Discovery depth (0 = root, 1 = directly linked, …) */
+  depth?: number;
+  /** URL of the page this link was found on; null for the root page */
+  discoveredFrom?: string | null;
+  /** Coarse page type classification based on URL path */
+  pageType?: string;
+  /** Tiered audit level per multi-page analysis spec */
+  auditLevel?: PageAuditLevel;
   /** What kind of audit was performed on this page */
   measurementMode?: 'full-fetch' | 'lightweight-fetch' | 'fetch-status-only';
   /** Human-readable label shown in the crawled-pages table */

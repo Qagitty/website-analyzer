@@ -11,7 +11,7 @@ import { crawlInternalLinks, crawlPage } from './crawl';
 import { analyzeResources, analyzeSecurityHeaders } from './resources';
 import { generateOpportunities } from './opportunities';
 import { workerLog } from './log';
-import type { Env, AnalysisRequest, CrawledPage } from './types';
+import type { Env, AnalysisRequest, CrawledPage, CrawlCoverage } from './types';
 
 // Hash analysis URL for logs so the full URL never appears in log output.
 // Only last 8 hex chars are kept — sufficient for correlation without disclosing the target.
@@ -184,6 +184,11 @@ async function runAnalysis(req: AnalysisRequest): Promise<void> {
         accessibility: accessibilityAudit.score,
         llmReadiness: llmReadinessAudit.score ?? 0,
         securityHeaders,
+        pageId: crypto.randomUUID(),
+        depth: 0,
+        discoveredFrom: null,
+        pageType: 'homepage',
+        auditLevel: 'fetch-only',
         measurementMode: 'full-fetch',
         auditLabel: 'Full fetch audit',
         accessibilityFindingCount: accessibilityAudit.findings.filter(f => f.status === 'confirmed' || f.status === 'likely').length,
@@ -245,12 +250,37 @@ async function runAnalysis(req: AnalysisRequest): Promise<void> {
     ];
 
     const crawlStart = Date.now();
-    const internalLinks = crawlInternalLinks(html, req.url);
-    for (const link of internalLinks.slice(0, 4)) {
+    const discoveredLinks = crawlInternalLinks(html, req.url);
+    const linksToAnalyze = discoveredLinks.slice(0, 4);
+    let crawlFailed = 0;
+    let crawlSkipped = 0;
+    for (const link of linksToAnalyze) {
       const page = await crawlPage(link, fetchHeaders);
-      if (page) crawledPages.push(page);
+      if (!page) {
+        crawlSkipped++;
+      } else {
+        if (page.measurementError) crawlFailed++;
+        crawledPages.push(page);
+      }
     }
     const crawlDuration = Date.now() - crawlStart;
+
+    const crawlCoverage: CrawlCoverage = {
+      discoveredUrls: discoveredLinks.length,
+      queuedUrls: linksToAnalyze.length,
+      analyzedPages: crawledPages.length - 1,             // exclude root
+      failedPages: crawlFailed,
+      skippedPages: crawlSkipped,
+      deduplicatedUrls: 0,                                 // dedup is done inside crawlInternalLinks
+      auditLevel: 'fetch-only',
+      limitations: [
+        'Scores reflect static HTML analysis — JavaScript-rendered content is not measured.',
+        'Template-heavy sites may show similar scores across pages if HTML structure is shared.',
+        linksToAnalyze.length < discoveredLinks.length
+          ? `Only ${linksToAnalyze.length} of ${discoveredLinks.length} discovered pages were analyzed (limit: 4).`
+          : '',
+      ].filter(Boolean),
+    };
 
     const totalDuration = Date.now() - startTime;
     workerLog('info', 'analysis.complete', {
@@ -328,6 +358,7 @@ async function runAnalysis(req: AnalysisRequest): Promise<void> {
         resourceAudit,
       },
       crawledPages,
+      crawlCoverage,
     });
   } catch (err: unknown) {
     const errorMessage = err instanceof Error ? err.message : 'Failed to fetch URL';

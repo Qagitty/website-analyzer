@@ -144,7 +144,10 @@ export default async function PublicReportPage(props: { params: Promise<{ id: st
           <LLMReadinessSection scores={analysis.lighthouse_scores as any} />
         )}
         {analysis.crawl_pages && (
-          <CrawledPagesSection crawledPages={analysis.crawl_pages as any} />
+          <CrawledPagesSection
+            crawledPages={analysis.crawl_pages as any}
+            crawlCoverage={(analysis.lighthouse_scores as any)?.crawlCoverage}
+          />
         )}
 
         {/* CTA footer */}

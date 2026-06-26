@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
     error: workerError,
     // Multi-page crawl results
     crawledPages,
+    crawlCoverage,
     // Monitor context (present only for scheduled runs).
     // NOTE: monitorUserEmail is intentionally absent — we look it up from the
     // DB here so user emails never travel through Cloudflare Worker bodies.
@@ -149,7 +150,9 @@ export async function POST(req: NextRequest) {
       .update({
         status: 'completed',
         screenshot_url: screenshotUrl,
-        lighthouse_scores: results.lighthouseScores,
+        lighthouse_scores: results.lighthouseScores
+          ? { ...results.lighthouseScores, crawlCoverage: crawlCoverage ?? null }
+          : results.lighthouseScores,
         console_errors: results.consoleErrors,
         accessibility_issues: results.accessibilityIssues,
         network_requests: results.networkSummary,

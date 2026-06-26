@@ -10,10 +10,16 @@ interface CrawledPage {
   ttfb: number;
   bytes: number;
   title: string;
-  performance: number;
-  seo: number;
-  accessibility: number;
-  llmReadiness: number;
+  /** null = not measured (page failed); number = actual measured score */
+  performance: number | null;
+  seo: number | null;
+  accessibility: number | null;
+  llmReadiness: number | null;
+  pageId?: string;
+  depth?: number;
+  discoveredFrom?: string | null;
+  pageType?: string;
+  auditLevel?: string;
   measurementMode?: 'full-fetch' | 'lightweight-fetch' | 'fetch-status-only';
   auditLabel?: string;
   measurementError?: {
@@ -72,10 +78,11 @@ function buildFailedPage(overrides: Partial<CrawledPage> = {}): CrawledPage {
     ttfb: 0,
     bytes: 0,
     title: '',
-    performance: 0,
-    seo: 0,
-    accessibility: 0,
-    llmReadiness: 0,
+    // null = not measured; returning 0 would falsely imply we measured a 0 score
+    performance: null,
+    seo: null,
+    accessibility: null,
+    llmReadiness: null,
     measurementMode: 'fetch-status-only',
     auditLabel: 'Measurement failed',
     measurementError: {
@@ -100,12 +107,14 @@ function auditLabelFor(mode: CrawledPage['measurementMode']): string {
   }
 }
 
-// Simulate score isolation: each page has its own score, not copied from root
+// Simulate score isolation: each page has its own score, not copied from root.
+// Failed pages (null scores) are excluded from the comparison.
 function assertScoreIsolation(pages: CrawledPage[]): boolean {
   if (pages.length < 2) return true;
   const root = pages[0];
-  return pages.slice(1).every(p =>
-    // Crawled pages may have different scores than root — they are not copies
+  const measuredCrawled = pages.slice(1).filter(p => p.performance != null);
+  if (measuredCrawled.length === 0) return true; // nothing to compare
+  return measuredCrawled.every(p =>
     p.performance !== root.performance ||
     p.seo !== root.seo ||
     p.accessibility !== root.accessibility
@@ -216,11 +225,11 @@ describe('failed page handling', () => {
     expect(isFailed(buildCrawledPage())).toBe(false);
   });
 
-  it('failed page has zero scores', () => {
+  it('failed page has null scores (not measured, not zero)', () => {
     const failed = buildFailedPage();
-    expect(failed.performance).toBe(0);
-    expect(failed.seo).toBe(0);
-    expect(failed.accessibility).toBe(0);
+    expect(failed.performance).toBeNull();
+    expect(failed.seo).toBeNull();
+    expect(failed.accessibility).toBeNull();
   });
 
   it('failed page retains statusCode from the response', () => {

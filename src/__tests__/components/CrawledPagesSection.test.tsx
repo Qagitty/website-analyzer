@@ -65,9 +65,9 @@ describe('CrawledPagesSection', () => {
     expect(screen.getByText('72')).toBeInTheDocument();
   });
 
-  it('shows errors count in summary', () => {
+  it('shows issues inline for pages with errors array', () => {
     render(<CrawledPagesSection crawledPages={mockPages} />);
-    // 1 page has errors (the 404 page)
-    expect(screen.getByText(/1.*error|error.*1/i)).toBeInTheDocument();
+    // The 404 page has errors:['Not found'] → shows "1 issue" in the table row
+    expect(screen.getByText(/1 issue/i)).toBeInTheDocument();
   });
 });

@@ -140,7 +140,10 @@ export default async function ReportPage(props: { params: Promise<{ id: string }
       {analysis.lighthouse_scores && (
         <LLMReadinessSection scores={analysis.lighthouse_scores as any} />
       )}
-      <CrawledPagesSection crawledPages={analysis.crawl_pages as any} />
+      <CrawledPagesSection
+        crawledPages={analysis.crawl_pages as any}
+        crawlCoverage={(analysis.lighthouse_scores as any)?.crawlCoverage}
+      />
     </div>
   );
 }

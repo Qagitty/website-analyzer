@@ -4,7 +4,7 @@ import { analyzeSecurityHeaders, analyzeResources } from './resources';
 import { checkAccessibility } from './accessibility';
 import { checkSEOLightweight } from './seo';
 import { checkBestPracticesLightweight } from './best-practices';
-import type { CrawledPage } from './types';
+import type { CrawledPage, DiscoveredLink } from './types';
 
 // Path segments that indicate auth-gated or user-account pages.
 // Matched against each individual path segment (split by '/') so
@@ -49,10 +49,39 @@ function isPrivatePage(title: string): boolean {
   return PRIVATE_TITLE_KEYWORDS.some(kw => lower.includes(kw));
 }
 
-export function crawlInternalLinks(html: string, baseUrl: string): string[] {
+/**
+ * Classifies a URL into a coarse page type based on its path.
+ * Used to improve observability when all pages show the same scores.
+ */
+export function classifyPageType(url: string): string {
+  try {
+    const { pathname } = new URL(url);
+    const p = pathname.toLowerCase();
+    if (p === '/' || p === '') return 'homepage';
+    if (/\/(blog|article|news|post|story|insight)(s?\/|$)/.test(p)) return 'article';
+    if (/\/(product|item)(s?\/|$)/.test(p) || /\/p\/[a-z0-9-]/.test(p)) return 'product';
+    if (/\/(categor|catalogue|collection|catalog|department|browse)/.test(p) || /\/c\/[a-z0-9]/.test(p)) return 'category';
+    if (/\/(about|contact|team|careers|jobs|pricing|faq|help|support)(\/|$)/.test(p)) return 'landing';
+    if (/\/search(\/|\?|$)/.test(p)) return 'search';
+    if (/\/(tag|topic|author|archive)(\/|$)/.test(p)) return 'index';
+    const segments = p.split('/').filter(Boolean);
+    if (segments.some(s => /^\d{4,}$/.test(s))) return 'detail';
+    if (segments.length >= 3) return 'detail';
+    return 'section';
+  } catch {
+    return 'unknown';
+  }
+}
+
+/**
+ * Discovers internal links from HTML.
+ * Returns up to 20 unique normalized URLs as DiscoveredLink objects.
+ * The caller decides how many to actually analyze (typically 4).
+ */
+export function crawlInternalLinks(html: string, baseUrl: string): DiscoveredLink[] {
   const base = new URL(baseUrl);
   const seen = new Set<string>();
-  const results: string[] = [];
+  const results: DiscoveredLink[] = [];
 
   const hrefRegex = /href=["']([^"'#][^"']*)["']/gi;
   let match: RegExpExecArray | null;
@@ -72,12 +101,13 @@ export function crawlInternalLinks(html: string, baseUrl: string): string[] {
     if (parsed.hostname !== base.hostname) continue;
     if (shouldSkipPath(parsed.pathname)) continue;
     if (parsed.pathname === '/' && parsed.search === '') continue;
+    // Deduplicate by origin+pathname (ignore tracking query params)
     const key = parsed.origin + parsed.pathname;
     if (seen.has(key)) continue;
     seen.add(key);
 
-    results.push(absolute);
-    if (results.length >= 4) break;
+    results.push({ url: absolute, depth: 1, discoveredFrom: baseUrl });
+    if (results.length >= 20) break;
   }
 
   return results;
@@ -98,10 +128,12 @@ function classifyFetchError(err: unknown, elapsed: number): CrawledPage['measure
   return { code: 'UNKNOWN', message: msg.slice(0, 120), retryable: true };
 }
 
-export async function crawlPage(url: string, fetchHeaders: object): Promise<CrawledPage | null> {
+export async function crawlPage(link: DiscoveredLink, fetchHeaders: Record<string, string>): Promise<CrawledPage | null> {
+  const { url, depth, discoveredFrom } = link;
   const t0 = Date.now();
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 10_000);
+  const pageId = crypto.randomUUID();
 
   try {
     const r = await fetch(url, { headers: fetchHeaders, redirect: 'follow', signal: ctrl.signal });
@@ -113,22 +145,25 @@ export async function crawlPage(url: string, fetchHeaders: object): Promise<Craw
     const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
     const title = titleMatch ? titleMatch[1].trim() : url;
 
-    // Skip auth-gated pages: detected via title keywords or final URL after redirect
+    // Skip auth-gated pages detected via title keywords or post-redirect URL
     if (isPrivatePage(title) || shouldSkipPath(new URL(r.url).pathname)) return null;
 
-    // HTTP errors — record status but do not fabricate scores
+    // HTTP errors: record provenance but return null scores, not fabricated zeros
     if (!r.ok) {
       return {
         url: r.url, requestedUrl: url, finalUrl: r.url,
         statusCode: r.status, ttfb, bytes, title,
-        performance: 0, seo: 0, accessibility: 0, llmReadiness: 0,
+        performance: null, seo: null, accessibility: null, llmReadiness: null,
+        pageId, depth, discoveredFrom,
+        pageType: classifyPageType(r.url),
+        auditLevel: 'status-only',
         measurementMode: 'fetch-status-only',
         auditLabel: 'Measurement failed',
         measurementError: { code: 'HTTP_ERROR', message: `HTTP ${r.status}`, retryable: r.status >= 500 },
       };
     }
 
-    // Run resource audit so each crawled page scores on its own resource footprint
+    // Independent per-page analysis — each crawled page uses its own fetched HTML
     const resourceAudit = analyzeResources(html, r, url);
     const scores = analyzeHTML(html, r, bytes, ttfb, {
       renderBlockingCount: resourceAudit.renderBlocking.length,
@@ -150,6 +185,9 @@ export async function crawlPage(url: string, fetchHeaders: object): Promise<Craw
       accessibility: accessibilityAudit.score,
       llmReadiness: llmReadinessResult.score ?? 0,
       securityHeaders,
+      pageId, depth, discoveredFrom,
+      pageType: classifyPageType(r.url),
+      auditLevel: 'fetch-only',
       measurementMode: 'lightweight-fetch',
       auditLabel: 'Lightweight fetch audit',
       accessibilityFindingCount: accessibilityAudit.findings.filter(f => f.status === 'confirmed' || f.status === 'likely').length,
@@ -161,10 +199,14 @@ export async function crawlPage(url: string, fetchHeaders: object): Promise<Craw
   } catch (err) {
     clearTimeout(timer);
     const elapsed = Date.now() - t0;
+    // Network errors: null scores — not measured, not zero
     return {
       url, requestedUrl: url, finalUrl: url,
       statusCode: 0, ttfb: elapsed, bytes: 0, title: url,
-      performance: 0, seo: 0, accessibility: 0, llmReadiness: 0,
+      performance: null, seo: null, accessibility: null, llmReadiness: null,
+      pageId, depth, discoveredFrom,
+      pageType: classifyPageType(url),
+      auditLevel: 'not-analyzed',
       measurementMode: 'fetch-status-only',
       auditLabel: 'Measurement failed',
       measurementError: classifyFetchError(err, elapsed),

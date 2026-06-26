@@ -70,6 +70,40 @@ export interface LLMReadiness {
   signals: string[];
 }
 
+/**
+ * Tiered audit levels per the multi-page analysis spec.
+ * Describes what data collection method was used, not which analysis modules ran.
+ */
+export type PageAuditLevel =
+  | 'full-browser'   // Full Playwright browser audit (not yet implemented)
+  | 'hybrid'         // Browser DOM + static analysis
+  | 'static'         // Static HTML analysis only
+  | 'fetch-only'     // HTTP fetch + static HTML analysis + response headers
+  | 'status-only'    // HTTP status + redirect chain only (page failed or HTTP error)
+  | 'not-analyzed';  // Discovered but not audited (skipped, deduplicated, over limit)
+
+/** A URL discovered during crawling, with its discovery context. */
+export interface DiscoveredLink {
+  url: string;
+  depth: number;
+  discoveredFrom: string;
+}
+
+/**
+ * Coverage summary for a multi-page crawl job.
+ * Stored in lighthouse_scores.crawlCoverage so no DB migration is needed.
+ */
+export interface CrawlCoverage {
+  discoveredUrls: number;
+  queuedUrls: number;
+  analyzedPages: number;
+  failedPages: number;
+  skippedPages: number;
+  deduplicatedUrls: number;
+  auditLevel: 'fetch-only';
+  limitations: string[];
+}
+
 export interface CrawledPage {
   url: string;
   requestedUrl?: string;
@@ -78,13 +112,26 @@ export interface CrawledPage {
   ttfb: number;
   bytes: number;
   title: string;
-  performance: number;
-  seo: number;
-  accessibility: number;
-  llmReadiness: number;
+  /** null when the page was not successfully analyzed (HTTP error, network error) */
+  performance: number | null;
+  seo: number | null;
+  accessibility: number | null;
+  llmReadiness: number | null;
   securityHeaders?: SecurityHeaderResult[];
+  /** Stable identifier for this page within the analysis job */
+  pageId?: string;
+  /** Discovery depth (0 = root, 1 = directly linked from root, …) */
+  depth?: number;
+  /** URL of the page this link was found on; null for the root page */
+  discoveredFrom?: string | null;
+  /** Coarse page type classification based on URL path */
+  pageType?: string;
+  /** Tiered audit level — replaces measurementMode for new consumers */
+  auditLevel?: PageAuditLevel;
   measurementMode?: 'full-fetch' | 'lightweight-fetch' | 'fetch-status-only';
   auditLabel?: 'Full fetch audit' | 'Lightweight fetch audit' | 'Fetch status only' | 'Measurement failed';
+  accessibilityFindingCount?: number;
+  accessibilityAuditLabel?: string;
   measurementError?: {
     code: 'TIMEOUT' | 'BLOCKED' | 'DNS_ERROR' | 'TLS_ERROR' | 'HTTP_ERROR' | 'BROWSER_ERROR' | 'EMPTY_PAGE' | 'UNSUPPORTED' | 'UNKNOWN';
     message: string;
