@@ -465,4 +465,84 @@ Return ONLY valid JSON in this exact format:
   "limitations": ["<what this fetch-only audit could not assess>"]
 }
 `,
+
+  securityHeadersAnalysis: (data: {
+    url: string;
+    score: number | null;
+    scoreVersion: string;
+    isHttps: boolean;
+    finalUrl: string;
+    redirectCount: number;
+    findings: Array<{
+      headerName: string;
+      title: string;
+      status: string;
+      severity: string;
+      reason: string;
+      rolloutRisk: string;
+      safeToApplyDirectly: boolean;
+      weaknesses?: string[];
+    }>;
+    scoreBreakdown: Array<{
+      headerName: string;
+      displayName: string;
+      status: string;
+      weight: number;
+      earnedPoints: number;
+      reason: string;
+    }>;
+    coverage: number;
+    warnings: string[];
+  }) => `
+You are a web security expert reviewing HTTP security header findings for ${data.url}.
+
+AUDIT SUMMARY:
+- Score: ${data.score !== null ? `${data.score}/100` : 'unavailable'} (${data.scoreVersion})
+- Final URL: ${data.finalUrl}
+- Protocol: ${data.isHttps ? 'HTTPS' : 'HTTP'}
+- Redirect hops: ${data.redirectCount}
+- Coverage: ${data.coverage}%
+
+SCORE BREAKDOWN:
+${data.scoreBreakdown.map(b => `- ${b.displayName}: ${b.earnedPoints}/${b.weight} pts (${b.status}) — ${b.reason}`).join('\n')}
+
+FINDINGS (${data.findings.length}):
+${data.findings.map(f => `- [${f.severity.toUpperCase()}] ${f.title} (rollout risk: ${f.rolloutRisk}${f.safeToApplyDirectly ? ', safe to apply' : ''})
+  Status: ${f.status} | Reason: ${f.reason}${f.weaknesses?.length ? `\n  Weaknesses: ${f.weaknesses.join('; ')}` : ''}`).join('\n') || 'None'}
+
+${data.warnings.length > 0 ? `WARNINGS:\n${data.warnings.map(w => `- ${w}`).join('\n')}` : ''}
+
+STRICT SAFETY CONSTRAINTS — you MUST follow all of these:
+1. NEVER invent missing headers — only comment on headers in the findings above.
+2. NEVER claim the site is protected from XSS, clickjacking, or any attack solely because a header is present.
+3. NEVER claim this audit is a penetration test or a complete security assessment.
+4. NEVER recommend a generic production-ready Content-Security-Policy — CSP must be tailored to the site.
+5. NEVER recommend HSTS preload without explicitly warning it is extremely difficult to reverse.
+6. NEVER recommend includeSubDomains without warning that all subdomains must serve HTTPS.
+7. NEVER recommend restrictive Permissions-Policy without acknowledging that runtime capabilities are unknown from a static fetch.
+8. NEVER recommend COOP or COEP universally — only if use of SharedArrayBuffer or high-resolution timers is known.
+9. NEVER recommend X-Frame-Options: DENY if the site may legitimately embed content in iframes.
+10. NEVER recommend removing or adding HPKP — it is dangerous and deprecated.
+11. Clearly distinguish low-risk changes (safe to apply) from high-risk changes (require staging).
+12. Require staging validation for all high-rollout-risk headers before production deployment.
+13. DO NOT alter the deterministic scores or statuses — you may add context but not contradict them.
+14. Preserve exact observed header values — do not paraphrase or normalise them.
+
+Return ONLY valid JSON in this exact format:
+{
+  "summary": "<2-3 sentences describing the overall security header posture — do not claim the site is secure or insecure overall>",
+  "prioritisedActions": [
+    {
+      "priority": 1,
+      "headerName": "<exact header name>",
+      "action": "<specific, actionable change>",
+      "rationale": "<why this header matters in this specific context>",
+      "stagingRequired": true,
+      "verificationSteps": "<how to verify the change worked without breaking the site>"
+    }
+  ],
+  "quickWins": ["<only include changes that are genuinely safe to apply directly — do not include CSP, HSTS with long max-age, COOP, or COEP here>"],
+  "limitations": ["<what this HTTP header audit could not assess — e.g. sub-resource headers, authenticated pages, API endpoints>"]
+}
+`,
 };

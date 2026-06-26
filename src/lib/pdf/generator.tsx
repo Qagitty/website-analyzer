@@ -1502,6 +1502,149 @@ function LLMReadinessPage({
   );
 }
 
+// ─── Security Headers Page ───────────────────────────────────────────────────
+
+function SecurityHeadersPage({
+  analysis, branding, styles, brandColor,
+}: {
+  analysis: Analysis;
+  branding: Required<Branding>;
+  styles: ReturnType<typeof makeStyles>;
+  brandColor: string;
+}) {
+  const secAudit = (analysis.lighthouse_scores as any)?.securityHeadersAudit as
+    import('@/types/security-headers').SecurityHeadersAuditResult | undefined;
+  if (!secAudit) return null;
+
+  const { score, scoreVersion, coverage, findings, scoreBreakdown, summary, isHttps, redirectChain } = secAudit;
+  const SCOLOR = score === null ? '#9ca3af' : score >= 80 ? '#10b981' : score >= 50 ? '#f59e0b' : '#ef4444';
+  const STATUS_COLOR: Record<string, string> = {
+    strong: '#10b981', present: '#3b82f6', weak: '#f59e0b',
+    malformed: '#f97316', conflicting: '#f97316', missing: '#ef4444',
+  };
+
+  const SEV_ORDER: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
+  const priorityFindings = findings
+    .sort((a, b) => (SEV_ORDER[a.severity] ?? 9) - (SEV_ORDER[b.severity] ?? 9))
+    .slice(0, 6);
+
+  return (
+    <Page size="A4" style={styles.page}>
+      <HeaderBar
+        styles={styles}
+        brandColor={brandColor}
+        agencyName={branding.agencyName}
+        logoUrl={branding.logoUrl}
+        pageLabel="Security Headers"
+      />
+      <View style={{ marginBottom: 6 }}>
+        <Text style={{ fontSize: 7, color: '#9ca3af' }}>{analysis.url}</Text>
+      </View>
+
+      {/* Disclaimer */}
+      <View style={{ backgroundColor: '#1e1e2e', borderRadius: 6, padding: 8, marginBottom: 10 }}>
+        <Text style={{ fontSize: 7, color: '#9ca3af', lineHeight: 1.4 }}>
+          This report evaluates HTTP security response headers. It does not constitute a penetration test and does not
+          guarantee protection against any attack vector. High-risk headers must be validated in staging before production
+          deployment. Score version: {scoreVersion} · Coverage: {coverage.percentage}%
+        </Text>
+      </View>
+
+      {/* Score row */}
+      <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
+        <View style={{ flex: 1, backgroundColor: '#13131A', borderRadius: 8, padding: 10, alignItems: 'center' }}>
+          <Text style={{ fontSize: 26, fontWeight: 700, color: SCOLOR }}>
+            {score !== null ? String(score) : '—'}
+          </Text>
+          <Text style={{ fontSize: 7, color: '#9ca3af', marginTop: 2 }}>/ 100</Text>
+          <Text style={{ fontSize: 7, color: '#6b7280', marginTop: 2 }}>Security Score</Text>
+        </View>
+        <View style={{ flex: 1, backgroundColor: '#13131A', borderRadius: 8, padding: 10, alignItems: 'center' }}>
+          <Text style={{ fontSize: 22, fontWeight: 700, color: '#10b981' }}>{summary.strong}</Text>
+          <Text style={{ fontSize: 7, color: '#9ca3af', marginTop: 2 }}>strong</Text>
+        </View>
+        <View style={{ flex: 1, backgroundColor: '#13131A', borderRadius: 8, padding: 10, alignItems: 'center' }}>
+          <Text style={{ fontSize: 22, fontWeight: 700, color: '#ef4444' }}>{summary.missing}</Text>
+          <Text style={{ fontSize: 7, color: '#9ca3af', marginTop: 2 }}>missing</Text>
+        </View>
+        <View style={{ flex: 1, backgroundColor: '#13131A', borderRadius: 8, padding: 10, alignItems: 'center' }}>
+          <Text style={{ fontSize: 22, fontWeight: 700, color: '#f59e0b' }}>{summary.weak + summary.malformed}</Text>
+          <Text style={{ fontSize: 7, color: '#9ca3af', marginTop: 2 }}>weak/malformed</Text>
+        </View>
+        <View style={{ flex: 1, backgroundColor: '#13131A', borderRadius: 8, padding: 10, alignItems: 'center' }}>
+          <Text style={{ fontSize: 14, fontWeight: 700, color: isHttps ? '#10b981' : '#ef4444' }}>
+            {isHttps ? 'HTTPS' : 'HTTP'}
+          </Text>
+          <Text style={{ fontSize: 7, color: '#9ca3af', marginTop: 2 }}>protocol</Text>
+        </View>
+      </View>
+
+      {/* Score breakdown table */}
+      <View style={{ marginBottom: 10 }}>
+        <Text style={{ fontSize: 9, fontWeight: 700, color: '#e5e7eb', marginBottom: 4 }}>Score Breakdown</Text>
+        <View style={{ borderRadius: 6, overflow: 'hidden', borderWidth: 1, borderColor: '#2d2d3d' }}>
+          {/* Header */}
+          <View style={{ flexDirection: 'row', backgroundColor: '#1e1e2e', padding: 6 }}>
+            <Text style={{ flex: 2.5, fontSize: 7, fontWeight: 700, color: '#9ca3af' }}>Header</Text>
+            <Text style={{ flex: 1, fontSize: 7, fontWeight: 700, color: '#9ca3af' }}>Status</Text>
+            <Text style={{ flex: 1, fontSize: 7, fontWeight: 700, color: '#9ca3af', textAlign: 'right' }}>Points</Text>
+          </View>
+          {scoreBreakdown.filter(b => b.weight > 0).map((b, i) => (
+            <View key={b.headerName} style={{
+              flexDirection: 'row', padding: 5,
+              backgroundColor: i % 2 === 0 ? '#13131A' : '#1a1a25',
+            }}>
+              <Text style={{ flex: 2.5, fontSize: 7, color: '#d1d5db', fontFamily: 'Courier' }}>{b.displayName}</Text>
+              <Text style={{ flex: 1, fontSize: 7, color: STATUS_COLOR[b.status] ?? '#9ca3af' }}>{b.status}</Text>
+              <Text style={{
+                flex: 1, fontSize: 7, textAlign: 'right', fontFamily: 'Courier',
+                color: b.earnedPoints === b.weight ? '#10b981' : b.earnedPoints > 0 ? '#f59e0b' : '#ef4444',
+              }}>
+                {b.earnedPoints}/{b.weight}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      {/* Priority findings */}
+      {priorityFindings.length > 0 && (
+        <View style={{ marginBottom: 8 }}>
+          <Text style={{ fontSize: 9, fontWeight: 700, color: '#e5e7eb', marginBottom: 4 }}>Priority Findings</Text>
+          {priorityFindings.map((f, i) => {
+            const SEV_C: Record<string, string> = { critical: '#ef4444', high: '#f97316', medium: '#f59e0b', low: '#3b82f6', info: '#6b7280' };
+            return (
+              <View key={f.id} style={{
+                backgroundColor: '#13131A', borderRadius: 5, padding: 7,
+                marginBottom: i < priorityFindings.length - 1 ? 4 : 0,
+              }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 3 }}>
+                  <View style={{ backgroundColor: SEV_C[f.severity] ?? '#6b7280', borderRadius: 2, paddingHorizontal: 3, paddingVertical: 1 }}>
+                    <Text style={{ fontSize: 6, fontWeight: 700, color: '#fff' }}>{f.severity.toUpperCase()}</Text>
+                  </View>
+                  <Text style={{ fontSize: 8, fontWeight: 700, color: '#e5e7eb', flex: 1 }}>{f.title}</Text>
+                  {f.safeToApplyDirectly && (
+                    <Text style={{ fontSize: 6, color: '#10b981' }}>safe to apply</Text>
+                  )}
+                </View>
+                <Text style={{ fontSize: 7, color: '#9ca3af', lineHeight: 1.4 }}>{f.recommendation}</Text>
+              </View>
+            );
+          })}
+        </View>
+      )}
+
+      {redirectChain.length > 1 && (
+        <View style={{ backgroundColor: '#1e1e2e', borderRadius: 5, padding: 7 }}>
+          <Text style={{ fontSize: 7, color: '#9ca3af' }}>Redirect chain: {redirectChain.length} hop(s) — {redirectChain.map(h => h.status).join(' → ')}</Text>
+        </View>
+      )}
+
+      <PageFooter styles={styles} showPoweredBy={branding.showPoweredBy} agencyName={branding.agencyName} />
+    </Page>
+  );
+}
+
 // ─── Main Document ────────────────────────────────────────────────────────────
 
 function ReportDocument({
@@ -1522,6 +1665,7 @@ function ReportDocument({
   const hasSeoAudit      = !!(analysis.lighthouse_scores as any)?.seoAudit;
   const hasBpAudit       = !!(analysis.lighthouse_scores as any)?.bestPracticesAudit;
   const hasLlmAudit      = !!(analysis.lighthouse_scores as any)?.llmReadinessAudit;
+  const hasSecAudit      = !!(analysis.lighthouse_scores as any)?.securityHeadersAudit;
 
   return (
     <Document
@@ -1577,6 +1721,14 @@ function ReportDocument({
       )}
       {hasLlmAudit && (
         <LLMReadinessPage
+          analysis={analysis}
+          branding={branding}
+          styles={styles}
+          brandColor={brandColor}
+        />
+      )}
+      {hasSecAudit && (
+        <SecurityHeadersPage
           analysis={analysis}
           branding={branding}
           styles={styles}

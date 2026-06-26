@@ -96,6 +96,7 @@ export default async function PublicReportPage(props: { params: Promise<{ id: st
           />
         )}
         <SecurityHeadersSection
+          securityHeadersAudit={(analysis.lighthouse_scores as any)?.securityHeadersAudit}
           securityHeaders={(analysis.lighthouse_scores as any)?.securityHeaders}
           crawledPages={analysis.crawl_pages as any}
         />

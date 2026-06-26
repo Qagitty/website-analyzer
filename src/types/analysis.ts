@@ -68,6 +68,8 @@ export interface LighthouseScores {
   bestPracticesAudit?: BestPracticesAuditResult;
   /** Full structured LLM Readiness audit — present on analyses created with llm-readiness-v2+ */
   llmReadinessAudit?: LlmReadinessAuditResult;
+  /** Full structured Security Headers audit — present on analyses created with security-headers-v2+ */
+  securityHeadersAudit?: import('@/types/security-headers').SecurityHeadersAuditResult;
   /** Legacy: flat score (v1) */
   llmReadiness?: number;
   /** Legacy: flat checks map (v1) */

@@ -6,6 +6,7 @@ import { checkSEO } from './seo';
 import { checkBestPractices } from './best-practices';
 import { checkCommonErrors } from './errors';
 import { checkLLMReadiness } from './llm-readiness';
+import { analyzeSecurityHeadersAsync } from './security-headers';
 import { crawlInternalLinks, crawlPage } from './crawl';
 import { analyzeResources, analyzeSecurityHeaders } from './resources';
 import { generateOpportunities } from './opportunities';
@@ -141,10 +142,11 @@ async function runAnalysis(req: AnalysisRequest): Promise<void> {
     });
     const consoleErrors = checkCommonErrors(html, response);
     const securityHeaders = analyzeSecurityHeaders(response);
-    const [seoAudit, bestPracticesAudit, llmReadinessAudit] = await Promise.all([
+    const [seoAudit, bestPracticesAudit, llmReadinessAudit, securityHeadersAudit] = await Promise.all([
       checkSEO(html, response, req.url, req.analysisId),
       Promise.resolve(checkBestPractices(html, response, req.url)),
       checkLLMReadiness(html, response, req.url),
+      analyzeSecurityHeadersAsync(req.url, response, html),
     ]);
 
     const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
@@ -305,6 +307,7 @@ async function runAnalysis(req: AnalysisRequest): Promise<void> {
         llmReadiness: llmReadinessAudit.score ?? 0,
         securityHeaders,
         llmReadinessAudit,
+        securityHeadersAudit,
         scoreBreakdown: scores.scoreBreakdown,
         opportunities,
         accessibilityAudit,
