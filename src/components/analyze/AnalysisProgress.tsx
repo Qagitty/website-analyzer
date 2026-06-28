@@ -91,7 +91,13 @@ export function AnalysisProgress({ analysisId, initialData }: Props) {
   };
 
   useEffect(() => {
+    if (timedOut) return; // don't start polling once the frontend timeout has fired
+
+    let active = true;
+    let intervalId: ReturnType<typeof setInterval>;
+
     const poll = async () => {
+      if (!active) return;
       try {
         const res = await fetch(`/api/reports/${analysisId}`);
         if (!res.ok) {
@@ -100,6 +106,8 @@ export function AnalysisProgress({ analysisId, initialData }: Props) {
         }
 
         const data = await res.json();
+        if (!active) return;
+
         setState({
           status:        data.status,
           queuePosition: data.queue_position,
@@ -108,6 +116,8 @@ export function AnalysisProgress({ analysisId, initialData }: Props) {
         });
 
         if (['completed', 'failed', 'cancelled'].includes(data.status)) {
+          active = false;
+          clearInterval(intervalId);
           if (guardRef.current) clearTimeout(guardRef.current);
         }
         if (data.status === 'completed') {
@@ -119,9 +129,9 @@ export function AnalysisProgress({ analysisId, initialData }: Props) {
     };
 
     poll();
-    const interval = setInterval(poll, 3000);
-    return () => clearInterval(interval);
-  }, [analysisId, router]);
+    intervalId = setInterval(poll, 3000);
+    return () => { active = false; clearInterval(intervalId); };
+  }, [analysisId, router, timedOut]);
 
   if (!state) {
     return <div className="animate-pulse h-24 bg-card rounded-lg" />;

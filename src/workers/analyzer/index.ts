@@ -48,7 +48,16 @@ export default {
       return new Response('Invalid JSON', { status: 400 });
     }
 
-    ctx.waitUntil(runAnalysis(body));
+    const timeout = new Promise<void>(resolve =>
+      setTimeout(async () => {
+        await sendCallback(body.callbackUrl, body.authToken, {
+          analysisId: body.analysisId,
+          error: 'Analysis timed out — the site may be too slow or blocking automated requests.',
+        }).catch(() => {});
+        resolve();
+      }, 55_000),
+    );
+    ctx.waitUntil(Promise.race([runAnalysis(body), timeout]));
 
     return new Response(
       JSON.stringify({ status: 'queued', analysisId: body.analysisId }),
