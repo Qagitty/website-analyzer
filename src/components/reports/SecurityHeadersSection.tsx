@@ -288,7 +288,7 @@ function ScoreBreakdownTable({ breakdown }: { breakdown: SecurityHeaderScoreBrea
               </tr>
             </thead>
             <tbody>
-              {breakdown.map(b => (
+              {(Array.isArray(breakdown) ? breakdown : []).map(b => (
                 <tr key={b.headerName} className="border-b border-border/40">
                   <td className="px-3 py-2 font-mono text-foreground/80">{b.displayName}</td>
                   <td className="px-3 py-2">
@@ -319,7 +319,8 @@ function ScoreBreakdownTable({ breakdown }: { breakdown: SecurityHeaderScoreBrea
 // ── V2 Audit UI ────────────────────────────────────────────────────────────────
 
 function SecurityHeadersV2({ audit }: { audit: SecurityHeadersAuditResult }) {
-  const { score, scoreVersion, testedUrl, finalUrl, redirectChain, headers, findings, scoreBreakdown, coverage, summary, warnings, errors } = audit;
+  const { score, scoreVersion, testedUrl, finalUrl, redirectChain, headers, findings, scoreBreakdown: rawScoreBreakdown, coverage, summary, warnings, errors } = audit;
+  const scoreBreakdown = Array.isArray(rawScoreBreakdown) ? rawScoreBreakdown : [];
 
   const primaryHeaders = Object.values(headers).filter(h => h.applicability === 'required');
   const infoHeaders = Object.values(headers).filter(h => h.applicability !== 'required');

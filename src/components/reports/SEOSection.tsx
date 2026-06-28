@@ -191,9 +191,10 @@ function FindingCard({ finding }: { finding: SeoFinding }) {
 // ─── Score breakdown table ────────────────────────────────────────────────────
 
 function ScoreBreakdownTable({ breakdown }: { breakdown: SeoAuditResult['scoreBreakdown'] }) {
+  const items = Array.isArray(breakdown) ? breakdown : [];
   return (
     <div className="space-y-2">
-      {breakdown.map(b => (
+      {items.map(b => (
         <div key={b.category} className="flex items-center gap-3">
           <div className="w-36 shrink-0">
             <span className="text-xs text-muted-foreground capitalize">{b.category.replace(/-/g, ' ')}</span>
@@ -233,7 +234,8 @@ export function SEOSection({ seoAudit, legacyScore, legacyChecks }: Props) {
   }
 
   const score = seoAudit.score;
-  const { summary, findings, coverage, scoreBreakdown, metadata, indexability, structuredData } = seoAudit;
+  const { summary, findings, coverage, scoreBreakdown: rawScoreBreakdown, metadata, indexability, structuredData } = seoAudit;
+  const scoreBreakdown = Array.isArray(rawScoreBreakdown) ? rawScoreBreakdown : [];
 
   // Sort findings: failed > warning > manual-review > passed > unavailable > n/a
   const SEV_RANK: Record<SeoSeverity, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
