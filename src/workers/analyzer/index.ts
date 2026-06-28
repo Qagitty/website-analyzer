@@ -316,7 +316,7 @@ async function runAnalysis(req: AnalysisRequest): Promise<void> {
       performanceAuditToCategoryScore(
         scores.performance,
         scores.scoreVersion,
-        scores.scoreBreakdown ?? [],
+        Array.isArray(scores.perfBreakdown) ? scores.perfBreakdown : [],
         [],
       ),
     ];

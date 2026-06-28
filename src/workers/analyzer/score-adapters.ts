@@ -438,7 +438,8 @@ export function performanceAuditToCategoryScore(
   breakdown: Array<{ category: string; weight: number; normalizedScore: number | null; weightedContribution: number | null; reason: string }>,
   limitations: string[],
 ): CategoryScoreResult {
-  const checks: ScoreCheckResult[] = breakdown.map(b => {
+  const items = Array.isArray(breakdown) ? breakdown : [];
+  const checks: ScoreCheckResult[] = items.map(b => {
     const status: CheckExecutionStatus = b.normalizedScore === null ? 'unavailable' : b.normalizedScore >= 65 ? 'passed' : 'failed';
     const earned = b.weightedContribution !== null ? Math.max(0, b.weightedContribution) : 0;
     return {
