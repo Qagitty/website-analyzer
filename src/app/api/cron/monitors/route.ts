@@ -1,34 +1,59 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
-import { addDays } from 'date-fns';
+import { calculateNextRun, addJitter, scheduleFromLegacyFrequency } from '@/lib/monitoring/schedule';
+import type { MonitorSchedule } from '@/lib/monitoring/types';
 
 /**
  * GET /api/cron/monitors
- * Called by Vercel Cron every hour (see vercel.json).
- * Finds all active monitors that are due, triggers an analysis for each.
+ * Triggered by Vercel Cron (see vercel.json — 0 9 * * *).
+ *
+ * Safety rules:
+ *  §4 — atomic claiming via claim_monitor_run() prevents duplicate execution
+ *  §47 — do NOT pass authToken through Worker body (Data Architecture §7)
+ *  §3  — timezone-aware next_run_at via calculateNextRun()
+ *  §2  — re-verify monitor status after lease is claimed before dispatching
  */
 export async function GET(req: NextRequest) {
-  // Verify this is coming from Vercel Cron (or our own secret)
   const authHeader = req.headers.get('authorization');
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const supabase = createServiceRoleClient();
-  const now = new Date().toISOString();
+  const now = new Date();
+  const nowIso = now.toISOString();
 
-  // Find all active monitors that are due.
-  // Do NOT join auth.users here — user emails are PII and should not travel
-  // through the Cloudflare Worker. The callback resolves the email itself.
-  const { data: dueMonitors, error } = await supabase.from('monitors')
-    .select('id, user_id, url, frequency, notify_on_score_drop, score_drop_threshold, last_scores')
-    .eq('is_active', true)
-    .lte('next_run_at', now)
-    .limit(50); // process max 50 per cron tick
+  // Cleanup expired leases from previous cron runs (maintenance, §4)
+  await supabase.rpc('cleanup_expired_monitor_leases');
 
-  if (error) {
-    console.error('[cron/monitors] fetch error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  // Select due monitors — both legacy (is_active) and v2 (status='active')
+  const { data: dueMonitors, error: fetchErr } = await supabase
+    .from('monitors')
+    .select('id, user_id, url, frequency, notify_on_score_drop, score_drop_threshold, last_scores, is_active, status, schedule, next_run_at')
+    .or('is_active.eq.true,status.eq.active')
+    .lte('next_run_at', nowIso)
+    .is('status', null) // include legacy rows where status is null
+    .limit(50)
+    .then(async (legacyResult) => {
+      // Also fetch v2 monitors with explicit status='active'
+      const { data: v2 } = await supabase
+        .from('monitors')
+        .select('id, user_id, url, frequency, notify_on_score_drop, score_drop_threshold, last_scores, is_active, status, schedule, next_run_at')
+        .eq('status', 'active')
+        .lte('next_run_at', nowIso)
+        .limit(50);
+
+      const legacyRows = legacyResult.data ?? [];
+      const v2Rows = v2 ?? [];
+      // Deduplicate by id
+      const seen = new Set(legacyRows.map((r: { id: string }) => r.id));
+      const combined = [...legacyRows, ...v2Rows.filter((r: { id: string }) => !seen.has(r.id))];
+      return { data: combined.slice(0, 50), error: legacyResult.error };
+    });
+
+  if (fetchErr) {
+    console.error('[cron/monitors] fetch error:', fetchErr);
+    return NextResponse.json({ error: fetchErr.message }, { status: 500 });
   }
 
   if (!dueMonitors?.length) {
@@ -37,27 +62,90 @@ export async function GET(req: NextRequest) {
 
   const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/analyze/callback`;
   const workerUrl = `${process.env.CLOUDFLARE_WORKER_URL}/analyze`;
-  const results: { url: string; analysisId: string; status: string }[] = [];
+
+  const results: {
+    monitorId: string;
+    url: string;
+    analysisId: string;
+    runId: string;
+    status: string;
+  }[] = [];
 
   for (const monitor of dueMonitors) {
+    const runId = crypto.randomUUID();
+
     try {
-      // Check user still has credits
+      // ── Step 1: Atomically claim this monitor run ──────────────────────────
+      const { data: claimedRunId } = await supabase.rpc('claim_monitor_run', {
+        p_monitor_id: monitor.id,
+        p_run_id: runId,
+        lease_minutes: 30,
+      });
+
+      if (!claimedRunId) {
+        // Another cron worker already claimed this monitor — skip
+        results.push({
+          monitorId: monitor.id,
+          url: monitor.url,
+          analysisId: '',
+          runId: '',
+          status: 'skipped_already_claimed',
+        });
+        continue;
+      }
+
+      // ── Step 2: Re-verify monitor is still active AFTER claiming (§2) ─────
+      const { data: fresh } = await supabase
+        .from('monitors')
+        .select('id, status, is_active')
+        .eq('id', monitor.id)
+        .single();
+
+      const isActive =
+        fresh?.status === 'active' ||
+        (fresh?.status == null && fresh?.is_active === true);
+
+      if (!fresh || !isActive) {
+        // Monitor was paused/deleted between our SELECT and our claim — release
+        await supabase.rpc('release_monitor_lease', {
+          p_monitor_id: monitor.id,
+          p_run_id: runId,
+        });
+        results.push({
+          monitorId: monitor.id,
+          url: monitor.url,
+          analysisId: '',
+          runId,
+          status: 'skipped_not_active',
+        });
+        continue;
+      }
+
+      // ── Step 3: Check credits ──────────────────────────────────────────────
       const { data: hasCredit } = await supabase.rpc('use_credit', {
         p_user_id: monitor.user_id,
       });
 
       if (!hasCredit) {
-        // Pause this monitor — user is out of credits
-        await supabase.from('monitors')
-          .update({ is_active: false })
+        await supabase
+          .from('monitors')
+          .update({ is_active: false, status: 'paused' })
           .eq('id', monitor.id);
-
-        console.log(`[cron/monitors] paused monitor ${monitor.id} — no credits`);
-        results.push({ url: monitor.url, analysisId: '', status: 'paused_no_credits' });
+        await supabase.rpc('release_monitor_lease', {
+          p_monitor_id: monitor.id,
+          p_run_id: runId,
+        });
+        results.push({
+          monitorId: monitor.id,
+          url: monitor.url,
+          analysisId: '',
+          runId,
+          status: 'paused_no_credits',
+        });
         continue;
       }
 
-      // Create analysis record
+      // ── Step 4: Create analysis record ────────────────────────────────────
       const { data: analysis, error: insertErr } = await supabase
         .from('analyses')
         .insert({
@@ -70,25 +158,56 @@ export async function GET(req: NextRequest) {
 
       if (insertErr || !analysis) {
         await supabase.rpc('refund_credit', { p_user_id: monitor.user_id });
-        throw new Error('Failed to create analysis');
+        await supabase.rpc('release_monitor_lease', {
+          p_monitor_id: monitor.id,
+          p_run_id: runId,
+        });
+        throw new Error('Failed to create analysis record');
       }
 
-      // Calculate next run time
-      const nextRun = monitor.frequency === 'daily'
-        ? addDays(new Date(), 1)
-        : addDays(new Date(), 7);
+      // ── Step 5: Create monitor_run record ──────────────────────────────────
+      await supabase.from('monitor_runs').insert({
+        id: runId,
+        monitor_id: monitor.id,
+        analysis_id: analysis.id,
+        scheduled_for: nowIso,
+        started_at: nowIso,
+        status: 'queued',
+        trigger: 'schedule',
+        attempt: 1,
+        errors: [],
+      });
 
-      // Update monitor — record last run, set next run
-      await supabase.from('monitors')
+      // ── Step 6: Compute timezone-aware next_run_at ─────────────────────────
+      let schedule: MonitorSchedule;
+      if (monitor.schedule && typeof monitor.schedule === 'object') {
+        schedule = monitor.schedule as MonitorSchedule;
+      } else {
+        // Legacy monitor: map frequency → MonitorSchedule (UTC default)
+        schedule = scheduleFromLegacyFrequency(
+          (monitor.frequency as 'daily' | 'weekly') ?? 'weekly',
+          'UTC',
+        );
+      }
+
+      const baseNextRun = calculateNextRun(schedule, now);
+      const nextRun = schedule.jitterWindowMinutes
+        ? addJitter(baseNextRun, schedule.jitterWindowMinutes)
+        : baseNextRun;
+
+      // ── Step 7: Update monitor record ─────────────────────────────────────
+      await supabase
+        .from('monitors')
         .update({
-          last_run_at: now,
+          last_run_at: nowIso,
           next_run_at: nextRun.toISOString(),
           last_analysis_id: analysis.id,
+          last_run_id: runId,
         })
         .eq('id', monitor.id);
 
-      // Dispatch to Cloudflare Worker (fire-and-forget)
-      // Attach monitor metadata so callback can update scores + send email
+      // ── Step 8: Dispatch to Cloudflare Worker (fire-and-forget) ───────────
+      // IMPORTANT: authToken is set via Authorization header — NOT in body (§7).
       fetch(workerUrl, {
         method: 'POST',
         headers: {
@@ -99,25 +218,46 @@ export async function GET(req: NextRequest) {
           analysisId: analysis.id,
           url: monitor.url,
           callbackUrl,
-          authToken: process.env.WORKER_CALLBACK_SECRET,
-          // Monitor context — callback uses these to update scores and send alerts.
-          // NOTE: no email here — callback resolves it from the DB to avoid
-          // passing PII through Cloudflare Worker infrastructure.
+          // Monitor context for the callback — no PII, no authToken
           monitorId: monitor.id,
+          monitorRunId: runId,
           monitorUserId: monitor.user_id,
-          monitorLastScores: monitor.last_scores,
-          monitorNotify: monitor.notify_on_score_drop,
-          monitorThreshold: monitor.score_drop_threshold,
         }),
-      }).catch((err) => console.error('[cron/monitors] worker fetch failed:', err));
+      }).catch((err) => console.error('[cron/monitors] worker dispatch failed:', err));
 
-      results.push({ url: monitor.url, analysisId: analysis.id, status: 'dispatched' });
-    } catch (err: any) {
+      results.push({
+        monitorId: monitor.id,
+        url: monitor.url,
+        analysisId: analysis.id,
+        runId,
+        status: 'dispatched',
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'unknown error';
       console.error(`[cron/monitors] error processing monitor ${monitor.id}:`, err);
-      results.push({ url: monitor.url, analysisId: '', status: `error: ${err.message}` });
+
+      // Best-effort lease release on unexpected errors
+      try {
+        await supabase.rpc('release_monitor_lease', {
+          p_monitor_id: monitor.id,
+          p_run_id: runId,
+        });
+      } catch { /* ignore — lease will expire naturally */ }
+
+      results.push({
+        monitorId: monitor.id,
+        url: monitor.url,
+        analysisId: '',
+        runId,
+        status: `error: ${message}`,
+      });
     }
   }
 
-  console.log(`[cron/monitors] processed ${results.length} monitors`);
+  console.log(
+    `[cron/monitors] processed ${results.length} monitors:`,
+    results.map((r) => `${r.url}→${r.status}`).join(', '),
+  );
+
   return NextResponse.json({ processed: results.length, results });
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { checkCsrfOrigin } from '@/lib/csrf';
 import { hasFeature, getLimits, featureGateError } from '@/lib/billing/limits';
+import { validateAnalysisUrl } from '@/lib/security/url-validator';
 import { z } from 'zod';
 import { addDays } from 'date-fns';
 
@@ -47,6 +48,15 @@ export async function POST(req: NextRequest) {
   }
 
   const { url, frequency, notify_on_score_drop, score_drop_threshold } = parsed.data;
+
+  // SSRF protection: reject private IPs, metadata endpoints, blocked ports
+  const urlValidation = validateAnalysisUrl(url);
+  if (!urlValidation.valid) {
+    return NextResponse.json(
+      { error: urlValidation.rejectionReason ?? 'URL is not allowed' },
+      { status: 400 }
+    );
+  }
 
   const { data: sub } = await supabase
     .from('subscriptions')

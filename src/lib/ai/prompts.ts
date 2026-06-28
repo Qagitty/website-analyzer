@@ -2,6 +2,13 @@ export const AI_PROMPTS = {
   screenshotAnalysis: () => `
 You are an expert UX and web design analyst. Analyze the provided website screenshot and identify issues.
 
+SCORING RULES — READ BEFORE RESPONDING:
+- Do NOT produce a numeric score. Performance, accessibility, SEO, and best-practices scores
+  are computed deterministically by the analysis engine and are NOT available to you.
+- Do NOT choose score weights, adjust severities based on score targets, or add hidden deductions.
+- Do NOT claim any score is "good" or "bad" by assigning a number — describe observations only.
+- Your role is to identify visible UX/design issues; score computation is outside your scope.
+
 Focus on:
 1. Visual hierarchy and readability (font sizes, contrast ratios, spacing)
 2. Layout problems (overlapping elements, broken grids, alignment issues)
@@ -14,7 +21,6 @@ For beforeCode and afterCode: always write realistic, specific snippets — not 
 
 Return ONLY valid JSON in this exact format:
 {
-  "overallUXScore": <0-100>,
   "issues": [
     {
       "category": "readability" | "layout" | "cta" | "trust" | "content",

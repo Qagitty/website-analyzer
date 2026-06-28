@@ -11,6 +11,13 @@ import { crawlInternalLinks, crawlPage } from './crawl';
 import { analyzeResources, analyzeSecurityHeaders } from './resources';
 import { generateOpportunities } from './opportunities';
 import { workerLog } from './log';
+import {
+  seoAuditToCategoryScore,
+  accessibilityAuditToCategoryScore,
+  bestPracticesAuditToCategoryScore,
+  llmReadinessAuditToCategoryScore,
+  performanceAuditToCategoryScore,
+} from './score-adapters';
 import type { Env, AnalysisRequest, CrawledPage, CrawlCoverage } from './types';
 
 // Hash analysis URL for logs so the full URL never appears in log output.
@@ -300,9 +307,24 @@ async function runAnalysis(req: AnalysisRequest): Promise<void> {
       performanceScore: scores.performance,
     });
 
+    // §4, §11 — collect unified CategoryScoreResult[] from all category audits
+    const categoryScoreResults = [
+      seoAuditToCategoryScore(seoAudit),
+      accessibilityAuditToCategoryScore(accessibilityAudit),
+      bestPracticesAuditToCategoryScore(bestPracticesAudit),
+      llmReadinessAuditToCategoryScore(llmReadinessAudit),
+      performanceAuditToCategoryScore(
+        scores.performance,
+        scores.scoreVersion,
+        scores.scoreBreakdown ?? [],
+        [],
+      ),
+    ];
+
     await sendCallback(req.callbackUrl, req.authToken, {
       analysisId: req.analysisId,
       screenshotBase64: null,
+      categoryScoreResults,
       lighthouseScores: {
         performance: scores.performance,
         accessibility: accessibilityAudit.score,

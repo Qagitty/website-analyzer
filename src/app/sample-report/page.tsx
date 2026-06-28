@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowLeft, Sparkles } from 'lucide-react';
 import { SAMPLE_ANALYSIS } from '@/lib/sample-report/data';
+import { buildReportViewModel } from '@/lib/report/view-model';
 import { ExecSummarySection } from '@/components/reports/ExecSummarySection';
 import { FixRoadmapSection } from '@/components/reports/FixRoadmapSection';
 import { PerformanceSection } from '@/components/reports/PerformanceSection';
@@ -29,6 +30,7 @@ export const metadata: Metadata = {
 
 const analysis = SAMPLE_ANALYSIS;
 const scores   = analysis.lighthouse_scores!;
+const sampleVm = buildReportViewModel(analysis as any);
 
 export default function SampleReportPage() {
   return (
@@ -77,12 +79,7 @@ export default function SampleReportPage() {
         </div>
 
         {/* Executive Summary */}
-        <ExecSummarySection
-          url={analysis.url}
-          scores={scores}
-          aiSummary={analysis.ai_summary}
-          completedAt={analysis.completed_at}
-        />
+        <ExecSummarySection vm={sampleVm} />
 
         {/* Fix Roadmap — the star of Sprint 2 */}
         <FixRoadmapSection insights={analysis.ai_insights?.insights} />

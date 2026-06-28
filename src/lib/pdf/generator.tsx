@@ -10,6 +10,8 @@ import {
   type DocumentProps,
 } from '@react-pdf/renderer';
 import type { Analysis, LighthouseScores, AccessibilityIssue, AIInsight } from '@/types/analysis';
+import { buildReportViewModel } from '@/lib/report/view-model';
+import { buildPdfViewModel, type PdfViewModel, type PdfCategoryMeta } from '@/lib/pdf/pdf-view-model';
 
 export interface Branding {
   agencyName?: string;
@@ -549,60 +551,72 @@ function CoverPage({
   styles,
   brandColor,
   screenshotUrl,
+  pdfVm,
 }: {
   analysis: Analysis;
   branding: Required<Branding>;
   styles: ReturnType<typeof makeStyles>;
   brandColor: string;
   screenshotUrl?: string;
+  pdfVm: PdfViewModel;
 }) {
-  const ls = analysis.lighthouse_scores;
-  const scores = [
-    { label: 'Performance',    value: ls?.performance   ?? null },
-    { label: 'Accessibility',  value: ls?.accessibility ?? null },
-    { label: 'SEO',            value: ls?.seo           ?? null },
-    { label: 'Best Practices', value: ls?.bestPractices ?? null },
-  ];
-
-  const dateStr = analysis.completed_at
-    ? new Date(analysis.completed_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-    : new Date(analysis.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  // §2 — scores come from the normalized view model, not from raw lighthouse_scores
+  const CORE_IDS = ['performance', 'accessibility', 'seo', 'best-practices'];
+  const coreCategories = CORE_IDS
+    .map(id => pdfVm.categories.find(c => c.id === id))
+    .filter((c): c is PdfCategoryMeta => c != null);
 
   return (
     <Page size="A4" style={styles.page}>
       <HeaderBar styles={styles} brandColor={brandColor} agencyName={branding.agencyName} logoUrl={branding.logoUrl} />
 
-      <Text style={styles.coverUrl}>{analysis.url}</Text>
+      {/* §8 — domain as title, sanitized URL as subtitle */}
+      <Text style={styles.coverUrl}>{pdfVm.meta.domain}</Text>
       <Text style={styles.coverSubtitle}>Website Analysis Report</Text>
-      <Text style={styles.coverDate}>Analyzed on {dateStr}</Text>
+      <Text style={styles.coverDate}>
+        {pdfVm.meta.analysisDateStr} · Report #{pdfVm.meta.safeReportId} · {pdfVm.meta.pagesAnalyzed} page{pdfVm.meta.pagesAnalyzed !== 1 ? 's' : ''} analysed
+      </Text>
 
-      {/* Score boxes */}
+      {/* §5 — score boxes use discriminated union; unavailable states show '—' not '0' */}
       <View style={styles.scoresRow}>
-        {scores.map((s) => (
-          <View key={s.label} style={styles.scoreBox}>
-            <Text style={[styles.scoreNumber, { color: scoreColor(s.value) }]}>
-              {s.value ?? '—'}
+        {coreCategories.map((cat) => (
+          <View key={cat.id} style={styles.scoreBox}>
+            <Text style={[styles.scoreNumber, { color: cat.score.colorHex }]}>
+              {cat.score.displayText}
             </Text>
-            <Text style={styles.scoreLabel}>{s.label}</Text>
-            {s.value != null && (
+            <Text style={styles.scoreLabel}>{cat.label}</Text>
+            {cat.score.isUnavailable ? (
+              <Text style={[styles.scoreLabel, { color: '#9ca3af', marginTop: 1 }]}>
+                {cat.score.statusLabel}
+              </Text>
+            ) : (
               <Text style={[styles.scoreLabel, { color: '#9ca3af', marginTop: 1 }]}>/100</Text>
+            )}
+            {/* §6 — show coverage % when available */}
+            {cat.coverageText && (
+              <Text style={[styles.scoreLabel, { marginTop: 2 }]}>{cat.coverageText}</Text>
             )}
           </View>
         ))}
       </View>
 
-      {/* AI summary */}
-      {analysis.ai_summary && (
+      {/* AI summary — labeled as AI-enhanced per §9/§13 */}
+      {pdfVm.aiSummary && (
         <View style={styles.summaryBox}>
-          <Text style={styles.summaryText}>{analysis.ai_summary}</Text>
+          <Text style={{ fontSize: 7, color: '#7c3aed', fontFamily: 'Helvetica-Bold', marginBottom: 3 }}>
+            ✦ AI-Enhanced Summary
+          </Text>
+          <Text style={styles.summaryText}>{pdfVm.aiSummary}</Text>
         </View>
       )}
 
       {/* Screenshot thumbnail */}
       {screenshotUrl && (
         <View style={styles.screenshotContainer}>
-          <Image src={screenshotUrl} style={[styles.screenshotImage, { maxHeight: 220 }]} />
-          <Text style={styles.screenshotCaption}>Screenshot captured at time of analysis</Text>
+          <Image src={screenshotUrl} style={[styles.screenshotImage, { maxHeight: 200 }]} />
+          <Text style={styles.screenshotCaption}>
+            Screenshot captured at time of analysis · {truncatePdfUrl(pdfVm.meta.testedUrl, 80)}
+          </Text>
         </View>
       )}
 
@@ -650,16 +664,20 @@ function PerformancePage({
   branding,
   styles,
   brandColor,
+  pdfVm,
 }: {
   analysis: Analysis;
   branding: Required<Branding>;
   styles: ReturnType<typeof makeStyles>;
   brandColor: string;
+  pdfVm: PdfViewModel;
 }) {
   const ls = analysis.lighthouse_scores as LighthouseScores;
   const audit = (ls as any)?.performanceAudit;
   const isFetchOnly = !ls?.measurementMode || ls.measurementMode === 'fetch-only';
   const modeLabel = isFetchOnly ? 'Fetch-only (no real browser)' : 'Browser lab';
+  // §2 — score from normalized view model
+  const perfCat = pdfVm.categories.find(c => c.id === 'performance');
 
   // Opportunities: top 4 by severity order
   const opportunities: Array<{ title: string; recommendation: string; estimatedSavingsMs?: number; severity: string }> =
@@ -696,17 +714,25 @@ function PerformancePage({
       <HeaderBar styles={styles} brandColor={brandColor} agencyName={branding.agencyName} logoUrl={branding.logoUrl} pageLabel="Performance" />
       <Text style={styles.sectionHeading}>Performance</Text>
 
-      {/* Overview row: score + mode */}
+      {/* Overview row: score + mode — §2: values from normalized view model */}
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 16, marginBottom: 16 }}>
         <View style={{ alignItems: 'center', minWidth: 60 }}>
-          <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 28, color: scoreColor(ls?.performance) }}>{ls?.performance ?? '–'}</Text>
-          <Text style={{ fontSize: 7, color: '#6b7280' }}>out of 100</Text>
+          <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 28, color: perfCat?.score.colorHex ?? '#6b7280' }}>
+            {perfCat?.score.displayText ?? '–'}
+          </Text>
+          <Text style={{ fontSize: 7, color: '#6b7280' }}>
+            {perfCat?.score.isUnavailable ? perfCat.score.statusLabel : 'out of 100'}
+          </Text>
         </View>
         <View style={{ flex: 1 }}>
           <View style={{ height: 8, backgroundColor: '#f3f4f6', borderRadius: 4, overflow: 'hidden', marginBottom: 6 }}>
-            <View style={{ height: 8, width: `${ls?.performance ?? 0}%`, backgroundColor: scoreColor(ls?.performance), borderRadius: 4 }} />
+            <View style={{ height: 8, width: `${perfCat?.score.value ?? 0}%`, backgroundColor: perfCat?.score.colorHex ?? '#6b7280', borderRadius: 4 }} />
           </View>
           <Text style={{ fontSize: 7, color: '#6b7280' }}>Measurement: {modeLabel}</Text>
+          {/* §6 — confidence label */}
+          {perfCat?.confidenceText && (
+            <Text style={{ fontSize: 7, color: '#6b7280', marginTop: 1 }}>Confidence: {perfCat.confidenceText}</Text>
+          )}
           {isFetchOnly && <Text style={{ fontSize: 7, color: '#d97706', marginTop: 2 }}>TTFB is real · LCP is estimated · CLS/TBT/FCP/INP not available in fetch-only mode</Text>}
         </View>
       </View>
@@ -804,6 +830,14 @@ function FixRoadmapPage({
       <HeaderBar styles={styles} brandColor={brandColor} agencyName={branding.agencyName} logoUrl={branding.logoUrl} pageLabel="Fix Roadmap" />
       <Text style={styles.sectionHeading}>Fix Roadmap</Text>
 
+      {/* AI-generated label (§33) */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+        <View style={{ backgroundColor: '#ede9fe', borderRadius: 3, paddingHorizontal: 6, paddingVertical: 2 }}>
+          <Text style={{ fontSize: 7, color: '#7c3aed', fontWeight: 'bold' }}>✦ AI-Generated Recommendations</Text>
+        </View>
+        <Text style={{ fontSize: 7, color: '#6b7280', marginLeft: 6 }}>based on deterministic audit findings</Text>
+      </View>
+
       {/* Summary stats */}
       <View style={styles.statsRow}>
         {[
@@ -862,6 +896,12 @@ function FixRoadmapPage({
 
           {/* Card body */}
           <View style={styles.roadmapBody}>
+            {/* Rollout-risk warning for security/infrastructure changes (§33) */}
+            {insight.category === 'security' && (
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 4, backgroundColor: '#fffbeb', borderRadius: 2, paddingHorizontal: 5, paddingVertical: 3 }}>
+                <Text style={{ fontSize: 7, color: '#92400e' }}>⚠ Security change — review carefully and test on staging before applying to production.</Text>
+              </View>
+            )}
             <Text style={styles.roadmapDesc}>{insight.description}</Text>
             <View style={styles.roadmapRecBox}>
               <Text style={styles.roadmapRecText}>{insight.recommendation}</Text>
@@ -878,6 +918,13 @@ function FixRoadmapPage({
           </View>
         </View>
       ))}
+
+      {/* AI disclaimer (§33) */}
+      <View style={{ marginTop: 10, borderTopWidth: 0.5, borderTopColor: '#e5e7eb', paddingTop: 6 }}>
+        <Text style={{ fontSize: 7, color: '#6b7280', lineHeight: 1.5 }}>
+          {'AI-generated explanations are based on deterministic audit findings and should be reviewed before implementation, especially for security and infrastructure changes.'}
+        </Text>
+      </View>
 
       <PageFooter styles={styles} showPoweredBy={branding.showPoweredBy} agencyName={branding.agencyName} />
     </Page>
@@ -1645,23 +1692,168 @@ function SecurityHeadersPage({
   );
 }
 
+// ─── Audit Coverage & Disclaimer Page (§29) ──────────────────────────────────
+
+function AuditCoveragePage({
+  analysis,
+  branding,
+  styles,
+  brandColor,
+  pdfVm,
+}: {
+  analysis: Analysis;
+  branding: Required<Branding>;
+  styles: ReturnType<typeof makeStyles>;
+  brandColor: string;
+  pdfVm: PdfViewModel;
+}) {
+  // §2 — use normalized view model as source of truth; never read ls directly for scores
+  const rows = pdfVm.categories.map(cat => ({
+    label: cat.label,
+    score: cat.score,
+    coverageText: cat.coverageText,
+    confidenceText: cat.confidenceText,
+    auditModeText: cat.auditModeText,
+    isLegacy: cat.isLegacy,
+    topLimitation: cat.topLimitation,
+  }));
+
+  return (
+    <Page size="A4" style={styles.page}>
+      {/* Header */}
+      <View style={styles.headerBar}>
+        <Text style={styles.headerAgency}>{branding.agencyName ?? 'WebAnalyzer'}</Text>
+        <Text style={styles.headerTagline}>Audit Coverage & Methodology</Text>
+      </View>
+
+      <Text style={{ fontSize: 16, fontWeight: 700, color: '#111827', marginBottom: 4 }}>
+        Audit Coverage &amp; Methodology
+      </Text>
+      <Text style={{ fontSize: 8, color: '#6b7280', marginBottom: 16 }}>
+        {truncatePdfUrl(pdfVm.meta.testedUrl)} · {pdfVm.meta.analysisDateStr}
+      </Text>
+
+      {/* §2/§6 — coverage table uses normalized view model; scores match web UI exactly */}
+      {rows.length > 0 && (
+        <View style={{ marginBottom: 16 }}>
+          <Text style={{ fontSize: 10, fontWeight: 700, color: '#374151', marginBottom: 6 }}>Per-Category Coverage</Text>
+          {/* Table header */}
+          <View style={{ flexDirection: 'row', backgroundColor: '#f3f4f6', borderRadius: 4, paddingHorizontal: 8, paddingVertical: 5, marginBottom: 2 }}>
+            <Text style={{ flex: 2, fontSize: 7, fontWeight: 700, color: '#374151' }}>Category</Text>
+            <Text style={{ flex: 1, fontSize: 7, fontWeight: 700, color: '#374151', textAlign: 'center' }}>Score</Text>
+            <Text style={{ flex: 1.5, fontSize: 7, fontWeight: 700, color: '#374151', textAlign: 'center' }}>Coverage</Text>
+            <Text style={{ flex: 1.5, fontSize: 7, fontWeight: 700, color: '#374151', textAlign: 'center' }}>Confidence</Text>
+            <Text style={{ flex: 1.5, fontSize: 7, fontWeight: 700, color: '#374151', textAlign: 'right' }}>Audit mode</Text>
+          </View>
+          {rows.map((r, i) => (
+            <View key={r.label} style={{
+              flexDirection: 'row', paddingHorizontal: 8, paddingVertical: 5,
+              backgroundColor: i % 2 === 0 ? '#ffffff' : '#f9fafb',
+              borderRadius: 4, marginBottom: 1,
+            }}>
+              <Text style={{ flex: 2, fontSize: 8, color: '#111827' }}>
+                {r.label}{r.isLegacy ? ' *' : ''}
+              </Text>
+              <Text style={{ flex: 1, fontSize: 8, color: r.score.colorHex, textAlign: 'center', fontFamily: 'Helvetica-Bold' }}>
+                {r.score.displayText}
+              </Text>
+              <Text style={{ flex: 1.5, fontSize: 8, color: '#374151', textAlign: 'center' }}>
+                {r.coverageText ?? '—'}
+              </Text>
+              <Text style={{ flex: 1.5, fontSize: 8, color: '#374151', textAlign: 'center' }}>
+                {r.confidenceText ?? '—'}
+              </Text>
+              <Text style={{ flex: 1.5, fontSize: 7, color: '#6b7280', textAlign: 'right' }}>
+                {r.auditModeText ?? (r.isLegacy ? 'Legacy' : '—')}
+              </Text>
+            </View>
+          ))}
+          {pdfVm.meta.isLegacy && (
+            <Text style={{ fontSize: 7, color: '#9ca3af', marginTop: 4 }}>
+              * Legacy report — coverage and confidence data not available for these categories.
+            </Text>
+          )}
+        </View>
+      )}
+
+      {/* Measurement methodology */}
+      <View style={{ backgroundColor: '#f0f9ff', borderRadius: 6, padding: 10, marginBottom: 12 }}>
+        <Text style={{ fontSize: 9, fontWeight: 700, color: '#0369a1', marginBottom: 5 }}>Measurement Methodology</Text>
+        <Text style={{ fontSize: 8, color: '#374151', lineHeight: 1.5 }}>
+          Performance scores are computed from HTTP fetch timing (TTFB measured with 3 samples), HTML
+          structure analysis, and heuristic estimation. A real browser is not used — metrics like CLS,
+          FID, INP, and TBT are not available. LCP is estimated from HTML structure, not measured in a
+          browser. Field (real-user) data is not integrated.
+        </Text>
+        <Text style={{ fontSize: 8, color: '#374151', lineHeight: 1.5, marginTop: 5 }}>
+          Accessibility checks use static HTML analysis. Dynamic interactions, JavaScript-rendered
+          content after page load, and colour contrast in images cannot be evaluated without a full
+          browser session.
+        </Text>
+        <Text style={{ fontSize: 8, color: '#374151', lineHeight: 1.5, marginTop: 5 }}>
+          SEO and Best Practices checks inspect the HTML document as served. Checks marked
+          &#34;unavailable&#34; require a browser session or authenticated access.
+        </Text>
+      </View>
+
+      {/* Score interpretation */}
+      <View style={{ marginBottom: 12 }}>
+        <Text style={{ fontSize: 9, fontWeight: 700, color: '#374151', marginBottom: 5 }}>Score Interpretation</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+          {[
+            { band: 'Excellent', range: '90–100', color: '#16a34a' },
+            { band: 'Good', range: '75–89', color: '#22c55e' },
+            { band: 'Needs improvement', range: '50–74', color: '#d97706' },
+            { band: 'Poor', range: '25–49', color: '#ea580c' },
+            { band: 'Critical', range: '0–24', color: '#dc2626' },
+          ].map(b => (
+            <View key={b.band} style={{ flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#f3f4f6', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 3 }}>
+              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: b.color }} />
+              <Text style={{ fontSize: 7, color: '#374151' }}>{b.band}</Text>
+              <Text style={{ fontSize: 7, color: '#9ca3af' }}>{b.range}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      {/* Disclaimer */}
+      <View style={{ backgroundColor: '#fffbeb', borderLeftWidth: 3, borderLeftColor: '#f59e0b', paddingLeft: 8, paddingVertical: 8, borderRadius: 4 }}>
+        <Text style={{ fontSize: 8, fontWeight: 700, color: '#92400e', marginBottom: 3 }}>Disclaimer</Text>
+        <Text style={{ fontSize: 7, color: '#78350f', lineHeight: 1.5 }}>
+          This report is generated by automated static analysis and is intended as a diagnostic aid,
+          not a formal compliance assessment. Score values are deterministic and reproducible given the
+          same inputs; however, they reflect a point-in-time snapshot and do not substitute for manual
+          expert review. Scores marked &#34;null&#34; or &#34;—&#34; indicate that the audit did not complete
+          successfully for that category; a score of 0 indicates the audit ran and all checks failed.
+          AI-generated recommendations are informational only and have not been independently verified.
+        </Text>
+      </View>
+
+      <PageFooter styles={styles} showPoweredBy={branding.showPoweredBy} agencyName={branding.agencyName} />
+    </Page>
+  );
+}
+
 // ─── Main Document ────────────────────────────────────────────────────────────
 
 function ReportDocument({
   analysis,
   branding,
   screenshotUrl,
+  pdfVm,
 }: {
   analysis: Analysis;
   branding: Required<Branding>;
   screenshotUrl?: string;
+  pdfVm: PdfViewModel;
 }) {
   const brandColor = branding.brandColor;
   const styles = makeStyles(brandColor);
 
   const hasPerformance   = analysis.lighthouse_scores != null;
   const hasRoadmap       = (analysis.ai_insights?.insights ?? []).length > 0;
-  const hasAccessibility = (analysis.accessibility_issues ?? []).length > 0;
+  const hasAccessibility = (analysis.accessibility_issues ?? []).length > 0
+    || !!(analysis.lighthouse_scores as any)?.accessibilityAudit;
   const hasSeoAudit      = !!(analysis.lighthouse_scores as any)?.seoAudit;
   const hasBpAudit       = !!(analysis.lighthouse_scores as any)?.bestPracticesAudit;
   const hasLlmAudit      = !!(analysis.lighthouse_scores as any)?.llmReadinessAudit;
@@ -1669,8 +1861,11 @@ function ReportDocument({
 
   return (
     <Document
-      title={`Website Analysis — ${analysis.url}`}
+      title={`Website Analysis — ${pdfVm.meta.domain}`}
       author={branding.agencyName ?? 'WebAnalyzer'}
+      subject="Website audit report"
+      keywords="website audit, performance, accessibility, SEO"
+      creator="WebAnalyzer"
     >
       <CoverPage
         analysis={analysis}
@@ -1678,6 +1873,7 @@ function ReportDocument({
         styles={styles}
         brandColor={brandColor}
         screenshotUrl={screenshotUrl}
+        pdfVm={pdfVm}
       />
       {hasPerformance && (
         <PerformancePage
@@ -1685,6 +1881,7 @@ function ReportDocument({
           branding={branding}
           styles={styles}
           brandColor={brandColor}
+          pdfVm={pdfVm}
         />
       )}
       {hasRoadmap && (
@@ -1735,6 +1932,13 @@ function ReportDocument({
           brandColor={brandColor}
         />
       )}
+      <AuditCoveragePage
+        analysis={analysis}
+        branding={branding}
+        styles={styles}
+        brandColor={brandColor}
+        pdfVm={pdfVm}
+      />
     </Document>
   );
 }
@@ -1753,10 +1957,16 @@ export async function generateReportPDF(
     logoUrl:       branding.logoUrl       ?? undefined as unknown as string,
   };
 
+  // §2 — normalize via the same view model used by the web report;
+  // all scores/coverage/confidence in the PDF derive from this single source
+  const webVm = buildReportViewModel(analysis);
+  const pdfVm = buildPdfViewModel(webVm, analysis);
+
   const element = React.createElement(ReportDocument, {
     analysis,
     branding: resolvedBranding,
     screenshotUrl,
+    pdfVm,
   }) as React.ReactElement<DocumentProps>;
 
   const buffer = await renderToBuffer(element);

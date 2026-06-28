@@ -7,6 +7,11 @@ export async function register() {
   // Only run in the Node.js runtime (not in the Edge runtime)
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
 
+  // Validate all required environment variables at startup.
+  // Exits the process immediately if any are missing or malformed.
+  const { assertEnv } = await import("@/lib/env");
+  assertEnv();
+
   try {
     const { createClient } = await import("@supabase/supabase-js");
 

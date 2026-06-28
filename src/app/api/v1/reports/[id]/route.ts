@@ -21,10 +21,41 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
 
   if (!data) return NextResponse.json({ error: 'Report not found' }, { status: 404 });
 
-  return NextResponse.json(data, {
-    headers: {
-      'X-RateLimit-Limit': String(limit),
-      'X-RateLimit-Remaining': String(remaining),
+  // §27 — expose structured score breakdown alongside top-level scores
+  const ls = data.lighthouse_scores as Record<string, unknown> | null;
+  const scoreDetails = ls
+    ? {
+        versions: {
+          performance: ls.scoreVersion ?? null,
+          seo:         (ls.seoAudit as any)?.scoreVersion ?? null,
+          accessibility: (ls.accessibilityAudit as any)?.version ?? null,
+          bestPractices: (ls.bestPracticesAudit as any)?.scoreVersion ?? null,
+          llmReadiness:  (ls.llmReadinessAudit as any)?.scoreVersion ?? null,
+        },
+        breakdowns: {
+          performance: (ls.scoreBreakdown as unknown[]) ?? null,
+          seo:         (ls.seoAudit as any)?.scoreBreakdown ?? null,
+          accessibility: (ls.accessibilityAudit as any)?.scoreBreakdown ?? null,
+          bestPractices: (ls.bestPracticesAudit as any)?.categoryScores ?? null,
+          llmReadiness:  (ls.llmReadinessAudit as any)?.categoryScores ?? null,
+        },
+        coverage: {
+          performance: ls.coverage ?? null,
+          seo:         (ls.seoAudit as any)?.coverage ?? null,
+          accessibility: (ls.accessibilityAudit as any)?.coverage ?? null,
+          bestPractices: (ls.bestPracticesAudit as any)?.coverage ?? null,
+          llmReadiness:  (ls.llmReadinessAudit as any)?.coverage ?? null,
+        },
+      }
+    : null;
+
+  return NextResponse.json(
+    { ...data, scoreDetails },
+    {
+      headers: {
+        'X-RateLimit-Limit': String(limit),
+        'X-RateLimit-Remaining': String(remaining),
+      },
     },
-  });
+  );
 }

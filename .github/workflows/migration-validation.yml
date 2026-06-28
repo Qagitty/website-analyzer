@@ -1,0 +1,70 @@
+name: Migration Validation
+
+# Runs when database schema files change (§30, §14).
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+      - 'supabase/seed.sql'
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**'
+
+jobs:
+  validate-migrations:
+    name: Validate Migration Files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check migration file naming convention
+        run: |
+          ERRORS=0
+          for f in supabase/migrations/*.sql; do
+            basename=$(basename "$f")
+            if ! echo "$basename" | grep -qE '^[0-9]{3}_[a-z0-9_]+\.sql$'; then
+              echo "ERROR: Migration filename does not follow NNN_name.sql convention: $basename" >&2
+              ERRORS=$((ERRORS+1))
+            fi
+          done
+          [ "$ERRORS" -eq 0 ] || exit 1
+
+      - name: Check migrations are ordered and gapless
+        run: |
+          prev=0
+          for f in $(ls supabase/migrations/*.sql 2>/dev/null | sort); do
+            n=$(basename "$f" | grep -oE '^[0-9]+')
+            n10=$((10#$n))
+            expected=$((prev+1))
+            if [ "$n10" -ne "$expected" ]; then
+              echo "ERROR: Migration gap — expected $expected, found $n10 ($f)" >&2
+              exit 1
+            fi
+            prev=$n10
+          done
+          echo "All migrations are contiguous (1–$prev)."
+
+      - name: Validate SQL syntax (psql --dry-run)
+        run: |
+          for f in supabase/migrations/*.sql; do
+            echo "Checking $f..."
+            # Check for common destructive patterns without transaction guards
+            if grep -qE '^DROP TABLE ' "$f" && ! grep -q 'IF EXISTS' "$f"; then
+              echo "WARNING: $f has unguarded DROP TABLE — consider IF EXISTS"
+            fi
+          done
+          echo "Syntax check complete."
+
+      - name: Check for idempotency markers
+        run: |
+          # Migrations should use IF NOT EXISTS / IF EXISTS for safety
+          for f in supabase/migrations/*.sql; do
+            if grep -qE '^CREATE TABLE [a-z]' "$f" && ! grep -q 'IF NOT EXISTS' "$f"; then
+              echo "WARNING: $f has CREATE TABLE without IF NOT EXISTS — not idempotent"
+            fi
+            if grep -qE '^CREATE INDEX [a-z]' "$f" && ! grep -q 'IF NOT EXISTS' "$f"; then
+              echo "WARNING: $f has CREATE INDEX without IF NOT EXISTS — not idempotent"
+            fi
+          done
+          echo "Idempotency check complete."

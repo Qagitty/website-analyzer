@@ -182,6 +182,8 @@ type SupportMessageUpdate = {
 
 // ── Monitor ──────────────────────────────────────────────────────────────────
 
+type MonitorStatus = 'active' | 'paused' | 'disabled' | 'error' | 'deleted';
+
 type MonitorRow = {
   id: string;
   user_id: string;
@@ -196,6 +198,18 @@ type MonitorRow = {
   last_scores: unknown;
   created_at: string;
   updated_at: string;
+  // v2 columns (migration 023)
+  schema_version: string | null;
+  normalized_root_url: string | null;
+  organization_id: string | null;
+  schedule: unknown | null;
+  scope: unknown | null;
+  comparison_policy: unknown | null;
+  alert_policy: unknown | null;
+  retention_policy: unknown | null;
+  status: MonitorStatus | null;
+  baseline_policy: string | null;
+  last_run_id: string | null;
 };
 
 type MonitorInsert = {
@@ -212,6 +226,17 @@ type MonitorInsert = {
   last_scores?: unknown;
   created_at?: string;
   updated_at?: string;
+  schema_version?: string | null;
+  normalized_root_url?: string | null;
+  organization_id?: string | null;
+  schedule?: unknown | null;
+  scope?: unknown | null;
+  comparison_policy?: unknown | null;
+  alert_policy?: unknown | null;
+  retention_policy?: unknown | null;
+  status?: MonitorStatus | null;
+  baseline_policy?: string | null;
+  last_run_id?: string | null;
 };
 
 type MonitorUpdate = {
@@ -225,7 +250,97 @@ type MonitorUpdate = {
   last_analysis_id?: string | null;
   last_scores?: unknown;
   updated_at?: string;
+  schema_version?: string | null;
+  normalized_root_url?: string | null;
+  organization_id?: string | null;
+  schedule?: unknown | null;
+  scope?: unknown | null;
+  comparison_policy?: unknown | null;
+  alert_policy?: unknown | null;
+  retention_policy?: unknown | null;
+  status?: MonitorStatus | null;
+  baseline_policy?: string | null;
+  last_run_id?: string | null;
 };
+
+// ── MonitorRun (migration 023) ────────────────────────────────────────────────
+
+type MonitorRunStatus =
+  | 'scheduled' | 'claimed' | 'queued' | 'running'
+  | 'partial' | 'completed' | 'failed' | 'cancelled' | 'superseded';
+
+type MonitorRunRow = {
+  id: string;
+  monitor_id: string;
+  analysis_id: string | null;
+  scheduled_for: string;
+  started_at: string | null;
+  completed_at: string | null;
+  status: MonitorRunStatus;
+  trigger: 'schedule' | 'manual' | 'deployment' | 'retry';
+  attempt: number;
+  configuration_snapshot: unknown | null;
+  baseline_run_id: string | null;
+  comparison_result: unknown | null;
+  alert_evaluation: unknown | null;
+  failure_origin: string | null;
+  errors: unknown;
+  usage: unknown | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type MonitorRunInsert = {
+  id?: string;
+  monitor_id: string;
+  analysis_id?: string | null;
+  scheduled_for: string;
+  started_at?: string | null;
+  completed_at?: string | null;
+  status?: MonitorRunStatus;
+  trigger?: 'schedule' | 'manual' | 'deployment' | 'retry';
+  attempt?: number;
+  configuration_snapshot?: unknown | null;
+  baseline_run_id?: string | null;
+  comparison_result?: unknown | null;
+  alert_evaluation?: unknown | null;
+  failure_origin?: string | null;
+  errors?: unknown;
+  usage?: unknown | null;
+  created_at?: string;
+  updated_at?: string;
+};
+
+type MonitorRunUpdate = Partial<Omit<MonitorRunInsert, 'monitor_id'>>;
+
+// ── MonitorIncident (migration 023) ───────────────────────────────────────────
+
+type MonitorIncidentRow = {
+  id: string;
+  monitor_id: string;
+  fingerprint: string;
+  title: string;
+  severity: 'critical' | 'high' | 'medium' | 'low' | 'info';
+  status: 'open' | 'acknowledged' | 'resolved' | 'muted' | 'reopened';
+  first_detected_run_id: string | null;
+  last_detected_run_id: string | null;
+  resolved_run_id: string | null;
+  affected_pages: unknown;
+  event_history: unknown;
+  occurrence_count: number;
+  last_detected_at: string;
+  created_at: string;
+  updated_at: string;
+};
+
+type MonitorIncidentInsert = Partial<MonitorIncidentRow> & {
+  monitor_id: string;
+  fingerprint: string;
+  title: string;
+  severity: MonitorIncidentRow['severity'];
+};
+
+type MonitorIncidentUpdate = Partial<Omit<MonitorIncidentRow, 'id' | 'monitor_id' | 'fingerprint'>>;
 
 // ── TeamMember ───────────────────────────────────────────────────────────────
 
@@ -439,12 +554,48 @@ export interface Database {
         Update: RemediationItemUpdate;
         Relationships: [];
       };
+      monitor_runs: {
+        Row: MonitorRunRow;
+        Insert: MonitorRunInsert;
+        Update: MonitorRunUpdate;
+        Relationships: [];
+      };
+      monitor_incidents: {
+        Row: MonitorIncidentRow;
+        Insert: MonitorIncidentInsert;
+        Update: MonitorIncidentUpdate;
+        Relationships: [];
+      };
     };
     Views: { [_ in never]: never };
     Functions: {
       use_credit: { Args: { p_user_id: string }; Returns: boolean };
       refund_credit: { Args: { p_user_id: string }; Returns: undefined };
       email_exists: { Args: { p_email: string }; Returns: boolean };
+      claim_monitor_run: {
+        Args: { p_monitor_id: string; p_run_id: string; lease_minutes?: number };
+        Returns: string | null;
+      };
+      release_monitor_lease: {
+        Args: { p_monitor_id: string; p_run_id: string };
+        Returns: boolean;
+      };
+      cleanup_expired_monitor_leases: {
+        Args: Record<never, never>;
+        Returns: number;
+      };
+      upsert_monitor_incident: {
+        Args: {
+          p_monitor_id: string;
+          p_fingerprint: string;
+          p_title: string;
+          p_severity: string;
+          p_run_id: string;
+          p_affected_pages?: unknown;
+          p_event_entry?: unknown;
+        };
+        Returns: string;
+      };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };

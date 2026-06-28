@@ -1,0 +1,22 @@
+{
+  "fixtureId": "missing-security-headers",
+  "description": "A page with mixed content and inline event handlers, served without any security headers.",
+  "htmlFile": "../sites/missing-security-headers.html",
+  "servedOverHttps": true,
+  "mockResponseHeaders": {},
+  "expectedScoreRanges": {
+    "bestPractices": { "min": 0, "max": 30 }
+  },
+  "expectedFindings": [
+    "missing-csp",
+    "missing-hsts",
+    "missing-x-frame-options",
+    "missing-x-content-type",
+    "mixed-content",
+    "inline-event-handlers"
+  ],
+  "forbiddenFindings": [],
+  "expectedAuditModes": {
+    "bestPractices": "full"
+  }
+}

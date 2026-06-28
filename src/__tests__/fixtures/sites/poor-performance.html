@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Poor Performance Fixture</title>
+  <meta name="description" content="A page designed to simulate poor performance characteristics.">
+  <link rel="canonical" href="https://fixture.local/poor-performance">
+
+  <!-- Render-blocking scripts in head -->
+  <script src="huge-library.js"></script>
+  <script src="analytics.js"></script>
+  <script src="tracking.js"></script>
+  <script src="chat-widget.js"></script>
+  <script src="ab-testing.js"></script>
+
+  <!-- Large inline styles (simulating CSS bloat) -->
+  <style>
+    /* Simulating a large stylesheet with many unused rules */
+    .unused-1 { color: red; } .unused-2 { color: blue; } .unused-3 { color: green; }
+    .unused-4 { font-size: 12px; } .unused-5 { font-size: 14px; } .unused-6 { font-size: 16px; }
+    .unused-7 { margin: 0; } .unused-8 { margin: 10px; } .unused-9 { margin: 20px; }
+    .unused-10 { padding: 0; } .unused-11 { padding: 10px; } .unused-12 { padding: 20px; }
+    .unused-13 { border: none; } .unused-14 { border: 1px solid; }
+    .unused-15 { display: block; } .unused-16 { display: inline; } .unused-17 { display: flex; }
+  </style>
+</head>
+<body>
+  <main role="main">
+    <h1>Poor Performance Fixture</h1>
+    <p>This page simulates poor performance to test that the analyzer correctly identifies and scores performance issues.</p>
+
+    <!-- Unoptimized images (no width/height specified causing CLS) -->
+    <img src="huge-unoptimized-image-1.jpg" alt="Large unoptimized image one">
+    <img src="huge-unoptimized-image-2.jpg" alt="Large unoptimized image two">
+    <img src="huge-unoptimized-image-3.jpg" alt="Large unoptimized image three">
+
+    <!-- Blocking scripts at bottom (additional scripts) -->
+    <script src="more-scripts.js"></script>
+    <script src="even-more-scripts.js"></script>
+  </main>
+</body>
+</html>

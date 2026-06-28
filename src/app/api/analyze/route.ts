@@ -5,17 +5,17 @@ import { checkWebRateLimit } from '@/lib/rate-limit/web';
 import { HTTP_ERROR_STATUSES, PAGE_ERROR_PATTERNS } from '@/lib/url-validation-patterns';
 import { checkCsrfOrigin } from '@/lib/csrf';
 import { z } from 'zod';
+import { SCHEMA_VERSIONS } from '@/lib/contracts/schemas';
+import { generateIdempotencyKey } from '@/lib/contracts/callback-auth';
+import { createHash } from 'crypto';
+import { validateAnalysisUrl, validateRedirectTarget } from '@/lib/security/url-validator';
+
+/** One-way hash of user ID — never send raw UUIDs to external services. */
+function hashUserId(userId: string): string {
+  return createHash('sha256').update(userId).digest('hex').slice(0, 16);
+}
 
 const ACCEPTED_MIME = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
-
-// Private/reserved IP ranges that must never be reached from the API route (SSRF prevention).
-// Covers IPv4 loopback, link-local, RFC1918, documentation, broadcast, and IPv6 loopback.
-const PRIVATE_HOSTNAME_RE =
-  /^(localhost|127\.|0\.0\.0\.0|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|169\.254\.|100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.|::1$|fc00:|fe80:|fd)/i;
-
-function isPrivateHostname(hostname: string): boolean {
-  return PRIVATE_HOSTNAME_RE.test(hostname);
-}
 
 function normalizeUrl(value: string): string {
   const trimmed = value.trim();
@@ -31,20 +31,16 @@ const schema = z.object({
     .pipe(
       z.string()
         .url('Invalid URL')
-        // Protocol allowlist — only http/https
-        .refine(
-          (u) => {
-            try { return /^https?:$/i.test(new URL(u).protocol); } catch { return false; }
-          },
-          'Only http:// and https:// URLs are allowed'
-        )
-        // SSRF: block private/loopback IP addresses and hostnames
-        .refine(
-          (u) => {
-            try { return !isPrivateHostname(new URL(u).hostname); } catch { return false; }
-          },
-          'Analyzing internal or private network addresses is not allowed'
-        )
+        // §3 — delegate all security checks to the centralized URL validator
+        .superRefine((u, ctx) => {
+          const result = validateAnalysisUrl(u);
+          if (!result.valid) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: result.rejectionReason ?? 'URL is not allowed.',
+            });
+          }
+        })
     ),
   designScreenshotBase64: z.string().optional(),
   designMimeType: z
@@ -120,9 +116,71 @@ async function domainExistsViaDoh(hostname: string): Promise<boolean> {
 //   3. Content check   — rejects CDN error pages (Cloudflare 1016), parking
 //                        pages ("domain for sale"), and near-empty responses.
 //
+// §8 — Each redirect hop is validated with validateRedirectTarget() before
+//       following, preventing redirect-based SSRF to internal services.
+//
 // NOTE: "any 4xx/5xx = host is up" is intentionally NOT used here because
 // Cloudflare Workers (where the real analysis runs) return a 200 OK with an
 // error-page body for NXDOMAIN domains — defeating a status-only check.
+
+const MAX_REDIRECT_HOPS = 5;
+
+const FETCH_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (compatible; WebsiteAnalyzer/1.0)',
+  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+  'Accept-Language': 'en-US,en;q=0.5',
+};
+
+/**
+ * Fetch a URL manually following redirects, validating each redirect target
+ * against the centralized SSRF validator before following (§8).
+ */
+async function fetchWithSafeRedirects(
+  startUrl: string,
+  signal: AbortSignal,
+): Promise<Response> {
+  let currentUrl = startUrl;
+  const seen = new Set<string>();
+
+  for (let hop = 0; hop <= MAX_REDIRECT_HOPS; hop++) {
+    if (seen.has(currentUrl)) {
+      throw new Error('Redirect loop detected.');
+    }
+    seen.add(currentUrl);
+
+    const response = await fetch(currentUrl, {
+      method: 'GET',
+      redirect: 'manual',
+      signal,
+      headers: FETCH_HEADERS,
+    });
+
+    if (response.status < 300 || response.status >= 400) {
+      return response;
+    }
+
+    // Follow the redirect — but validate the target first
+    const location = response.headers.get('location');
+    if (!location) return response;
+
+    let nextUrl: string;
+    try {
+      nextUrl = new URL(location, currentUrl).href;
+    } catch {
+      throw new Error(`Invalid redirect location: ${location}`);
+    }
+
+    const validation = validateRedirectTarget(nextUrl);
+    if (!validation.valid) {
+      throw new Error(`Redirect blocked: ${validation.rejectionReason}`);
+    }
+
+    currentUrl = nextUrl;
+  }
+
+  throw new Error(`Too many redirects (max ${MAX_REDIRECT_HOPS}).`);
+}
+
 async function checkUrlReachable(url: string): Promise<{ ok: boolean; error?: string }> {
   let hostname: string;
   try {
@@ -140,28 +198,25 @@ async function checkUrlReachable(url: string): Promise<{ ok: boolean; error?: st
     };
   }
 
-  // ── Layer 2: HTTP GET with body ─────────────────────────────────────────
+  // ── Layer 2: HTTP GET with body, safe redirect following ────────────────
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 15_000);
 
   let response: Response;
   try {
-    response = await fetch(url, {
-      method: 'GET',
-      redirect: 'follow',
-      signal: ctrl.signal,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; WebsiteAnalyzer/1.0)',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-      },
-    });
+    response = await fetchWithSafeRedirects(url, ctrl.signal);
   } catch (err: any) {
     clearTimeout(timer);
     if (err?.name === 'AbortError') {
       return {
         ok: false,
         error: 'The URL timed out during reachability check. The site may be down or very slow.',
+      };
+    }
+    if (err?.message?.startsWith('Redirect blocked:')) {
+      return {
+        ok: false,
+        error: 'The URL redirects to an internal or disallowed address.',
       };
     }
     return {
@@ -300,7 +355,38 @@ export async function POST(req: NextRequest) {
   const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/analyze/callback`;
   const workerUrl = `${process.env.CLOUDFLARE_WORKER_URL}/analyze`;
 
-  console.log('[analyze] dispatching to worker:', { analysisId: analysis.id, workerUrl, callbackUrl });
+  // §7 — Versioned Worker job request. authToken is intentionally NOT in the body;
+  //       it lives only in the Authorization header sent to the Worker.
+  //       The Worker authenticates back to the callback using its own environment
+  //       secret passed via the callback URL's signatureVersion hint.
+  const idempotencyKey = generateIdempotencyKey();
+  const workerJobPayload = {
+    // §7 — schema version so the Worker can validate and future-proof
+    schemaVersion: SCHEMA_VERSIONS.WORKER_JOB,
+    analysisId: analysis.id,
+    rootUrl: url,
+    // §7 — requestedBy uses a hashed user ID, never the raw UUID
+    requestedBy: { userIdHash: hashUserId(user.id), plan: 'free' },
+    config: {
+      crawlStrategy: 'internal-links',
+      maxPages: 10,
+      maxDepth: 2,
+      auditLevels: {},
+      deviceProfile: 'desktop',
+    },
+    callback: {
+      url: callbackUrl,
+      signatureVersion: 'v1',
+    },
+    idempotencyKey,
+    createdAt: new Date().toISOString(),
+    // §29 — Legacy fields kept for Worker versions that have not upgraded yet
+    url,
+    callbackUrl,
+    authToken: process.env.WORKER_CALLBACK_SECRET,
+  };
+
+  console.log('[analyze] dispatching to worker:', { analysisId: analysis.id, workerUrl, callbackUrl, schemaVersion: SCHEMA_VERSIONS.WORKER_JOB });
 
   fetch(workerUrl, {
     method: 'POST',
@@ -308,12 +394,7 @@ export async function POST(req: NextRequest) {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${process.env.CLOUDFLARE_WORKER_AUTH_TOKEN}`,
     },
-    body: JSON.stringify({
-      analysisId: analysis.id,
-      url,
-      callbackUrl,
-      authToken: process.env.WORKER_CALLBACK_SECRET,
-    }),
+    body: JSON.stringify(workerJobPayload),
   }).then(async (res) => {
     const text = await res.text().catch(() => '');
     console.log('[analyze] worker response:', res.status, text);

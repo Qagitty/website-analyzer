@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Missing Security Headers Fixture</title>
+  <meta name="description" content="A page served without any security response headers.">
+  <link rel="canonical" href="https://fixture.local/missing-security-headers">
+
+  <!-- Mixed content: loads a resource over HTTP even though page could be HTTPS -->
+  <script src="http://cdn.example.com/jquery.js"></script>
+  <img src="http://cdn.example.com/image.png" alt="External image loaded over HTTP">
+</head>
+<body>
+  <!-- This page is intentionally served WITHOUT:
+       - Content-Security-Policy
+       - X-Frame-Options
+       - Strict-Transport-Security
+       - X-Content-Type-Options
+       - Referrer-Policy
+  -->
+
+  <main role="main">
+    <h1>Security Headers Fixture</h1>
+    <p>This fixture page is missing all security-related response headers.</p>
+    <!-- Inline event handler for best-practices penalty -->
+    <button onclick="alert('clicked')">Click me</button>
+    <div onerror="handleError()">Error handler</div>
+  </main>
+</body>
+</html>

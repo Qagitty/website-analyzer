@@ -5,38 +5,154 @@ import { uploadScreenshot, getSignedUrlOrNull } from '@/lib/supabase/storage';
 import { sendScoreDropAlert, sendMonitorSummary, sendAnalysisComplete, sendAnalysisFailed } from '@/lib/email/resend';
 import { fireWebhooksForAnalysis } from '@/lib/webhooks/deliver';
 import * as Sentry from '@sentry/nextjs';
+import { LegacyWorkerCallbackSchema, type LegacyWorkerCallback } from '@/lib/contracts/schemas';
+import { verifyCallbackSignature } from '@/lib/contracts/callback-auth';
+import { validateDbLighthouseScores, detectLighthouseSchemaVersion } from '@/lib/contracts/db-validation';
+
+// ── Score integrity helpers (§18, §19) ───────────────────────────────────────
+
+/** Clamps a single score to [0, 100] or returns null when input is null/undefined. */
+function clampScore(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+  return Math.min(100, Math.max(0, n));
+}
+
+/**
+ * Validates and clamps all numeric scores in a lighthouse_scores blob.
+ * Logs a warning for each out-of-range value. Returns the sanitised object.
+ * This runs before any storage write so no invalid scores ever reach the DB.
+ */
+function sanitiseLighthouseScores(
+  raw: Record<string, unknown> | null | undefined,
+  analysisId: string,
+): Record<string, unknown> | null {
+  if (!raw || typeof raw !== 'object') return raw ?? null;
+
+  const SCORE_KEYS = ['performance', 'accessibility', 'seo', 'bestPractices', 'llmReadiness'];
+  const sanitised: Record<string, unknown> = { ...raw };
+
+  for (const key of SCORE_KEYS) {
+    if (key in sanitised) {
+      const original = sanitised[key];
+      const clamped = clampScore(original);
+      if (original !== null && original !== undefined && original !== clamped) {
+        console.warn(
+          `[callback][${analysisId}] Score out of range: ${key}=${original} → clamped to ${clamped}`,
+        );
+      }
+      sanitised[key] = clamped;
+    }
+  }
+  return sanitised;
+}
+
+/**
+ * Logs the scoreVersion of each category result for reproduction tracing (§19).
+ * Called before storing results so the audit trail is written even if storage fails.
+ */
+function logScoreVersions(lighthouseScores: Record<string, unknown> | null, analysisId: string): void {
+  if (!lighthouseScores) return;
+  const VERSION_KEYS = [
+    ['scoreVersion',             'performance'],
+    ['seoAudit.scoreVersion',    'seo'],
+    ['accessibilityAudit.version', 'accessibility'],
+    ['bestPracticesAudit.scoreVersion', 'best-practices'],
+    ['llmReadinessAudit.scoreVersion',  'llm-readiness'],
+  ] as const;
+  for (const [path, category] of VERSION_KEYS) {
+    const parts = path.split('.');
+    let val: unknown = lighthouseScores;
+    for (const p of parts) {
+      val = (val as Record<string, unknown>)?.[p];
+    }
+    if (val) {
+      console.info(`[callback][${analysisId}] scoreVersion ${category}=${val}`);
+    }
+  }
+}
 
 export async function POST(req: NextRequest) {
+  // §6 — Layer 1: Bearer token check (required for all callbacks)
   const authHeader = req.headers.get('Authorization');
   if (authHeader !== `Bearer ${process.env.WORKER_CALLBACK_SECRET}`) {
+    console.warn('[callback] Unauthorized — invalid Bearer token');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Guard against oversized payloads from a buggy or compromised worker.
-  // A full-page screenshot is ~2-4 MB as base64; 20 MB gives ample headroom.
+  // §32 — Guard against oversized payloads from a buggy or compromised worker.
   const contentLength = Number(req.headers.get('content-length') ?? 0);
   if (contentLength > 20 * 1024 * 1024) {
     return NextResponse.json({ error: 'Payload too large' }, { status: 413 });
   }
 
+  // §9 — Layer 2: HMAC signature check (opt-in; required for v2 Workers).
+  // Legacy Workers that don't send X-Callback-Signature pass through automatically.
+  const rawBody = await req.text();
+  const hmacResult = verifyCallbackSignature(
+    rawBody,
+    process.env.WORKER_CALLBACK_SECRET ?? '',
+    req.headers,
+  );
+  if (!hmacResult.valid) {
+    console.warn('[callback] Rejected — HMAC verification failed:', hmacResult.reason);
+    return NextResponse.json(
+      { error: 'Callback signature invalid', reason: hmacResult.reason },
+      { status: 401 },
+    );
+  }
+
+  // §6 — Parse and validate the callback body at the trust boundary
+  let rawParsed: unknown;
+  try {
+    rawParsed = JSON.parse(rawBody);
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+  }
+
+  // §8 — Accept both v2 (WorkerCallbackEnvelope) and v1 (legacy flat payload).
+  // Detect v2 by the presence of schemaVersion on the envelope.
+  const isV2Callback = rawParsed &&
+    typeof rawParsed === 'object' &&
+    (rawParsed as Record<string, unknown>).schemaVersion === 'worker-callback-v2';
+
+  // §6 — Validate legacy v1 payload shape at the trust boundary
+  let rawBody2: LegacyWorkerCallback;
+  if (isV2Callback) {
+    // v2: the actual result payload is inside .payload; analysisId is on the envelope
+    const envelope = rawParsed as Record<string, unknown>;
+    const innerPayload = (envelope.payload ?? {}) as Record<string, unknown>;
+    rawBody2 = { ...innerPayload, analysisId: String(envelope.analysisId) } as LegacyWorkerCallback;
+    console.info(`[callback] v2 envelope received: resultType=${envelope.resultType}, analysisId=${envelope.analysisId}`);
+  } else {
+    const parsed = LegacyWorkerCallbackSchema.safeParse(rawParsed);
+    if (!parsed.success) {
+      console.warn('[callback] v1 schema validation failed:', parsed.error.issues[0]?.message);
+      return NextResponse.json(
+        { error: 'Invalid callback payload', detail: parsed.error.issues[0]?.message },
+        { status: 400 },
+      );
+    }
+    rawBody2 = parsed.data;
+  }
+
   const supabase = createServiceRoleClient();
-  const body = await req.json();
-  const {
-    analysisId,
-    error: workerError,
-    // Multi-page crawl results
-    crawledPages,
-    crawlCoverage,
-    // Monitor context (present only for scheduled runs).
-    // NOTE: monitorUserEmail is intentionally absent — we look it up from the
-    // DB here so user emails never travel through Cloudflare Worker bodies.
-    monitorId,
-    monitorUserId,
-    monitorLastScores,
-    monitorNotify,
-    monitorThreshold,
-    ...results
-  } = body;
+
+  // Extract named fields with proper types; the rest are stored in `results`.
+  const analysisId   = rawBody2.analysisId;
+  const workerError  = rawBody2.error;
+  const crawledPages = rawBody2.crawledPages as unknown[] | null | undefined;
+  const crawlCoverage= rawBody2.crawlCoverage as Record<string, unknown> | null | undefined;
+  const monitorId    = rawBody2.monitorId;
+  const monitorUserId= rawBody2.monitorUserId;
+  const monitorLastScores = rawBody2.monitorLastScores as Record<string, number | null> | null | undefined;
+  const monitorNotify     = rawBody2.monitorNotify;
+  const monitorThreshold  = rawBody2.monitorThreshold;
+
+  // `results` carries the remaining payload fields (screenshot, scores, errors, etc.).
+  // Cast to LegacyWorkerCallback so named fields retain their Zod-inferred types.
+  const results = rawBody2 as LegacyWorkerCallback;
 
   if (workerError) {
     const { data: failedRecord } = await supabase
@@ -64,7 +180,7 @@ export async function POST(req: NextRequest) {
         if (userEmail && prefs?.email_on_fail !== false) {
           sendAnalysisFailed({
             to: userEmail,
-            url: body.url ?? analysisId,
+            url: results.url ?? analysisId,
             analysisId,
           }).catch(() => {});
         }
@@ -110,6 +226,17 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // §6/§24: validate and clamp all scores at the trust boundary before any storage write.
+    // validateDbLighthouseScores handles clamping, schema version detection, and logging.
+    if (results.lighthouseScores) {
+      const validated = validateDbLighthouseScores(results.lighthouseScores, analysisId);
+      logScoreVersions(validated as Record<string, unknown> | null, analysisId);
+      const schemaVersion = detectLighthouseSchemaVersion(results.lighthouseScores);
+      console.info(`[callback][${analysisId}] Worker payload schema: ${schemaVersion}`);
+      // Replace the raw scores with the validated/clamped version for all downstream use.
+      (results as Record<string, unknown>).lighthouseScores = validated;
+    }
+
     // Run AI analysis and (optionally) design comparison in parallel.
     // Design screenshot is stored as a path in a PRIVATE bucket — generate a
     // short-lived signed URL so runDesignComparison can fetch it over HTTPS.
@@ -119,10 +246,10 @@ export async function POST(req: NextRequest) {
       : null;
 
     const aiInsightsPromise = analyzeWithAI({
-      screenshotBase64: results.screenshotBase64,
+      screenshotBase64: results.screenshotBase64 ?? null,
       lighthouseScores: results.lighthouseScores,
-      consoleErrors: results.consoleErrors,
-      accessibilityIssues: results.accessibilityIssues,
+      consoleErrors: (results.consoleErrors ?? []) as any[],
+      accessibilityIssues: (results.accessibilityIssues ?? []) as any[],
       networkSummary: results.networkSummary,
     });
 
@@ -174,10 +301,10 @@ export async function POST(req: NextRequest) {
         url: siteUrl,
         scores: results.lighthouseScores
           ? {
-              performance: results.lighthouseScores.performance ?? 0,
-              accessibility: results.lighthouseScores.accessibility ?? 0,
-              seo: results.lighthouseScores.seo ?? 0,
-              bestPractices: results.lighthouseScores.bestPractices ?? 0,
+              performance: (results.lighthouseScores.performance as number | null) ?? 0,
+              accessibility: (results.lighthouseScores.accessibility as number | null) ?? 0,
+              seo: (results.lighthouseScores.seo as number | null) ?? 0,
+              bestPractices: (results.lighthouseScores.bestPractices as number | null) ?? 0,
             }
           : undefined,
         reportUrl: `${appUrl}/reports/${analysisId}`,
@@ -201,7 +328,7 @@ export async function POST(req: NextRequest) {
             to: userEmail,
             url: (analysisRecord as any).url,
             analysisId,
-            scores: results.lighthouseScores ?? null,
+            scores: results.lighthouseScores as Record<string, number> | null ?? null,
           }).catch((e) => console.error('[callback] completion email failed:', e));
         }
       } catch (e) {
@@ -212,7 +339,7 @@ export async function POST(req: NextRequest) {
 
     // ── Monitor post-processing ──────────────────────────────────────────
     if (monitorId && results.lighthouseScores) {
-      const newScores = results.lighthouseScores;
+      const newScores = results.lighthouseScores as Record<string, number | null | undefined>;
 
       // Update monitor with latest scores
       await supabase.from('monitors')
@@ -230,8 +357,8 @@ export async function POST(req: NextRequest) {
           const SCORE_KEYS = ['performance', 'accessibility', 'seo', 'bestPractices'] as const;
           const drops = SCORE_KEYS
             .map((key) => {
-              const prev = monitorLastScores[key] ?? 0;
-              const curr = newScores[key] ?? 0;
+              const prev = (monitorLastScores[key] as number | null | undefined) ?? 0;
+              const curr = (newScores[key] as number | null | undefined) ?? 0;
               const delta = prev - curr;
               return { metric: key, previous: prev, current: curr, delta };
             })
@@ -250,7 +377,7 @@ export async function POST(req: NextRequest) {
               to: resolvedEmail,
               url: results.url ?? analysisId,
               analysisId,
-              scores: newScores,
+              scores: newScores as Record<string, number>,
             }).catch((e) => console.error('[callback] summary email failed:', e));
           }
         }

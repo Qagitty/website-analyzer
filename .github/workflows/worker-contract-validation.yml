@@ -1,0 +1,34 @@
+name: Worker Contract Validation
+
+# Runs when Worker source or contract schemas change (§30, §11).
+on:
+  pull_request:
+    paths:
+      - 'src/workers/**'
+      - 'src/lib/contracts/**'
+      - 'src/__tests__/contracts/**'
+  push:
+    branches: [main]
+    paths:
+      - 'src/workers/**'
+      - 'src/lib/contracts/**'
+
+jobs:
+  contract-validation:
+    name: Worker / Backend Contract Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci --ignore-scripts
+
+      - name: Contract tests
+        run: npm run test:contracts -- --reporter=verbose
+
+      - name: Worker unit tests
+        run: npm run test:worker -- --reporter=verbose

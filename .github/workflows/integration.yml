@@ -1,0 +1,135 @@
+name: Full Integration Suite
+
+# Runs on every push to main (after PR is merged).
+# Slower than PR validation — includes all test categories and the security
+# regression suite as a required gate before any deployment.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+concurrency:
+  group: integration-${{ github.ref }}
+  cancel-in-progress: false   # Never cancel in-flight integration runs
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # ── All test categories ─────────────────────────────────────────────────────
+  unit:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run test:unit
+
+  components:
+    name: Component Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run test:components
+
+  api:
+    name: API Route Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run test:api
+
+  contracts:
+    name: Contract Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run test:contracts
+
+  # ── Security regression — REQUIRED gate before deploy (§25, §29) ───────────
+  security:
+    name: Security Regression (required)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run test:security
+
+  # ── Build must succeed after all tests pass ─────────────────────────────────
+  build:
+    name: Production Build
+    needs: [unit, components, api, contracts, security]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder
+          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_placeholder
+          NEXT_PUBLIC_APP_URL: https://placeholder.example.com
+          ANTHROPIC_API_KEY: placeholder
+          SKIP_ENV_VALIDATION: 'true'
+
+  # ── Release evidence artifact ────────────────────────────────────────────────
+  release-evidence:
+    name: Capture Release Evidence
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci --ignore-scripts
+
+      - name: Generate test report
+        run: npm run test -- --reporter=json --outputFile=test-results.json || true
+
+      - name: Collect evidence
+        run: |
+          echo "SHA:        ${{ github.sha }}" >> release-evidence.txt
+          echo "Ref:        ${{ github.ref_name }}" >> release-evidence.txt
+          echo "Timestamp:  $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> release-evidence.txt
+          echo "Runner OS:  ${{ runner.os }}" >> release-evidence.txt
+          echo "Node:       ${{ env.NODE_VERSION }}" >> release-evidence.txt
+
+      - name: Upload evidence artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-evidence-${{ github.sha }}
+          path: |
+            release-evidence.txt
+            test-results.json
+          retention-days: 90

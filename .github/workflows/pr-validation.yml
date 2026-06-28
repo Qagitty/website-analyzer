@@ -1,0 +1,132 @@
+name: PR Validation
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # ── Gate 1: lockfile integrity ──────────────────────────────────────────────
+  install:
+    name: Install (locked)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Fail if lockfile is missing or inconsistent
+        run: |
+          if [ ! -f package-lock.json ]; then
+            echo "ERROR: package-lock.json is missing. Commit the lockfile." >&2
+            exit 1
+          fi
+          npm ci --ignore-scripts
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: nm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+  # ── Gate 2: formatting / lint / typecheck ──────────────────────────────────
+  quality:
+    name: Lint & Type Check
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci --ignore-scripts
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npm run typecheck
+
+  # ── Gate 3: unit + component + contract + API tests ───────────────────────
+  tests:
+    name: Tests
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci --ignore-scripts
+
+      - name: Unit tests
+        run: npm run test:unit
+
+      - name: Component tests
+        run: npm run test:components
+
+      - name: Contract tests
+        run: npm run test:contracts
+
+      - name: API tests
+        run: npm run test:api
+
+      - name: Security tests
+        run: npm run test:security
+
+  # ── Gate 4: Worker contract validation ────────────────────────────────────
+  worker-contracts:
+    name: Worker Contracts
+    needs: install
+    runs-on: ubuntu-latest
+    # Only run when Worker or contract files change
+    if: |
+      github.event_name == 'push' ||
+      contains(github.event.pull_request.changed_files, 'src/workers') ||
+      contains(github.event.pull_request.changed_files, 'src/lib/contracts')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run test:contracts
+
+  # ── Gate 5: production build ───────────────────────────────────────────────
+  build:
+    name: Production Build
+    needs: [quality, tests]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci --ignore-scripts
+
+      - name: Build
+        run: npm run build
+        env:
+          # Placeholder values satisfy Next.js build-time NEXT_PUBLIC_ requirements.
+          # Real secrets are never exposed to pull-request CI (§38).
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder
+          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_placeholder
+          NEXT_PUBLIC_APP_URL: https://placeholder.example.com
+          ANTHROPIC_API_KEY: placeholder
+          SKIP_ENV_VALIDATION: true

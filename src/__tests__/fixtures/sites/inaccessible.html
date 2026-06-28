@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Inaccessible Fixture</title>
+</head>
+<body>
+  <!-- NO lang attribute on <html> -->
+  <!-- NO skip link -->
+  <!-- NO ARIA landmarks (no role= attributes, no semantic HTML5 elements) -->
+
+  <div class="nav">
+    <a href="/">Home</a>
+    <a href="/about">About</a>
+  </div>
+
+  <div class="content">
+    <div class="title">Welcome</div>
+    <!-- no h1 tag — uses a styled div instead -->
+
+    <!-- Images without alt text -->
+    <img src="logo.png">
+    <img src="hero.jpg">
+    <img src="product1.jpg">
+
+    <!-- Form inputs without labels -->
+    <form>
+      <input type="text" name="search" placeholder="Search...">
+      <input type="email" name="email" placeholder="Email">
+      <input type="password" name="password" placeholder="Password">
+      <button onclick="submitForm()">Submit</button>
+      <!-- Inline event handler (onclick) — best-practices penalty -->
+    </form>
+
+    <!-- Low contrast simulated via inline style (hard to auto-detect without rendering) -->
+    <p style="color: #aaa; background: #fff;">
+      This text has very low contrast and is hard to read.
+    </p>
+  </div>
+
+  <div class="footer">
+    Footer content
+  </div>
+</body>
+</html>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { authenticateApiKey } from '@/lib/api-keys/authenticate';
 import { checkRateLimit } from '@/lib/api-keys/rate-limit';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { validateAnalysisUrl } from '@/lib/security/url-validator';
 import { z } from 'zod';
 
 const schema = z.object({
@@ -33,6 +34,15 @@ export async function POST(req: NextRequest) {
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
+  }
+
+  // SSRF protection: reject private IPs, metadata endpoints, blocked ports
+  const urlValidation = validateAnalysisUrl(parsed.data.url);
+  if (!urlValidation.valid) {
+    return NextResponse.json(
+      { error: urlValidation.rejectionReason ?? 'URL is not allowed' },
+      { status: 400, headers: rateLimitHeaders(remaining, limit) }
+    );
   }
 
   const supabase = createServiceRoleClient();

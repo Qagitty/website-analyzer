@@ -1,0 +1,42 @@
+name: Dependency Audit
+
+# Runs daily to catch newly-disclosed vulnerabilities (§34).
+on:
+  schedule:
+    - cron: '0 8 * * 1-5'  # weekdays at 08:00 UTC
+  workflow_dispatch:
+
+jobs:
+  npm-audit:
+    name: npm audit (production)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci --ignore-scripts
+
+      - name: Audit production dependencies
+        # Fail on high/critical vulnerabilities in production deps.
+        # Low/moderate findings are reported but do not block.
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Audit all dependencies (informational)
+        run: npm audit --audit-level=critical || true
+
+  check-outdated:
+    name: Outdated critical packages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Check for outdated packages (informational)
+        run: npm outdated || true

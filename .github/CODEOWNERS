@@ -1,0 +1,34 @@
+# CODEOWNERS — §77
+# Every change to these paths requires review from the designated owner(s).
+# The owner must be a GitHub user or team in this org.
+# Syntax: <path-pattern>  <owner>
+
+# Default owner for everything not matched below
+*                                     @maxlag
+
+# Security-critical paths — always require a dedicated security review
+src/lib/security/                     @maxlag
+src/middleware.ts                     @maxlag
+src/app/api/analyze/callback/         @maxlag
+src/lib/contracts/                    @maxlag
+src/lib/webhooks/                     @maxlag
+src/lib/ai/sanitize.ts                @maxlag
+
+# Auth and billing — high blast-radius changes
+src/lib/supabase/                     @maxlag
+src/app/api/stripe/                   @maxlag
+src/lib/stripe/                       @maxlag
+
+# Database schema — must be reviewed for migration safety
+supabase/migrations/                  @maxlag
+
+# Scoring — changes affect all historical report comparisons
+src/workers/analyzer/                 @maxlag
+src/lib/report/                       @maxlag
+
+# Monitoring scheduler — changes affect production cron jobs
+src/app/api/cron/                     @maxlag
+src/lib/monitoring/                   @maxlag
+
+# CI/CD — pipeline changes
+.github/                              @maxlag

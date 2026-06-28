@@ -1,31 +1,9 @@
 import crypto from 'crypto';
+import { validateWebhookUrl } from '@/lib/security/url-validator';
 
-// Private/reserved IP ranges that must not be reachable via user-supplied webhook URLs.
-// Prevents SSRF attacks targeting AWS metadata, internal services, Redis, etc.
-const PRIVATE_IP_PATTERNS: RegExp[] = [
-  /^localhost$/i,
-  /^127\./,
-  /^10\./,
-  /^172\.(1[6-9]|2\d|3[01])\./,
-  /^192\.168\./,
-  /^169\.254\./,           // link-local / AWS metadata
-  /^100\.6[4-9]\.|^100\.[7-9]\d\.|^100\.1[01]\d\.|^100\.12[0-7]\./,  // CGNAT
-  /^::1$/,
-  /^fc00:/i,
-  /^fe80:/i,
-  /^0\./,
-  /^\[/,                   // IPv6 bracket notation (e.g. [::1])
-];
-
+/** Returns true if the URL must be blocked for SSRF reasons. */
 export function isSsrfUrl(url: string): boolean {
-  try {
-    const parsed = new URL(url);
-    if (parsed.protocol !== 'https:') return true;
-    const host = parsed.hostname.toLowerCase();
-    return PRIVATE_IP_PATTERNS.some((p) => p.test(host));
-  } catch {
-    return true;
-  }
+  return !validateWebhookUrl(url).valid;
 }
 
 export interface WebhookPayload {

@@ -1,0 +1,26 @@
+{
+  "fixtureId": "inaccessible",
+  "description": "A page with no alt text, no labels, no skip links, no lang, no ARIA landmarks.",
+  "htmlFile": "../sites/inaccessible.html",
+  "servedOverHttps": true,
+  "mockResponseHeaders": {},
+  "expectedScoreRanges": {
+    "seo": { "min": 0, "max": 30 },
+    "accessibility": { "min": 0, "max": 30 },
+    "bestPractices": { "min": 0, "max": 50 }
+  },
+  "expectedFindings": [
+    "images-without-alt",
+    "inputs-without-labels",
+    "missing-skip-link",
+    "missing-aria-landmarks",
+    "missing-lang-attribute",
+    "inline-event-handlers"
+  ],
+  "forbiddenFindings": [],
+  "expectedAuditModes": {
+    "seo": "full",
+    "accessibility": "full",
+    "bestPractices": "full"
+  }
+}

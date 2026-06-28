@@ -40,8 +40,8 @@ describe('AI_PROMPTS.screenshotAnalysis()', () => {
     expect(AI_PROMPTS.screenshotAnalysis()).toContain('JSON');
   });
 
-  it('requests overallUXScore in the output schema', () => {
-    expect(AI_PROMPTS.screenshotAnalysis()).toContain('overallUXScore');
+  it('includes a scoring guard (Claude must not produce numeric scores)', () => {
+    expect(AI_PROMPTS.screenshotAnalysis()).toContain('Do NOT produce a numeric score');
   });
 
   it('requests issues array in the output schema', () => {

@@ -211,7 +211,7 @@ function PerformanceOverview({
         <div className="flex flex-col sm:flex-row gap-6">
           {/* Score gauge */}
           <div className="flex flex-col items-center gap-2 shrink-0">
-            <ScoreGauge score={scores.performance} label="Performance" size="lg" />
+            <ScoreGauge score={scores.performance} label="Performance" size="lg" showLabel />
             {isLegacy && (
               <Badge className="text-[9px] bg-muted text-muted-foreground border border-border">Legacy result</Badge>
             )}
@@ -267,7 +267,7 @@ function ScoreStrip({ scores }: { scores: LighthouseScores }) {
   return (
     <div className="flex flex-wrap gap-4 justify-start">
       {items.map(({ label, value }) => (
-        <ScoreGauge key={label} score={value} label={label} size="md" />
+        <ScoreGauge key={label} score={value} label={label} size="md" showLabel />
       ))}
     </div>
   );

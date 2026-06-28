@@ -1,0 +1,24 @@
+{
+  "fixtureId": "seo-invalid",
+  "description": "A page missing title, meta description, H1, viewport, canonical, and lang.",
+  "htmlFile": "../sites/seo-invalid.html",
+  "servedOverHttps": true,
+  "mockResponseHeaders": {},
+  "expectedScoreRanges": {
+    "seo": { "min": 0, "max": 20 },
+    "accessibility": { "min": 0, "max": 30 },
+    "bestPractices": { "min": 0, "max": 50 }
+  },
+  "expectedFindings": [
+    "missing-title",
+    "missing-meta-description",
+    "missing-h1",
+    "missing-viewport",
+    "missing-canonical",
+    "missing-lang-attribute"
+  ],
+  "forbiddenFindings": [],
+  "expectedAuditModes": {
+    "seo": "full"
+  }
+}

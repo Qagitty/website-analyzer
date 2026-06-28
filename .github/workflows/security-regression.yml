@@ -1,0 +1,46 @@
+name: Security Regression
+
+# Runs on main and must pass before production release (§25, §30).
+# This is a required gate — do not skip.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - 'src/lib/security/**'
+      - 'src/lib/contracts/**'
+      - 'src/lib/webhooks/**'
+      - 'src/lib/ai/sanitize.ts'
+      - 'src/middleware.ts'
+      - 'src/app/api/analyze/**'
+      - 'src/app/api/analyze/callback/**'
+      - 'src/__tests__/security/**'
+      - 'src/__tests__/lib/url-validator.test.ts'
+  workflow_dispatch:
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: false  # never cancel security runs mid-flight
+
+jobs:
+  security:
+    name: Security Regression Suite
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci --ignore-scripts
+
+      - name: SSRF & URL validation regression
+        run: npm run test:security -- --reporter=verbose
+
+      - name: Secret scan (gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: false

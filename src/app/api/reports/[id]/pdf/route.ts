@@ -3,6 +3,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import { generateReportPDF } from '@/lib/pdf/generator';
 import { getSignedUrlOrNull } from '@/lib/supabase/storage';
 import { hasFeature, featureGateError } from '@/lib/billing/limits';
+import { sanitizePdfFilename } from '@/lib/pdf/pdf-view-model';
 import type { Analysis } from '@/types/analysis';
 
 export const dynamic = 'force-dynamic';
@@ -62,13 +63,23 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     branding,
     screenshotUrl ?? undefined,
   );
-  // (logoUrl is already in branding above)
-  const hostname = new URL(analysis.url).hostname;
+
+  // §37 — safe filename: never expose raw hostname, always sanitize
+  let filename = 'website-analysis.pdf';
+  try {
+    const hostname = new URL(analysis.url).hostname;
+    const dateStr = (analysis.completed_at ?? analysis.created_at ?? '').slice(0, 10);
+    filename = sanitizePdfFilename(hostname, dateStr);
+  } catch {
+    // keep default
+  }
 
   return new NextResponse(new Uint8Array(pdfBuffer), {
     headers: {
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="report-${hostname}.pdf"`,
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Cache-Control': 'no-store, no-cache',
+      'X-Content-Type-Options': 'nosniff',
     },
   });
 }
