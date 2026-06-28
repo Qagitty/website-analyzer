@@ -20,6 +20,9 @@ export async function register() {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
+    // Only reset analyses older than 5 minutes — avoids killing analyses
+    // dispatched seconds before a rolling deploy completes.
+    const staleThreshold = new Date(Date.now() - 5 * 60 * 1000).toISOString();
     const { error, data } = await supabase
       .from("analyses")
       .update({
@@ -29,6 +32,7 @@ export async function register() {
         completed_at: new Date().toISOString(),
       })
       .in("status", ["pending", "queued", "running"])
+      .lt("created_at", staleThreshold)
       .select("id");
 
     if (error) {
