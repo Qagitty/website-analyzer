@@ -299,7 +299,7 @@ export type WorkerCallbackEnvelope = z.infer<typeof WorkerCallbackEnvelopeSchema
 export const LegacyWorkerCallbackSchema = z.object({
   analysisId: z.string(),
   error: z.string().optional(),
-  screenshotBase64: z.string().optional(),
+  screenshotBase64: z.string().nullable().optional(),
   lighthouseScores: z.record(z.string(), z.unknown()).nullable().optional(),
   consoleErrors: z.array(z.unknown()).nullable().optional(),
   accessibilityIssues: z.array(z.unknown()).nullable().optional(),
