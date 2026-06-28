@@ -1,4 +1,4 @@
-import { validateWebsiteUrl } from './validate';
+import { validateWebsiteUrl, BROWSER_HEADERS } from './validate';
 import { analyzeHTML } from './score';
 import { buildFetchOnlyAudit } from './perf-score';
 import { checkAccessibility } from './accessibility';
@@ -100,40 +100,25 @@ async function runAnalysis(req: AnalysisRequest): Promise<void> {
   }
 
   try {
-    const ttfbSamples: number[] = [];
-    let html = '';
-    let response!: Response;
-    let pageBytes = 0;
+    // Reuse the html and response from validation — no need to fetch the same URL again.
+    // A second identical fetch in quick succession is a strong bot signal.
+    const html = validation.html!;
+    const response = validation.response!;
+    const pageBytes = new TextEncoder().encode(html).length;
+    const ttfb = validation.ttfb!;
+    const ttfbSamples = [ttfb];
+    const ttfbMin = ttfb;
+    const ttfbMax = ttfb;
+    const fetchDuration = ttfb;
 
-    const fetchHeaders = {
-      'User-Agent': 'Mozilla/5.0 (compatible; WebsiteAnalyzer/1.0)',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      'Accept-Language': 'en-US,en;q=0.5',
+    // Headers for subsequent crawl requests — add Referer and same-origin Sec-Fetch-Site
+    // so sub-page fetches look like a user clicking an internal link.
+    const crawlHeaders: Record<string, string> = {
+      ...BROWSER_HEADERS,
+      'Referer': req.url,
+      'Sec-Fetch-Site': 'same-origin',
+      'Sec-Fetch-User': '',      // not a user-initiated navigation for sub-pages
     };
-
-    const fetchStart = Date.now();
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const t0 = Date.now();
-      const fetchCtrl = new AbortController();
-      setTimeout(() => fetchCtrl.abort(), 15_000);
-      const r = await fetch(req.url, { headers: fetchHeaders, redirect: 'follow', signal: fetchCtrl.signal });
-      const ttfb = Date.now() - t0;
-      ttfbSamples.push(ttfb);
-      if (attempt === 0) {
-        html = await r.text();
-        pageBytes = new TextEncoder().encode(html).length;
-        response = r;
-      } else {
-        await r.body?.cancel();
-      }
-      if (attempt < 2) await new Promise<void>((res) => setTimeout(res, 200));
-    }
-    const fetchDuration = Date.now() - fetchStart;
-
-    const sorted = [...ttfbSamples].sort((a, b) => a - b);
-    const ttfb = sorted[1];
-    const ttfbMin = sorted[0];
-    const ttfbMax = sorted[2];
 
     // Resource audit runs first so its counts can improve the performance score
     const resourceStart = Date.now();
@@ -271,7 +256,10 @@ async function runAnalysis(req: AnalysisRequest): Promise<void> {
     let crawlFailed = 0;
     let crawlSkipped = 0;
     for (const link of linksToAnalyze) {
-      const page = await crawlPage(link, fetchHeaders);
+      // 800–1600 ms random pause between sub-page fetches so burst traffic
+      // doesn't look like a rapid-fire bot scan to the target server.
+      await new Promise<void>(r => setTimeout(r, 800 + Math.floor(Math.random() * 800)));
+      const page = await crawlPage(link, crawlHeaders);
       if (!page) {
         crawlSkipped++;
       } else {

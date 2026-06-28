@@ -9,6 +9,10 @@ export type UrlValidationResult = {
     | 'empty_page'
     | 'browser_error_page'
     | 'unknown';
+  // Populated when isValid is true — reuse to avoid fetching the same URL again
+  html?: string;
+  response?: Response;
+  ttfb?: number;
 };
 
 export interface Env {
