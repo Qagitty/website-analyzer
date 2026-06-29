@@ -92,18 +92,9 @@ describe('encryptApiKey / decryptApiKey', () => {
     expect(decryptApiKey(tampered)).toBeNull();
   });
 
-  it('decrypts legacy v1 format (SHA-256 KDF) for backward compatibility', () => {
-    // v1 keys already in the DB must still decrypt after the SE4 PBKDF2 upgrade.
-    const crypto = require('crypto');
-    const secret = process.env.API_KEY_ENCRYPTION_SECRET!;
-    const legacyKey = crypto.createHash('sha256').update(secret).digest();
-    const raw = 'wa_live_legacy_key_test_value_xyz';
-    const iv  = crypto.randomBytes(12);
-    const cipher = crypto.createCipheriv('aes-256-gcm', legacyKey, iv);
-    const enc  = Buffer.concat([cipher.update(raw, 'utf8'), cipher.final()]);
-    const v1stored = `${iv.toString('hex')}.${enc.toString('hex')}.${cipher.getAuthTag().toString('hex')}`;
-    // Must NOT start with 'v2:' (that's what triggers PBKDF2 path)
-    expect(v1stored.startsWith('v2:')).toBe(false);
-    expect(decryptApiKey(v1stored)).toBe(raw);
+  it('returns null for v1 format (migration confirmed 2026-06-29 — no v1 keys in DB)', () => {
+    // legacyKey() was removed after migration script confirmed 0 v1 rows.
+    // decryptApiKey now rejects any stored value not starting with 'v2:'.
+    expect(decryptApiKey('deadbeef.deadbeef.deadbeef')).toBeNull();
   });
 });

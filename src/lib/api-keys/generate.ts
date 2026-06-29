@@ -27,11 +27,6 @@ function deriveKey(secret: string): Buffer {
   return _cachedKey;
 }
 
-/** Legacy SHA-256 KDF — used only to decrypt v1 keys already in the DB. */
-function legacyKey(secret: string): Buffer {
-  return crypto.createHash('sha256').update(secret).digest();
-}
-
 export function generateApiKey(): { raw: string; hash: string; prefix: string } {
   // Format: wa_live_<32 random hex chars>
   const random = crypto.randomBytes(16).toString('hex');
@@ -48,7 +43,6 @@ export function hashApiKey(raw: string): string {
 /**
  * Encrypts an API key for storage.
  * Output format: "v2:<iv_hex>.<ciphertext_hex>.<authtag_hex>"
- * (v1 legacy format omits the "v2:" prefix and used SHA-256 KDF)
  */
 export function encryptApiKey(raw: string): string {
   const secret = validateSecret(process.env.API_KEY_ENCRYPTION_SECRET);
@@ -62,16 +56,15 @@ export function encryptApiKey(raw: string): string {
  * Decrypts an API key from storage.
  * SE7 — returns null on malformed input; only throws when the encryption
  *        key itself is misconfigured.
- * SE4 — supports both:
- *   v2 (new): "v2:<iv>.<enc>.<tag>" — PBKDF2-SHA256 KDF, 600K iterations
- *   v1 (legacy): "<iv>.<enc>.<tag>" — raw SHA-256 KDF (read-only; no new v1 keys)
+ * All keys in the DB are v2 format (PBKDF2-SHA256, 600K iterations) following
+ * the migration confirmed on 2026-06-29.
  */
 export function decryptApiKey(stored: string): string | null {
   const secret = validateSecret(process.env.API_KEY_ENCRYPTION_SECRET);
 
-  const isV2 = stored.startsWith('v2:');
-  const body  = isV2 ? stored.slice(3) : stored;
+  if (!stored.startsWith('v2:')) return null; // no v1 keys remain in DB
 
+  const body  = stored.slice(3);
   const parts = body.split('.');
   if (parts.length !== 3) return null;
 
@@ -87,8 +80,7 @@ export function decryptApiKey(stored: string): string | null {
   if (ivBuf.length !== 12) return null;
 
   try {
-    const key     = isV2 ? deriveKey(secret) : legacyKey(secret);
-    const decipher = crypto.createDecipheriv('aes-256-gcm', key, ivBuf);
+    const decipher = crypto.createDecipheriv('aes-256-gcm', deriveKey(secret), ivBuf);
     decipher.setAuthTag(tagBuf);
     return decipher.update(encBuf, undefined, 'utf8') + decipher.final('utf8');
   } catch {
