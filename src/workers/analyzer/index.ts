@@ -104,10 +104,10 @@ async function runAnalysis(req: AnalysisRequest, callbackSecret: string): Promis
   try {
     // Reuse the html and response from validation — no need to fetch the same URL again.
     // A second identical fetch in quick succession is a strong bot signal.
-    const html = validation.html!;
-    const response = validation.response!;
+    const html = validation.html;
+    const response = validation.response;
     const pageBytes = new TextEncoder().encode(html).length;
-    const ttfb = validation.ttfb!;
+    const ttfb = validation.ttfb;
     const ttfbSamples = [ttfb];
     const ttfbMin = ttfb;
     const ttfbMax = ttfb;

@@ -83,10 +83,11 @@ describe('encryptApiKey / decryptApiKey', () => {
     expect(() => encryptApiKey('wa_live_test')).toThrow('API_KEY_ENCRYPTION_SECRET is not set');
   });
 
-  it('throws on tampered ciphertext (auth tag mismatch)', () => {
+  it('returns null on tampered ciphertext (auth tag mismatch)', () => {
+    // SE7 — decryptApiKey now returns null on parse errors instead of throwing.
     const stored = encryptApiKey('wa_live_test');
     const [iv, ct, tag] = stored.split('.');
     const tampered = `${iv}.${ct}ff.${tag}`; // corrupt ciphertext
-    expect(() => decryptApiKey(tampered)).toThrow();
+    expect(decryptApiKey(tampered)).toBeNull();
   });
 });

@@ -24,10 +24,9 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ id: stri
     );
   }
 
-  try {
-    const raw = decryptApiKey(key.key_encrypted);
-    return NextResponse.json({ key: raw });
-  } catch {
+  const raw = decryptApiKey(key.key_encrypted);
+  if (!raw) {
     return NextResponse.json({ error: 'Failed to decrypt key' }, { status: 500 });
   }
+  return NextResponse.json({ key: raw });
 }

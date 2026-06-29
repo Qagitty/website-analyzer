@@ -16,6 +16,9 @@ export function hashApiKey(raw: string): string {
 function encryptionKey(): Buffer {
   const secret = process.env.API_KEY_ENCRYPTION_SECRET;
   if (!secret) throw new Error('API_KEY_ENCRYPTION_SECRET is not set');
+  // SE4 — enforce minimum entropy: a short secret produces a valid AES-256 key
+  // without warning because SHA-256 accepts any length input.
+  if (secret.length < 32) throw new Error('API_KEY_ENCRYPTION_SECRET must be at least 32 characters');
   return crypto.createHash('sha256').update(secret).digest();
 }
 
@@ -27,13 +30,31 @@ export function encryptApiKey(raw: string): string {
   return `${iv.toString('hex')}.${enc.toString('hex')}.${cipher.getAuthTag().toString('hex')}`;
 }
 
-export function decryptApiKey(stored: string): string {
-  const [ivHex, encHex, tagHex] = stored.split('.');
-  const decipher = crypto.createDecipheriv(
-    'aes-256-gcm',
-    encryptionKey(),
-    Buffer.from(ivHex, 'hex')
-  );
-  decipher.setAuthTag(Buffer.from(tagHex, 'hex'));
-  return decipher.update(Buffer.from(encHex, 'hex'), undefined, 'utf8') + decipher.final('utf8');
+/**
+ * SE7 — returns null on malformed input instead of throwing unexpectedly.
+ * Only throws when the encryption key itself is misconfigured (encryptionKey() throws).
+ * GCM auth tag failures (corrupted data / key mismatch) are caught and return null.
+ */
+export function decryptApiKey(stored: string): string | null {
+  const parts = stored.split('.');
+  if (parts.length !== 3) return null;
+
+  const [ivHex, encHex, tagHex] = parts;
+  let ivBuf: Buffer, encBuf: Buffer, tagBuf: Buffer;
+  try {
+    ivBuf  = Buffer.from(ivHex,  'hex');
+    encBuf = Buffer.from(encHex, 'hex');
+    tagBuf = Buffer.from(tagHex, 'hex');
+  } catch {
+    return null;
+  }
+  if (ivBuf.length !== 12) return null;
+
+  try {
+    const decipher = crypto.createDecipheriv('aes-256-gcm', encryptionKey(), ivBuf);
+    decipher.setAuthTag(tagBuf);
+    return decipher.update(encBuf, undefined, 'utf8') + decipher.final('utf8');
+  } catch {
+    return null; // GCM auth tag failure — corrupted data or key mismatch
+  }
 }

@@ -3,7 +3,6 @@ import { createServerClient, createServiceRoleClient } from '@/lib/supabase/serv
 import { uploadDesignScreenshot } from '@/lib/supabase/storage';
 import { checkWebRateLimit } from '@/lib/rate-limit/web';
 import { HTTP_ERROR_STATUSES, PAGE_ERROR_PATTERNS } from '@/lib/url-validation-patterns';
-import { checkCsrfOrigin } from '@/lib/csrf';
 import { z } from 'zod';
 import { SCHEMA_VERSIONS } from '@/lib/contracts/schemas';
 import { generateIdempotencyKey } from '@/lib/contracts/callback-auth';
@@ -268,8 +267,7 @@ async function checkUrlReachable(url: string): Promise<{ ok: boolean; error?: st
 }
 
 export async function POST(req: NextRequest) {
-  const csrfError = checkCsrfOrigin(req);
-  if (csrfError) return csrfError;
+  // SE5 — CSRF now enforced centrally in middleware.ts for all /api mutations.
 
   const supabase = createServerClient();
 

@@ -13,6 +13,9 @@ export interface RateLimitResult {
   remaining: number;
   reset: number;
   limit: number;
+  /** SE2 — true when Redis was unavailable and the limit was bypassed (fail-open).
+   *  Security-critical callers can return 503 when this is true. */
+  bypassed?: boolean;
 }
 
 /**
@@ -28,9 +31,10 @@ export async function rateLimit(
   windowSeconds: number
 ): Promise<RateLimitResult> {
   // Fail open when Redis is unavailable — never block requests due to infra issues.
+  // SE2 — bypassed:true signals callers that rate limiting was skipped.
   if (!redis) {
     const now = Math.floor(Date.now() / 1000);
-    return { allowed: true, remaining: limit, reset: now + windowSeconds, limit };
+    return { allowed: true, remaining: limit, reset: now + windowSeconds, limit, bypassed: true };
   }
 
   const now = Math.floor(Date.now() / 1000);
@@ -45,7 +49,7 @@ export async function rateLimit(
     }
   } catch {
     // Redis error — fail open rather than blocking legitimate requests
-    return { allowed: true, remaining: limit, reset: now + windowSeconds, limit };
+    return { allowed: true, remaining: limit, reset: now + windowSeconds, limit, bypassed: true };
   }
 
   const reset = (windowId + 1) * windowSeconds;

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
-import { checkCsrfOrigin } from '@/lib/csrf';
 import { hasFeature, getLimits, featureGateError } from '@/lib/billing/limits';
 import { validateAnalysisUrl } from '@/lib/security/url-validator';
 import { z } from 'zod';
@@ -34,8 +33,7 @@ export async function GET() {
 
 // POST /api/monitors — create a monitor
 export async function POST(req: NextRequest) {
-  const csrfError = checkCsrfOrigin(req);
-  if (csrfError) return csrfError;
+  // SE5 — CSRF now enforced centrally in middleware.ts.
 
   const supabase = createServerClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();

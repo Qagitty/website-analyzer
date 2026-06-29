@@ -92,6 +92,13 @@ export async function deliverWebhook(
     throw new Error(`Blocked SSRF attempt to: ${webhookUrl}`);
   }
 
+  // SE6 — never sign with an empty key: HMAC('sha256', '') produces valid but
+  // trivially forgeable signatures. Skip delivery and log so the operator notices.
+  if (!secret) {
+    console.warn('[webhooks] Skipping delivery — no secret configured for webhook to', webhookUrl);
+    return;
+  }
+
   const body = isSlackUrl(webhookUrl)
     ? JSON.stringify(buildSlackPayload(payload))
     : JSON.stringify(payload);
@@ -126,6 +133,6 @@ export async function fireWebhooksForAnalysis(
   const eligible = webhooks.filter((wh: any) => wh.events?.includes(payload.event));
 
   await Promise.allSettled(
-    eligible.map((wh: any) => deliverWebhook(wh.url, wh.secret ?? '', payload))
+    eligible.map((wh: any) => deliverWebhook(wh.url, wh.secret ?? '', payload)) // deliverWebhook guards empty secret internally
   );
 }

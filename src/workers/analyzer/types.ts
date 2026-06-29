@@ -1,19 +1,31 @@
-export type UrlValidationResult = {
-  isValid: boolean;
-  reason?: string;
-  statusCode?: number;
-  finalUrl?: string;
-  errorType?:
-    | 'http_error'
-    | 'navigation_error'
-    | 'empty_page'
-    | 'browser_error_page'
-    | 'unknown';
-  // Populated when isValid is true — reuse to avoid fetching the same URL again
-  html?: string;
-  response?: Response;
-  ttfb?: number;
-};
+/**
+ * SE9 — discriminated union makes `html`, `response`, `ttfb` non-optional
+ * in the success branch, removing the need for non-null assertions at call sites.
+ * Previously `isValid:boolean` + optional fields let developers access `.html!`
+ * without checking `isValid` first.
+ */
+export type UrlValidationResult =
+  | {
+      isValid: true;
+      statusCode?: number;
+      finalUrl?: string;
+      /** Reuse from validation — avoids a second identical fetch (strong bot signal). */
+      html: string;
+      response: Response;
+      ttfb: number;
+    }
+  | {
+      isValid: false;
+      reason: string;
+      statusCode?: number;
+      finalUrl?: string;
+      errorType:
+        | 'http_error'
+        | 'navigation_error'
+        | 'empty_page'
+        | 'browser_error_page'
+        | 'unknown';
+    };
 
 export interface Env {
   WORKER_AUTH_TOKEN: string;

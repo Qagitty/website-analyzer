@@ -15,7 +15,7 @@
  * preventing replay attacks outside the allowed window.
  */
 
-import { createHmac, timingSafeEqual } from 'crypto';
+import { createHmac, timingSafeEqual, randomUUID } from 'crypto';
 
 /** Maximum age of an accepted callback timestamp. */
 const REPLAY_WINDOW_MS = 5 * 60 * 1_000; // 5 minutes
@@ -33,8 +33,14 @@ export type VerifyFailReason =
   | 'invalid-signature'
   | 'malformed-timestamp';
 
+/**
+ * SE1 — Discriminated union makes "HMAC verified" vs "legacy no-headers" distinguishable
+ * at compile time. Future callers that need cryptographic assurance must check
+ * `authenticated === true`, not just `valid === true`.
+ */
 export type VerifyResult =
-  | { valid: true; idempotencyKey: string | undefined }
+  | { valid: true; authenticated: true; idempotencyKey: string | undefined }
+  | { valid: true; authenticated: false; reason: 'legacy-no-headers'; idempotencyKey: string | undefined }
   | { valid: false; reason: VerifyFailReason };
 
 /**
@@ -74,9 +80,10 @@ export function verifyCallbackSignature(
   const ts = headers.get('x-callback-timestamp');
   const idempotencyKey = headers.get('x-idempotency-key') ?? undefined;
 
-  // §29 — Backward compat: no HMAC headers present → legacy Bearer path
+  // §29 — Backward compat: no HMAC headers present → legacy Bearer path.
+  // SE1 — authenticated:false so callers that need cryptographic assurance can detect this.
   if (!sig && !ts) {
-    return { valid: true, idempotencyKey };
+    return { valid: true, authenticated: false, reason: 'legacy-no-headers', idempotencyKey };
   }
 
   if (!sig || !ts) {
@@ -107,10 +114,13 @@ export function verifyCallbackSignature(
     return { valid: false, reason: 'invalid-signature' };
   }
 
-  return { valid: true, idempotencyKey };
+  return { valid: true, authenticated: true, idempotencyKey };
 }
 
-/** Generates a short opaque idempotency key. */
+/**
+ * SE8 — crypto.randomUUID() replaces Math.random() (xorshift128+, 48-bit state,
+ * predictable from prior observations) with a CSPRNG-backed UUID.
+ */
 export function generateIdempotencyKey(): string {
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  return randomUUID();
 }

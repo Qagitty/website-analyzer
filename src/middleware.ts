@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { detectSqlInjectionInRequest, getClientIp } from '@/lib/rate-limit/web';
+import { checkCsrfOrigin } from '@/lib/csrf';
 
 const PROTECTED_ROUTES = ['/dashboard', '/analyze', '/reports', '/settings', '/monitors', '/compliance', '/remediation', '/leads', '/compare'];
 const AUTH_ROUTES = ['/login', '/signup'];
@@ -97,6 +98,20 @@ export async function middleware(request: NextRequest) {
           !ct.startsWith('application/csp-report')) {
         return NextResponse.json({ error: 'Unsupported Content-Type.' }, { status: 415 });
       }
+    }
+
+    // ── CSRF check for browser-initiated mutations ──────────────────────────
+    // SE5 — centralised here so every current and future mutation route is covered.
+    // Server-to-server callers (Worker callback, Stripe, Cron) never send an Origin
+    // header and pass through automatically.
+    // Excluded: /api/widget/ (CORS-open embed) and /api/v1/ (API-key auth, cross-origin allowed).
+    const CSRF_EXCLUDED = ['/api/widget/', '/api/v1/'];
+    if (
+      ['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method) &&
+      !CSRF_EXCLUDED.some(p => pathname.startsWith(p))
+    ) {
+      const csrfError = checkCsrfOrigin(request);
+      if (csrfError) return csrfError;
     }
   }
 

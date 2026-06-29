@@ -128,6 +128,41 @@ function classifyFetchError(err: unknown, elapsed: number): CrawledPage['measure
   return { code: 'UNKNOWN', message: msg.slice(0, 120), retryable: true };
 }
 
+/**
+ * SE3 — per-hop redirect SSRF guard.
+ *
+ * `redirect:'follow'` is transparent to intermediate hops: a same-origin page can
+ * chain `same-host → 302 → cloud-metadata → 302 → same-host` and the final-URL
+ * check only sees the last hop. This helper follows redirects manually, rejecting
+ * any hop that leaves the original hostname.
+ */
+async function fetchSameOriginOnly(
+  url: string,
+  headers: Record<string, string>,
+  signal: AbortSignal,
+): Promise<Response | null> {
+  const originalHostname = new URL(url).hostname;
+  let currentUrl = url;
+
+  for (let hop = 0; hop < 5; hop++) {
+    const r = await fetch(currentUrl, { headers, redirect: 'manual', signal });
+
+    if (r.status < 300 || r.status >= 400) return r; // final response
+
+    const location = r.headers.get('location');
+    if (!location) return null;
+
+    let nextUrl: URL;
+    try { nextUrl = new URL(location, currentUrl); } catch { return null; }
+
+    if (nextUrl.hostname !== originalHostname) return null; // cross-origin redirect blocked
+
+    currentUrl = nextUrl.href;
+  }
+
+  return null; // exceeded max hops
+}
+
 export async function crawlPage(link: DiscoveredLink, fetchHeaders: Record<string, string>): Promise<CrawledPage | null> {
   const { url, depth, discoveredFrom } = link;
   const t0 = Date.now();
@@ -136,21 +171,10 @@ export async function crawlPage(link: DiscoveredLink, fetchHeaders: Record<strin
   const pageId = crypto.randomUUID();
 
   try {
-    const r = await fetch(url, { headers: fetchHeaders, redirect: 'follow', signal: ctrl.signal });
+    const r = await fetchSameOriginOnly(url, fetchHeaders, ctrl.signal);
+    if (!r) { clearTimeout(timer); return null; }
     clearTimeout(timer);
     const ttfb = Date.now() - t0;
-
-    // §Gap4 — Reject cross-origin redirects to prevent redirect-based SSRF.
-    // A page could redirect to a private IP or metadata endpoint after passing the initial check.
-    if (r.url && r.url !== url) {
-      try {
-        const finalHostname = new URL(r.url).hostname;
-        const originalHostname = new URL(url).hostname;
-        if (finalHostname !== originalHostname) return null;
-      } catch {
-        return null;
-      }
-    }
 
     const html = await r.text();
     const bytes = new TextEncoder().encode(html).length;
