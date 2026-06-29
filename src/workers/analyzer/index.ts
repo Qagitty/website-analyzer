@@ -34,6 +34,21 @@ async function hashUrlForLog(url: string): Promise<string> {
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    // LOW finding (diff-review 2026-06-29): fail fast when required Cloudflare
+    // secret bindings are absent. Without this guard, missing WORKER_CALLBACK_SECRET
+    // causes every analysis callback to send "Bearer undefined" → 503, silently
+    // stalling all jobs with no clear error in the caller.
+    if (!env.WORKER_AUTH_TOKEN || !env.WORKER_CALLBACK_SECRET) {
+      console.error('[worker] FATAL: required secret bindings not configured', {
+        hasAuthToken:      !!env.WORKER_AUTH_TOKEN,
+        hasCallbackSecret: !!env.WORKER_CALLBACK_SECRET,
+      });
+      return new Response(
+        JSON.stringify({ error: 'Worker misconfigured — bind WORKER_AUTH_TOKEN and WORKER_CALLBACK_SECRET via wrangler secret put' }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } },
+      );
+    }
+
     if (request.headers.get('Authorization') !== `Bearer ${env.WORKER_AUTH_TOKEN}`) {
       return new Response('Unauthorized', { status: 401 });
     }
