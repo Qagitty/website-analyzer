@@ -164,9 +164,10 @@ export function CompetitorComparisonSection({ analyses, allDone, anyFailed }: Pr
                 <div className="mt-1 space-y-1.5">
                   {(['performance', 'accessibility', 'seo'] as const).map((k) => {
                     const v = a.lighthouse_scores![k];
+                    const CARD_LABEL: Record<string, string> = { performance: 'Performance', accessibility: 'Accessibility', seo: 'SEO' };
                     return (
                       <div key={k} className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground/60 w-20 shrink-0">{k.charAt(0).toUpperCase() + k.slice(0, 7)}</span>
+                        <span className="text-xs text-muted-foreground/60 w-20 shrink-0">{CARD_LABEL[k]}</span>
                         <div className="flex-1 bg-border/40 rounded-full h-1.5 overflow-hidden">
                           <div
                             className={`h-full rounded-full ${scoreBarColor(v)}`}
@@ -221,32 +222,36 @@ export function CompetitorComparisonSection({ analyses, allDone, anyFailed }: Pr
 
                           return (
                             <td key={a.id} className="px-3 py-3 text-center">
-                              {a.status === 'completed' && val != null ? (
-                                <div className="flex flex-col items-center gap-0.5">
-                                  <div className="flex items-center gap-1">
-                                    {isWinner && (
-                                      <Trophy className="h-3 w-3 text-amber-400 shrink-0" />
-                                    )}
-                                    <span
-                                      className={`font-mono font-semibold text-sm ${
-                                        lowerBetter
-                                          ? isWinner ? 'text-emerald-400' : 'text-muted-foreground'
-                                          : scoreColor(val as number)
-                                      }`}
-                                    >
-                                      {formatValue(key, val as number)}{unit && !formatValue(key, val as number).endsWith(unit) ? '' : ''}
-                                    </span>
-                                  </div>
-                                  {/* Mini progress bar for 0–100 scores */}
-                                  {!lowerBetter && !unit && (
-                                    <div className="w-12 bg-border/40 rounded-full h-1 overflow-hidden">
-                                      <div
-                                        className={`h-full rounded-full ${scoreBarColor(val as number)}`}
-                                        style={{ width: `${val}%` }}
-                                      />
+                              {a.status === 'completed' ? (
+                                val != null ? (
+                                  <div className="flex flex-col items-center gap-0.5">
+                                    <div className="flex items-center gap-1">
+                                      {isWinner && (
+                                        <Trophy className="h-3 w-3 text-amber-400 shrink-0" />
+                                      )}
+                                      <span
+                                        className={`font-mono font-semibold text-sm ${
+                                          lowerBetter
+                                            ? isWinner ? 'text-emerald-400' : 'text-muted-foreground'
+                                            : scoreColor(val as number)
+                                        }`}
+                                      >
+                                        {formatValue(key, val as number)}
+                                      </span>
                                     </div>
-                                  )}
-                                </div>
+                                    {/* Mini progress bar for 0–100 scores */}
+                                    {!lowerBetter && !unit && (
+                                      <div className="w-12 bg-border/40 rounded-full h-1 overflow-hidden">
+                                        <div
+                                          className={`h-full rounded-full ${scoreBarColor(val as number)}`}
+                                          style={{ width: `${val}%` }}
+                                        />
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-muted-foreground/40 text-xs">—</span>
+                                )
                               ) : a.status === 'failed' ? (
                                 <span className="text-red-400/60 text-xs">—</span>
                               ) : (
