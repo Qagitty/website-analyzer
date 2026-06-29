@@ -383,7 +383,7 @@ export async function POST(req: NextRequest) {
     // §29 — Legacy fields kept for Worker versions that have not upgraded yet
     url,
     callbackUrl,
-    authToken: process.env.WORKER_CALLBACK_SECRET,
+    // §Gap5 — authToken removed from body; Worker reads WORKER_CALLBACK_SECRET from its own env.
   };
 
   console.log('[analyze] dispatching to worker:', { analysisId: analysis.id, workerUrl, callbackUrl, schemaVersion: SCHEMA_VERSIONS.WORKER_JOB });

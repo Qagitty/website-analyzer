@@ -139,6 +139,19 @@ export async function crawlPage(link: DiscoveredLink, fetchHeaders: Record<strin
     const r = await fetch(url, { headers: fetchHeaders, redirect: 'follow', signal: ctrl.signal });
     clearTimeout(timer);
     const ttfb = Date.now() - t0;
+
+    // §Gap4 — Reject cross-origin redirects to prevent redirect-based SSRF.
+    // A page could redirect to a private IP or metadata endpoint after passing the initial check.
+    if (r.url && r.url !== url) {
+      try {
+        const finalHostname = new URL(r.url).hostname;
+        const originalHostname = new URL(url).hostname;
+        if (finalHostname !== originalHostname) return null;
+      } catch {
+        return null;
+      }
+    }
+
     const html = await r.text();
     const bytes = new TextEncoder().encode(html).length;
 

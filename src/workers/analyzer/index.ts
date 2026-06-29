@@ -48,16 +48,18 @@ export default {
       return new Response('Invalid JSON', { status: 400 });
     }
 
+    // §7 — Use the Worker's own env secret, never read it from the request body.
+    const callbackSecret = env.WORKER_CALLBACK_SECRET;
     const timeout = new Promise<void>(resolve =>
       setTimeout(async () => {
-        await sendCallback(body.callbackUrl, body.authToken, {
+        await sendCallback(body.callbackUrl, callbackSecret, {
           analysisId: body.analysisId,
           error: 'Analysis timed out — the site may be too slow or blocking automated requests.',
         }).catch(() => {});
         resolve();
       }, 55_000),
     );
-    ctx.waitUntil(Promise.race([runAnalysis(body), timeout]));
+    ctx.waitUntil(Promise.race([runAnalysis(body, callbackSecret), timeout]));
 
     return new Response(
       JSON.stringify({ status: 'queued', analysisId: body.analysisId }),
@@ -66,7 +68,7 @@ export default {
   },
 };
 
-async function runAnalysis(req: AnalysisRequest): Promise<void> {
+async function runAnalysis(req: AnalysisRequest, callbackSecret: string): Promise<void> {
   const startTime = Date.now();
   const urlTag = await hashUrlForLog(req.url);
 
@@ -84,7 +86,7 @@ async function runAnalysis(req: AnalysisRequest): Promise<void> {
       errorType: validation.errorType,
       statusCode: validation.statusCode,
     });
-    await sendCallback(req.callbackUrl, req.authToken, {
+    await sendCallback(req.callbackUrl, callbackSecret, {
       analysisId: req.analysisId,
       error:
         'The provided URL is unavailable, broken, or points to a non-existing page. ' +
@@ -318,10 +320,12 @@ async function runAnalysis(req: AnalysisRequest): Promise<void> {
       ),
     ];
 
-    await sendCallback(req.callbackUrl, req.authToken, {
+    await sendCallback(req.callbackUrl, callbackSecret, {
       analysisId: req.analysisId,
       screenshotBase64: null,
       categoryScoreResults,
+      // §Gap2 — forward monitor context so callback can trigger monitor post-processing
+      ...(req.monitorId && { monitorId: req.monitorId, monitorRunId: req.monitorRunId, monitorUserId: req.monitorUserId }),
       lighthouseScores: {
         performance: scores.performance,
         accessibility: accessibilityAudit.score,
@@ -388,7 +392,7 @@ async function runAnalysis(req: AnalysisRequest): Promise<void> {
       resultStatus: 'failed',
       errorCode: err instanceof Error ? err.name : 'UNKNOWN',
     });
-    await sendCallback(req.callbackUrl, req.authToken, {
+    await sendCallback(req.callbackUrl, callbackSecret, {
       analysisId: req.analysisId,
       error: errorMessage,
     });

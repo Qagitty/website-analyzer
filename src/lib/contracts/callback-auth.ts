@@ -98,13 +98,10 @@ export function verifyCallbackSignature(
   const signingString = `${ts}.${rawBody}`;
   const expected = `sha256=${createHmac('sha256', secret).update(signingString).digest('hex')}`;
 
-  // Pad to equal length before comparison
-  const sigBuf = Buffer.from(sig.padEnd(expected.length, '\0'));
-  const expBuf = Buffer.from(expected.padEnd(sig.length, '\0'));
-
-  if (sigBuf.length !== expBuf.length) {
-    return { valid: false, reason: 'invalid-signature' };
-  }
+  // Pad both sides to equal length for timingSafeEqual (§Gap9 — dead length check removed).
+  const maxLen = Math.max(sig.length, expected.length);
+  const sigBuf = Buffer.from(sig.padEnd(maxLen, '\0'));
+  const expBuf = Buffer.from(expected.padEnd(maxLen, '\0'));
 
   if (!timingSafeEqual(sigBuf, expBuf)) {
     return { valid: false, reason: 'invalid-signature' };

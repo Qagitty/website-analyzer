@@ -24,7 +24,12 @@ export interface AnalysisRequest {
   analysisId: string;
   url: string;
   callbackUrl: string;
-  authToken: string;
+  /** §7 — Deprecated; Worker now reads WORKER_CALLBACK_SECRET from env. Ignored if present. */
+  authToken?: string;
+  /** Monitor context forwarded to callback (Gap 2 fix). Optional — absent for non-monitor analyses. */
+  monitorId?: string;
+  monitorRunId?: string;
+  monitorUserId?: string;
 }
 
 export interface ScoreCheckItem {

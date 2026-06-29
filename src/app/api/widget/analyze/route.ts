@@ -15,6 +15,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { isValidWidgetKeyFormat } from '@/lib/widget/key';
 import { checkWebRateLimit } from '@/lib/rate-limit/web';
+import { validateAnalysisUrl } from '@/lib/security/url-validator';
 import { z } from 'zod';
 
 const CORS_HEADERS = {
@@ -55,6 +56,15 @@ export async function POST(req: NextRequest) {
   }
 
   const { key, url, email, name } = parsed.data;
+
+  // §Gap3 — SSRF check: block private IPs, cloud metadata, and reserved ranges.
+  const ssrfCheck = validateAnalysisUrl(url);
+  if (!ssrfCheck.valid) {
+    return NextResponse.json(
+      { error: `URL not allowed: ${ssrfCheck.rejectionReason ?? ssrfCheck.rejectionCode ?? 'invalid URL'}` },
+      { status: 400, headers: CORS_HEADERS },
+    );
+  }
 
   // Validate key format
   if (!isValidWidgetKeyFormat(key)) {
@@ -134,7 +144,7 @@ export async function POST(req: NextRequest) {
       analysisId: analysis.id,
       url,
       callbackUrl,
-      authToken: process.env.WORKER_CALLBACK_SECRET,
+      // §7/§Gap5 — authToken NOT sent in body; Worker reads WORKER_CALLBACK_SECRET from its own env.
     }),
   }).catch((err) => console.error('[widget] worker dispatch failed:', err));
 
