@@ -75,8 +75,8 @@ describe('CompetitorComparisonSection', () => {
       />,
     );
     expect(screen.getByText('Score Breakdown')).toBeDefined();
-    // Performance metric row
-    expect(screen.getByText('Performance')).toBeDefined();
+    // Performance label appears in both summary cards and the Score Breakdown table row
+    expect(screen.getAllByText('Performance').length).toBeGreaterThanOrEqual(1);
   });
 
   it('shows loading state when nothing is complete yet', () => {

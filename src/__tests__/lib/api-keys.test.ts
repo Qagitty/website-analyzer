@@ -58,13 +58,13 @@ describe('encryptApiKey / decryptApiKey', () => {
     expect(decryptApiKey(stored)).toBe(raw);
   });
 
-  it('encrypted output has three dot-separated segments (iv.ciphertext.authtag)', () => {
+  it('encrypted output is v2 format: "v2:<iv>.<ciphertext>.<authtag>" (SE4 — PBKDF2 KDF)', () => {
     const stored = encryptApiKey('wa_live_test');
-    const parts = stored.split('.');
-    expect(parts).toHaveLength(3);
-    expect(parts[0]).toMatch(/^[0-9a-f]+$/); // iv hex
-    expect(parts[1]).toMatch(/^[0-9a-f]+$/); // ciphertext hex
-    expect(parts[2]).toMatch(/^[0-9a-f]+$/); // auth tag hex
+    expect(stored.startsWith('v2:')).toBe(true);
+    const [iv, ct, tag] = stored.slice(3).split('.');
+    expect(iv).toMatch(/^[0-9a-f]+$/);  // iv hex  (12 bytes = 24 chars)
+    expect(ct).toMatch(/^[0-9a-f]+$/);  // ciphertext hex
+    expect(tag).toMatch(/^[0-9a-f]+$/); // auth tag hex
   });
 
   it('two encryptions of the same value produce different ciphertexts (random IV)', () => {
@@ -84,10 +84,26 @@ describe('encryptApiKey / decryptApiKey', () => {
   });
 
   it('returns null on tampered ciphertext (auth tag mismatch)', () => {
-    // SE7 — decryptApiKey now returns null on parse errors instead of throwing.
+    // SE7 — decryptApiKey returns null on GCM auth failures instead of throwing.
     const stored = encryptApiKey('wa_live_test');
-    const [iv, ct, tag] = stored.split('.');
-    const tampered = `${iv}.${ct}ff.${tag}`; // corrupt ciphertext
+    expect(stored.startsWith('v2:')).toBe(true);
+    const [iv, ct, tag] = stored.slice(3).split('.');
+    const tampered = `v2:${iv}.${ct}ff.${tag}`; // corrupt ciphertext
     expect(decryptApiKey(tampered)).toBeNull();
+  });
+
+  it('decrypts legacy v1 format (SHA-256 KDF) for backward compatibility', () => {
+    // v1 keys already in the DB must still decrypt after the SE4 PBKDF2 upgrade.
+    const crypto = require('crypto');
+    const secret = process.env.API_KEY_ENCRYPTION_SECRET!;
+    const legacyKey = crypto.createHash('sha256').update(secret).digest();
+    const raw = 'wa_live_legacy_key_test_value_xyz';
+    const iv  = crypto.randomBytes(12);
+    const cipher = crypto.createCipheriv('aes-256-gcm', legacyKey, iv);
+    const enc  = Buffer.concat([cipher.update(raw, 'utf8'), cipher.final()]);
+    const v1stored = `${iv.toString('hex')}.${enc.toString('hex')}.${cipher.getAuthTag().toString('hex')}`;
+    // Must NOT start with 'v2:' (that's what triggers PBKDF2 path)
+    expect(v1stored.startsWith('v2:')).toBe(false);
+    expect(decryptApiKey(v1stored)).toBe(raw);
   });
 });
