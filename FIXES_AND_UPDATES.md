@@ -1,8 +1,61 @@
 # Website Analyzer — Fixes & Updates Log
 
 **Document created:** 2026-05-14  
-**Last updated:** 2026-06-09  
-**Covers:** All changes made across Sprints 1–8, compliance platform Sprints 2–4, Agency Lead Widget Sprint 5, and Content/SEO Sprint 6.
+**Last updated:** 2026-06-29  
+**Covers:** All changes made across Sprints 1–8, compliance platform Sprints 2–4, Agency Lead Widget Sprint 5, Content/SEO Sprint 6, and the full Trail of Bits 4-phase security audit cycle.
+
+---
+
+## Session 2026-06-29 — Security Audit Cycle Complete
+
+### Trail of Bits 4-Phase Audit — All Findings Resolved
+
+**Test count after this session: 1,819 (65 files, all passing)**
+
+#### Phase 1 — Audit Context Building
+Established full architectural context: actors, trust model, 10 invariant gaps identified.
+6 gaps patched (see insecure-defaults + sharp-edges); 4 confirmed by design.
+
+#### Phase 2 — Insecure Defaults (F1–F6)
+
+| Finding | Fix | Commit |
+|---------|-----|--------|
+| F1 — `EMAIL_FROM` fallback to shared Resend inbox | Module-level startup throw in production when `resend && !EMAIL_FROM` | `234e889` |
+| F2 — `checkAccountLockout` fails open on Redis absence | Both `!redis` and `catch` paths now return 503 | `234e889` |
+| F3 — CSRF fails open when `APP_URL` missing | `!appUrl → 500` in production; dev-only fail-open | `234e889` |
+| F4 — Cron secret → `Bearer undefined` | `!cronSecret → 503` guard exits before comparison | `234e889` |
+| F5 — `authToken` sent in Worker dispatch body | Field removed from all 5 dispatch sites | `234e889` |
+| F6 — `WORKER_CALLBACK_SECRET` unvalidated in callback | `!callbackSecret → 503` exits before Bearer/HMAC check | `234e889` |
+
+#### Phase 3 — Sharp Edges (SE1–SE9)
+
+| Finding | Fix | Commit |
+|---------|-----|--------|
+| SE1 — HMAC return type ambiguity | Discriminated union for `verifyCallbackSignature` | `89bd48e` |
+| SE2 — Rate limit `bypassed` flag unused | `checkWebRateLimit` fail-closed; `checkAccountLockout` independently closed | `89bd48e` |
+| SE3 — Per-hop SSRF via crawler redirect | `fetchSameOriginOnly()` rejects hops where hostname changes | `89bd48e` |
+| SE4 — SHA-256 as KDF for AES-256-GCM | PBKDF2-SHA256 (600K iterations, `v2:` prefix) | `8a6854d` |
+| SE5 — CSRF opt-in per-route | Centralized in middleware; excludes `/api/widget/` + `/api/v1/` | `89bd48e` |
+| SE6 — `deliverWebhook` accepts empty string secret | Early return + warn before HMAC when `!secret` | `89bd48e` |
+| SE7 — `decryptApiKey` throws on malformed input | Returns `null` instead of throwing | `89bd48e` |
+| SE8 — `Math.random` in idempotency key | Replaced with CSPRNG (`crypto.randomBytes`) | `89bd48e` |
+| SE9 — `UrlValidationResult` `!` assertions | Discriminated union removes need for assertions | `89bd48e` |
+
+#### Phase 4 — Supply Chain
+
+| Action | Commit |
+|--------|--------|
+| npm `overrides`: `form-data ^4.0.6` + `ws ^8.21.0` | `27955d0` |
+| `npm audit --audit-level=high` added to CI `verify` script | `27955d0` |
+
+#### Post-Audit Differential Review
+
+| Finding | Severity | Fix | Commit |
+|---------|---------|-----|--------|
+| Worker startup guard (env bindings not validated at boot) | LOW | Returns 500 immediately if `WORKER_AUTH_TOKEN`/`WORKER_CALLBACK_SECRET` not bound | `61ff352` |
+| Legacy v1 decrypt path permanent until migration | MEDIUM | Migration script confirmed 0 v1 rows; `legacyKey()` removed | `6084deb` |
+
+**Final state:** 0 open findings. All DB keys in `v2:` format. 1,819 tests. `npm audit` = 0 HIGH.
 
 ---
 
