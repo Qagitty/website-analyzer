@@ -74,9 +74,17 @@ function logScoreVersions(lighthouseScores: Record<string, unknown> | null, anal
 }
 
 export async function POST(req: NextRequest) {
+  // F6 — fail fast if secret is not configured: both Bearer and HMAC would degrade
+  // to trivially bypassable values ("Bearer undefined" / empty HMAC key).
+  const callbackSecret = process.env.WORKER_CALLBACK_SECRET;
+  if (!callbackSecret) {
+    console.error('[callback] FATAL: WORKER_CALLBACK_SECRET not set — rejecting all callbacks');
+    return NextResponse.json({ error: 'Service misconfigured' }, { status: 503 });
+  }
+
   // §6 — Layer 1: Bearer token check (required for all callbacks)
   const authHeader = req.headers.get('Authorization');
-  if (authHeader !== `Bearer ${process.env.WORKER_CALLBACK_SECRET}`) {
+  if (authHeader !== `Bearer ${callbackSecret}`) {
     console.warn('[callback] Unauthorized — invalid Bearer token');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -92,7 +100,7 @@ export async function POST(req: NextRequest) {
   const rawBody = await req.text();
   const hmacResult = verifyCallbackSignature(
     rawBody,
-    process.env.WORKER_CALLBACK_SECRET ?? '',
+    callbackSecret,
     req.headers,
   );
   if (!hmacResult.valid) {

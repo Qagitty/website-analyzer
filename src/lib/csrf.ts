@@ -14,14 +14,28 @@ export function checkCsrfOrigin(req: NextRequest): NextResponse | null {
   const origin = req.headers.get('origin');
   if (!origin) return null;
 
+  const isProd = process.env.NODE_ENV === 'production';
   const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-  if (!appUrl) return null; // not configured — fail open in dev
+
+  if (!appUrl) {
+    // F3 — in production, a missing APP_URL means CSRF is completely bypassed.
+    // Fail with 500 so misconfiguration is visible rather than silently allowing all origins.
+    if (isProd) {
+      console.error('[csrf] NEXT_PUBLIC_APP_URL not set in production — blocking request');
+      return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 });
+    }
+    return null; // dev: fail open
+  }
 
   let expectedOrigin: string;
   try {
     expectedOrigin = new URL(appUrl).origin;
   } catch {
-    return null;
+    if (isProd) {
+      console.error('[csrf] NEXT_PUBLIC_APP_URL is malformed in production:', appUrl);
+      return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 });
+    }
+    return null; // dev: fail open
   }
 
   if (origin !== expectedOrigin) {

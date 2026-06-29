@@ -148,7 +148,7 @@ export async function POST(req: NextRequest) {
       analysisId: analysis.id,
       url,
       callbackUrl,
-      authToken: process.env.WORKER_CALLBACK_SECRET,
+      // F5 — authToken removed; Worker reads WORKER_CALLBACK_SECRET from its own env.
       monitorId: monitor.id,
       monitorUserId: user.id,
     }),

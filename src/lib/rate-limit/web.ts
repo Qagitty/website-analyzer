@@ -152,13 +152,21 @@ export function detectSqlInjectionInRequest(url: URL): string | null {
 /**
  * Check if a subject is currently locked out.
  * Returns HTTP 423 if locked, null if the request may proceed.
- * Fails open when Redis is unavailable.
+ *
+ * F2 — fails CLOSED when Redis is unavailable: a Redis outage must not silently
+ * disable brute-force protection. Returns 503 so callers retry rather than bypass.
  */
 export async function checkAccountLockout(
   namespace: string,
   subject: string
 ): Promise<NextResponse | null> {
-  if (!redis) return null;
+  if (!redis) {
+    console.error('[rate-limit] checkAccountLockout: Redis not configured — failing closed');
+    return NextResponse.json(
+      { error: 'Service temporarily unavailable. Please try again shortly.' },
+      { status: 503 }
+    );
+  }
   try {
     const lockKey = `lockout:${namespace}:${subject}`;
     const locked = await redis.exists(lockKey);
@@ -171,7 +179,12 @@ export async function checkAccountLockout(
       );
     }
   } catch {
-    // fail open
+    // F2 — Redis runtime error: fail closed for the same reason as above.
+    console.error('[rate-limit] checkAccountLockout: Redis error — failing closed');
+    return NextResponse.json(
+      { error: 'Service temporarily unavailable. Please try again shortly.' },
+      { status: 503 }
+    );
   }
   return null;
 }

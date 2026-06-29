@@ -44,7 +44,7 @@ async function dispatchAnalysis(
       analysisId,
       url,
       callbackUrl,
-      authToken: process.env.WORKER_CALLBACK_SECRET,
+      // F5 — authToken removed; Worker reads WORKER_CALLBACK_SECRET from its own env.
     }),
   }).then(async (r) => {
     const text = await r.text().catch(() => '');

@@ -14,8 +14,15 @@ import type { MonitorSchedule } from '@/lib/monitoring/types';
  *  §2  — re-verify monitor status after lease is claimed before dispatching
  */
 export async function GET(req: NextRequest) {
+  // F4 — explicit guard: if CRON_SECRET is unset the template literal produces
+  // "Bearer undefined" which anyone knowing the source code can send.
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) {
+    console.error('[cron/monitors] CRON_SECRET env var not set — refusing all requests');
+    return NextResponse.json({ error: 'Cron not configured' }, { status: 503 });
+  }
   const authHeader = req.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

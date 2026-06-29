@@ -14,6 +14,12 @@ const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
   : null;
 
+// F1 — guard: if Resend is configured but EMAIL_FROM is unset, all transactional
+// emails would send from the public Resend demo inbox visible to all free-tier users.
+// Throw at startup in production so the misconfiguration surfaces immediately.
+if (resend && !process.env.EMAIL_FROM && process.env.NODE_ENV === 'production') {
+  throw new Error('[email] EMAIL_FROM must be set when RESEND_API_KEY is configured');
+}
 const FROM = process.env.EMAIL_FROM ?? 'WebAnalyzer <onboarding@resend.dev>';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
 
