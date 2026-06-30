@@ -1,10 +1,10 @@
 # Website Analyzer — QA Specification
 
-**Version:** 5.0  
-**Last updated:** 2026-06-09  
-**Coverage:** Sprints 1–8 + compliance platform (Sprints 2–4) + Agency Lead Widget (Sprint 5) + Content/SEO pages (Sprint 6)  
+**Version:** 6.0  
+**Last updated:** 2026-06-29  
+**Coverage:** Sprints 1–8 + compliance platform (Sprints 2–4) + Agency Lead Widget (Sprint 5) + Content/SEO pages (Sprint 6) + Trail of Bits 4-phase security audit cycle (2026-06-29)  
 **Test runner:** Vitest v4 + @testing-library/react 16.x + jsdom  
-**Total automated tests: 552 (all passing)**
+**Total automated tests: 1,819 across 65 files (all passing)**
 
 ---
 
@@ -43,6 +43,12 @@
 31. [Agency Lead Widget](#31-agency-lead-widget)
 32. [Pricing Page](#32-pricing-page)
 33. [Changelog Page](#33-changelog-page)
+34. [Security Audit — API Key Encryption](#34-security-audit--api-key-encryption)
+35. [Security Audit — Worker Contracts](#35-security-audit--worker-contracts)
+36. [Security Audit — SSRF Prevention](#36-security-audit--ssrf-prevention)
+37. [Security Audit — Rate Limiting](#37-security-audit--rate-limiting)
+38. [Security Audit — Regression Suite](#38-security-audit--regression-suite)
+39. [Competitor Comparison](#39-competitor-comparison)
 
 ---
 
@@ -1022,6 +1028,164 @@ These are manual or Playwright-based full-flow tests run before each release.
 | 7 | Items length | Each release has ≥ 2 items |
 | 8 | Most recent title | Non-empty string |
 | 9 | All item strings | Non-empty after trim |
+
+---
+
+## 34. Security Audit — API Key Encryption
+
+**Test file:** `src/__tests__/lib/api-keys.test.ts`
+
+### TC-APIKEY-SEC-001 — PBKDF2 key derivation (SE4 fix)
+| # | Condition | Expected |
+|---|-----------|---------|
+| 1 | `encryptApiKey` output starts with `v2:` | True — PBKDF2-SHA256 path |
+| 2 | `v2:` prefix body has 3 dot-separated hex segments | `iv.ciphertext.authtag` |
+| 3 | Two encryptions of same value produce different ciphertexts | True — random IV |
+| 4 | Both decrypt correctly despite different IVs | `decryptApiKey` returns original |
+| 5 | Missing `API_KEY_ENCRYPTION_SECRET` | Throws at `encryptApiKey` call |
+| 6 | Tampered ciphertext (auth tag mismatch) | `decryptApiKey` returns `null` (SE7) |
+| 7 | Legacy v1 format (no `v2:` prefix) | `decryptApiKey` returns `null` |
+
+### TC-APIKEY-SEC-002 — v1 migration complete
+| # | Condition | Expected |
+|---|-----------|---------|
+| 1 | All DB rows start with `v2:` prefix | Confirmed 2026-06-29 via migration script |
+| 2 | `legacyKey()` function present | FAIL — function must not exist |
+| 3 | `decryptApiKey` source contains SHA-256 KDF path | FAIL — must not exist |
+
+---
+
+## 35. Security Audit — Worker Contracts
+
+**Test files:** `src/__tests__/contracts/` (5 files)
+
+### TC-CONTRACTS-001 — Callback authentication (callback-auth.test.ts)
+| # | Condition | Expected |
+|---|-----------|---------|
+| 1 | Valid HMAC signature | Returns `{ authenticated: true }` discriminated union |
+| 2 | Invalid signature | Returns `{ authenticated: false, reason: ... }` |
+| 3 | Missing secret binding | Startup guard returns HTTP 500 before auth check |
+
+### TC-CONTRACTS-002 — Callback idempotency (callback-idempotency.test.ts)
+| # | Condition | Expected |
+|---|-----------|---------|
+| 1 | Duplicate `analysisId` within grace window | Second callback is a no-op |
+| 2 | Same `analysisId` after grace window expires | Processed as normal |
+
+### TC-CONTRACTS-003 — Payload schemas (schemas.test.ts)
+| # | Condition | Expected |
+|---|-----------|---------|
+| 1 | Valid v2 Worker payload | Passes schema validation |
+| 2 | Missing required fields | Zod parse fails with descriptive error |
+| 3 | Unknown extra fields | Stripped (not rejected) |
+
+### TC-CONTRACTS-004 — Legacy adapters (legacy-adapters.test.ts)
+| # | Condition | Expected |
+|---|-----------|---------|
+| 1 | v1 payload shape | Adapted to v2 shape without data loss |
+| 2 | Already v2 payload | Passes through unchanged |
+
+### TC-CONTRACTS-005 — Public serializer (public-serializer.test.ts)
+| # | Condition | Expected |
+|---|-----------|---------|
+| 1 | Internal analysis object | Serialized without internal fields |
+| 2 | Null sensitive fields | Omitted from output |
+
+---
+
+## 36. Security Audit — SSRF Prevention
+
+**Test file:** `src/__tests__/lib/url-validator.test.ts` (84 tests)
+
+### TC-SSRF-001 — Private IP blocking
+| # | Input | Expected |
+|---|-------|---------|
+| 1 | `http://127.0.0.1` | Rejected |
+| 2 | `http://169.254.169.254` (AWS metadata) | Rejected |
+| 3 | `http://10.0.0.1` | Rejected |
+| 4 | `http://192.168.1.1` | Rejected |
+| 5 | `http://[::1]` (IPv6 loopback) | Rejected |
+
+### TC-SSRF-002 — Redirect chain SSRF (SE3 fix)
+| # | Condition | Expected |
+|---|-----------|---------|
+| 1 | Redirect to different hostname | `fetchSameOriginOnly` rejects after first hop |
+| 2 | Redirect to same hostname + different path | Allowed |
+| 3 | Redirect to private IP | Rejected at destination check |
+
+### TC-SSRF-003 — Widget route SSRF
+| # | Condition | Expected |
+|---|-----------|---------|
+| 1 | Widget `POST /api/widget/analyze` with private IP URL | Returns 400 before dispatch |
+| 2 | Valid public URL | Proceeds to analysis |
+
+---
+
+## 37. Security Audit — Rate Limiting
+
+**Test file:** `src/__tests__/lib/rate-limit.test.ts`
+
+### TC-RATELIMIT-001 — Fail-closed behaviour (F2 fix)
+| # | Condition | Expected |
+|---|-----------|---------|
+| 1 | Redis available, under limit | Allows request |
+| 2 | Redis available, over limit | Returns 429 |
+| 3 | Redis unavailable (`!redis`) | Returns 503 (not bypass) |
+| 4 | Redis throws during check | Returns 503 (catch path also fails closed) |
+
+### TC-RATELIMIT-002 — Per-plan limits
+| # | Plan | Expected limit |
+|---|------|----------------|
+| 1 | `free` | 10 req/min |
+| 2 | `pro` | 60 req/min |
+| 3 | `agency` | 300 req/min |
+
+---
+
+## 38. Security Audit — Regression Suite
+
+**Test file:** `src/__tests__/security/regression.test.ts`
+
+| # | Regression | What it verifies |
+|---|-----------|-----------------|
+| 1 | CSRF bypass via missing origin | `checkCsrfOrigin` returns error when `Origin` absent in production |
+| 2 | HMAC empty string secret | `deliverWebhook` skips delivery (warn) when secret is empty |
+| 3 | Rate limit bypass field | `checkWebRateLimit` returns 503 when Redis throws |
+| 4 | `decryptApiKey` null return | Returns `null` on tampered or non-v2 input (does not throw) |
+| 5 | Worker startup guard | Worker `fetch()` returns 500 before auth check if secrets missing |
+| 6 | v2 prefix enforcement | All `encryptApiKey` output starts with `v2:` |
+| 7 | PBKDF2 iteration count | `deriveKey` uses ≥ 100K PBKDF2 iterations |
+
+---
+
+## 39. Competitor Comparison
+
+**Test file:** `src/__tests__/components/CompetitorComparisonSection.test.tsx`
+
+### TC-COMPARE-001 — Page / form
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Navigate to `/analyze/compare` | Form with "Your site" + "Competitor" URL inputs |
+| 2 | Submit 2 valid URLs | Both analyses dispatched, redirect to `/compare/[id]` |
+| 3 | Submit same URL twice | Validation error |
+
+### TC-COMPARE-002 — Results page
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Visit `/compare/[id]` while analyses running | Status cards with spinners |
+| 2 | One analysis complete, one running | Completed card shows score, running card shows spinner |
+| 3 | All complete | "All sites analyzed" badge, Score Breakdown table visible |
+| 4 | A site fails | "Some analyses failed" badge, error message shown |
+
+### TC-COMPARE-003 — CompetitorComparisonSection component
+| # | Condition | Expected |
+|---|-----------|---------|
+| 1 | Both complete | "Score Breakdown" table renders; "Performance" label correct (not truncated) |
+| 2 | One pending | Spinner shown for pending column; completed column shows score |
+| 3 | Completed analysis with no CLS data | Shows "—" not infinite spinner |
+| 4 | Primary site labeled | "Your site" badge shown |
+| 5 | `allDone=true, anyFailed=false` | "All sites analyzed" badge |
+| 6 | `allDone=true, anyFailed=true` | "Some analyses failed" badge + error callout |
 
 ---
 

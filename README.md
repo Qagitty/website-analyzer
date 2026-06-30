@@ -7,17 +7,36 @@ Automated website quality analysis with AI-powered recommendations — performan
 | Feature | Description |
 |---------|-------------|
 | **Performance Analysis** | Lighthouse scores, Core Web Vitals (LCP, FID, CLS, TTFB), radar chart |
-| **Accessibility Audit** | axe-core WCAG violations with impact levels and node selectors |
-| **Console Error Analysis** | Browser console errors grouped and explained in plain English |
+| **Accessibility Audit** | WCAG violations with impact levels, node selectors, EAA compliance mapping, remediation tracking |
+| **SEO Audit** | 40+ checks across 10 weighted categories, structured data, hreflang, robots.txt, sitemap |
+| **LLM Readiness** | Evidence-based scoring across 9 weighted categories (crawlability, structured data, llms.txt, etc.) |
+| **Security Headers Audit** | CSP quality analysis, HSTS staged rollout, redirect chain capture, per-header scoring |
+| **Best Practices** | 10 categories including HTTPS, SRI, cookies, third-party risk |
 | **AI Insights** | Claude Vision analyses screenshots for UX issues with inline code fix suggestions |
-| **Design Comparison** | Upload Figma/design screenshots — Claude compares against live site, reports fidelity score and mismatches |
-| **Shareable Reports** | One-click public `/share/{id}` URL, no login required, with branded CTA footer |
-| **Scheduled Monitoring** | Daily/weekly automated re-analysis with Vercel Cron, email alerts on score drops via Resend |
-| **PDF Export** | Download full report as PDF |
+| **Design Comparison** | Upload Figma/design screenshots — Claude compares fidelity score and mismatches |
+| **Competitor Comparison** | Analyze up to 5 URLs side-by-side with Score Breakdown table |
+| **Shareable Reports** | One-click public `/share/{id}` URL, no login required |
+| **Scheduled Monitoring** | Daily/weekly automated re-analysis with Vercel Cron, email alerts on score drops |
+| **Multi-format Export** | PDF, DOCX, XLSX, JSON, Markdown — plus compliance-framed PDF (Pro+) |
+| **Remediation Tracking** | Track individual issues through open → in_progress → resolved → verified lifecycle (Pro+) |
 | **Stripe Subscriptions** | Free (3 credits), Pro ($29/mo, 100 credits), Agency ($99/mo, unlimited), Compliance ($249/mo) |
-| **Agency Lead Widget** | Embeddable JS widget + hosted page captures visitor leads; `/leads` dashboard for Agency+ users |
-| **Pricing Page** | Standalone `/pricing` with monthly/annual toggle, comparison table, FAQ accordion, Schema.org JSON-LD |
-| **Changelog Page** | Public `/changelog` timeline driven by `src/data/changelog.ts` — single source of truth for releases |
+| **Public API (v1)** | REST API with `wa_live_` key auth, per-plan rate limiting, HMAC webhook signatures |
+| **Agency Lead Widget** | Embeddable JS widget + hosted page captures leads; `/leads` dashboard for Agency+ users |
+| **Pricing Page** | Standalone `/pricing` with monthly/annual toggle, comparison table, FAQ, Schema.org JSON-LD |
+| **Changelog Page** | Public `/changelog` timeline driven by `src/data/changelog.ts` |
+
+## Security
+
+Security audit completed 2026-06-29. 0 open findings.
+
+| Control | Implementation |
+|---------|---------------|
+| **API key encryption** | AES-256-GCM + PBKDF2-SHA256 (600K iterations, `v2:` prefix) |
+| **Worker callback auth** | HMAC-SHA256 + startup guard (500 if secrets not bound) |
+| **CSRF** | Centralized in middleware; excludes `/api/widget/` and `/api/v1/` |
+| **SSRF prevention** | `validateAnalysisUrl()` + `fetchSameOriginOnly()` blocks private IPs and redirect-chain hops |
+| **Rate limiting** | Fail-closed — Redis outage → 503, not bypass |
+| **Supply chain** | npm `overrides` for `form-data` + `ws` CVEs; CI runs `npm audit --audit-level=high` |
 
 ## Stack
 
@@ -383,43 +402,18 @@ curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/moni
 ```bash
 npm run test          # Run all unit tests
 npm run test:watch    # Watch mode
+npm run verify        # typecheck + lint + tests + npm audit
 ```
 
-Test suites:
+**1,819 tests passing** across 65 files (Vitest 4.x, jsdom, @testing-library/react 16.x, all passing as of 2026-06-29)
 
-**552 tests passing** (Vitest 4.x, jsdom, @testing-library/react 16.x)
-
-| File | Coverage |
-|------|---------|
-| `analysis-types.test.ts` | Runtime shape validators for all TypeScript types |
-| `prompts.test.ts` | AI prompt output schema contracts (including `codeExample` field) |
-| `analyze-validation.test.ts` | URL Zod schema (POST /api/analyze) |
-| `monitors-validation.test.ts` | Monitor Zod schema (POST /api/monitors) |
-| `share-report.test.ts` | Share toggle, status guard, AI summary guard |
-| `useCredits.test.ts` | Credits hook including background poll anti-flicker |
-| `useAnalysis.test.ts` | Analysis hook |
-| `usePolling.test.ts` | Generic polling hook |
-| `api-routes.test.ts` | API route integration helpers |
-| `v1-api.test.ts` | Public API rate limits, key format, Bearer parsing |
-| `team-invite.test.ts` | Team invite tokens, email matching, accept guard |
-| `api-keys.test.ts` | Key generation, hashing, AES-256-GCM encrypt/decrypt |
-| `webhook-delivery.test.ts` | HMAC signing, Slack Block Kit payload |
-| `rate-limit.test.ts` | Per-plan rate limit enforcement |
-| `llm-readiness.test.ts` | Worker LLM readiness checks and internal link crawl |
-| `score-analysis.test.ts` | Worker HTML scoring (SEO, best practices, perf) |
-| `LLMReadinessSection.test.tsx` | LLM readiness report UI |
-| `EAAComplianceSection.test.tsx` | EAA compliance UI, categories, issue counts |
-| `DesignComparisonSection.test.tsx` | Fidelity score, mismatch cards, thumbnail labels |
-| `AIInsightsSection.test.tsx` | Code fix toggle, copy button, priority badges |
-| `CrawledPagesSection.test.tsx` | Crawl results table, status indicators, empty states |
-| `OnboardingBanner.test.tsx` | Banner visibility, dismiss behaviour |
-| `branding.test.ts` | Branding schema, hex validation, plan guard |
-| `monitor-scheduling.test.ts` | `next_run_at`, score-drop detection, cron eligibility |
-| `cookie-consent.test.ts` | Consent storage, analytics gating, banner visibility |
-| `widget-key.test.ts` | `generateWidgetKey`, `isValidWidgetKeyFormat` — `wk_live_` prefix, 32-hex body, uniqueness |
-| `widget-analyze.test.ts` | `POST /api/widget/analyze` — OPTIONS preflight, CORS, key auth, URL validation, rate limit, credits |
-| `PricingPage.test.tsx` | COMPARE_ROWS data invariants, plan escalation rules, billing toggle, FAQ accordion, auth modal |
-| `changelog.test.ts` | RELEASES data — sort order, unique versions, ISO dates, required fields, tag enum values |
-| `url-validation.test.ts` | Worker `validateWebsiteUrl` — valid/invalid protocols, normalisation, edge cases |
-| `compare-api.test.ts` | Compare endpoint request/response validation |
-| `CompetitorComparisonSection.test.tsx` | Competitor comparison UI rendering and empty states |
+| Category | Files | Key coverage |
+|----------|-------|-------------|
+| **API** (9) | `analyze-validation`, `api-routes`, `compare-api`, `monitors-validation`, `reset-credits`, `share-report`, `team-invite`, `v1-api`, `widget-analyze` | Route validation, auth, credits, rate limiting |
+| **Components** (8) | `AIInsightsSection`, `CompetitorComparisonSection`, `CrawledPagesSection`, `DesignComparisonSection`, `EAAComplianceSection`, `LLMReadinessSection`, `OnboardingBanner`, `PricingPage` | UI rendering, interactions, edge states |
+| **Contracts** (5) | `callback-auth`, `callback-idempotency`, `legacy-adapters`, `public-serializer`, `schemas` | Worker payload auth and schema versioning |
+| **Hooks** (3) | `useAnalysis`, `useCredits`, `usePolling` | React hook behaviour |
+| **Library** (24) | `ai-*` (5), `analysis-types`, `api-keys`, `branding`, `cookie-consent`, `env`, `logger`, `monitor-scheduling`, `monitoring-domain`, `pdf-view-model`, `plans`, `prompts`, `rate-limit`, `report-view-model`, `sanitize-url`, `score-adapters`, `url-validator`, `utils`, `webhook-delivery`, `widget-key` | Security, AI pipeline, billing, reporting |
+| **Pages** (1) | `changelog` | RELEASES data invariants |
+| **Security** (1) | `regression` | 7 regression guards for audit findings |
+| **Worker** (14) | `accessibility-engine`, `best-practices-engine`, `crawl-page-regression`, `crawled-pages`, `llm-readiness-engine`, `llm-readiness`, `opportunities`, `perf-score`, `score-analysis`, `score-classification`, `scoring-reproducibility`, `security-headers-engine`, `seo-engine`, `url-validation` | All scoring engines |

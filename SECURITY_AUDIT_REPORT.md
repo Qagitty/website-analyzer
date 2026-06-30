@@ -253,3 +253,66 @@ This endpoint is intentionally unauthenticated (no user session) — it accepts 
 **CORS note:** `Access-Control-Allow-Origin: *` is acceptable here because the endpoint only accepts `POST` (mutating) requests and the key provides the identity. There is no user session or cookie to exploit via CSRF — the worst a cross-origin request can do is consume widget credits, which is the endpoint's intended function.
 
 *Updated: 2026-06-09 (sprint 5 widget endpoint added)*
+
+---
+
+## Addendum: Trail of Bits Style Audit — 2026-06-29
+
+**Methodology:** 4-phase audit (context-building → insecure-defaults → sharp-edges → supply-chain) + false-positive verification (fp-check) + post-commit differential review.
+
+**Result: 0 open findings.**
+
+### Phase 1 — Audit Context Building
+
+10 architectural invariant gaps identified. 6 patched across subsequent phases; 4 confirmed by design (e.g., `CORS: *` on widget endpoint).
+
+### Phase 2 — Insecure Defaults (6 findings, all fixed)
+
+| ID | Finding | Severity | Fix |
+|----|---------|---------|-----|
+| F1 | `EMAIL_FROM` fallback to shared Resend inbox | HIGH | Module-level startup throw in production |
+| F2 | `checkAccountLockout` fails open on Redis absence | HIGH | Both `!redis` and `catch` return 503 |
+| F3 | CSRF fails open when `APP_URL` missing | MEDIUM-HIGH | `!appUrl → 500` in production |
+| F4 | Cron: `CRON_SECRET` → `Bearer undefined` | MEDIUM | `!cronSecret → 503` guard before comparison |
+| F5 | `authToken` sent in Worker dispatch body | MEDIUM | Field removed from all 5 dispatch sites |
+| F6 | `WORKER_CALLBACK_SECRET` unvalidated in callback | MEDIUM | `!callbackSecret → 503` before auth check |
+
+### Phase 3 — Sharp Edges (9 findings, all fixed)
+
+| ID | Finding | Severity | Fix |
+|----|---------|---------|-----|
+| SE1 | `verifyCallbackSignature` opaque boolean | HIGH | Discriminated union return type |
+| SE2 | Rate limit `bypassed` field unused | HIGH | `checkWebRateLimit` fail-closed documented |
+| SE3 | Per-hop SSRF via crawler redirects | HIGH | `fetchSameOriginOnly()` rejects hostname changes |
+| SE4 | SHA-256 used as KDF for AES-256-GCM | MEDIUM-HIGH | PBKDF2-SHA256 (600K iterations, `v2:` prefix) |
+| SE5 | CSRF applied per-route, not centrally | MEDIUM-HIGH | Centralized in `src/middleware.ts` |
+| SE6 | `deliverWebhook` accepts empty-string secret | MEDIUM | Early return + warn when `!secret` |
+| SE7 | `decryptApiKey` throws on malformed input | MEDIUM | Returns `null` instead of throwing |
+| SE8 | `Math.random` in idempotency key | LOW-MEDIUM | Replaced with CSPRNG (`crypto.randomBytes`) |
+| SE9 | `UrlValidationResult` requires `!` assertions | LOW | Discriminated union removes need for assertions |
+
+### Phase 4 — Supply Chain (2 active CVEs fixed)
+
+| Package | CVE | Fix |
+|---------|-----|-----|
+| `form-data` | CRLF injection (HIGH) | npm `overrides: "^4.0.6"` |
+| `ws` | DoS on HTTP upgrade (HIGH) | npm `overrides: "^8.21.0"` |
+
+CI now runs `npm audit --audit-level=high` on every push — currently 0 HIGH vulnerabilities.
+
+### False Positive Verification
+
+21 total findings across Phases 1–3 verified via fp-check:
+- **1 TRUE POSITIVE:** SE4 (SHA-256 KDF) — fixed via PBKDF2-SHA256 (commit `8a6854d`)
+- **20 FALSE POSITIVES** — either patched path eliminated or no attacker-controlled path existed
+
+### Post-Audit Differential Review
+
+| Finding | Severity | Resolution |
+|---------|---------|-----------|
+| Worker bindings not validated at startup | LOW | Startup guard: HTTP 500 if `WORKER_AUTH_TOKEN` or `WORKER_CALLBACK_SECRET` not bound |
+| Legacy v1 decrypt path (SHA-256 KDF) permanent until migration | MEDIUM | Migration confirmed 0 v1 rows in DB (2026-06-29); `legacyKey()` removed (commit `6084deb`) |
+
+**Final security posture:** 0 open findings. All API keys in `v2:` (PBKDF2) format. 1,819 tests. `npm audit` = 0 HIGH.
+
+*Addendum added: 2026-06-29*
