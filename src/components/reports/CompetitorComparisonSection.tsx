@@ -139,42 +139,41 @@ export function CompetitorComparisonSection({ analyses, allDone, anyFailed }: Pr
         )}
       </div>
 
-      {/* Column summary cards */}
-      <div className={`grid gap-3 grid-cols-${Math.min(analyses.length, 4)}`}
+      {/* Column summary cards — horizontal scroll on mobile, grid on desktop */}
+      <div className="flex gap-3 overflow-x-auto pb-1 sm:grid sm:overflow-visible sm:pb-0"
            style={{ gridTemplateColumns: `repeat(${analyses.length}, minmax(0, 1fr))` }}>
         {analyses.map((a, i) => (
           <Card
             key={a.id}
-            className={`relative ${i === 0 ? 'border-orange-400 dark:border-orange-800 bg-orange-600/5' : 'border-border'}`}
+            className={`shrink-0 w-52 sm:w-auto ${i === 0 ? 'border-orange-400 dark:border-orange-800 bg-orange-600/5' : 'border-border'}`}
           >
-            {i === 0 && (
-              <div className="absolute -top-2.5 left-3">
-                <Badge className="text-xs bg-orange-700 text-white">Your site</Badge>
+            <CardHeader className="pb-2 pt-3">
+              <div className="flex items-center gap-2 flex-wrap">
+                <CardTitle className="text-sm font-medium truncate flex-1 min-w-0" title={a.url}>
+                  {a.label}
+                </CardTitle>
+                {i === 0 && (
+                  <Badge className="text-xs bg-orange-700 text-white shrink-0">Your site</Badge>
+                )}
               </div>
-            )}
-            <CardHeader className="pb-2 pt-5">
-              <CardTitle className="text-sm font-medium truncate" title={a.url}>
-                {a.label}
-              </CardTitle>
               <p className="text-xs text-muted-foreground/60 truncate">{a.url}</p>
             </CardHeader>
             <CardContent className="pb-4">
               <StatusChip status={a.status} />
               {a.status === 'completed' && a.lighthouse_scores && (
-                <div className="mt-1 space-y-1.5">
+                <div className="mt-2 space-y-2">
                   {(['performance', 'accessibility', 'seo'] as const).map((k) => {
                     const v = a.lighthouse_scores![k];
-                    const CARD_LABEL: Record<string, string> = { performance: 'Performance', accessibility: 'Accessibility', seo: 'SEO' };
+                    const CARD_LABEL: Record<string, string> = { performance: 'Perf', accessibility: 'A11y', seo: 'SEO' };
                     return (
-                      <div key={k} className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground/60 w-20 shrink-0">{CARD_LABEL[k]}</span>
-                        <div className="flex-1 bg-border/40 rounded-full h-1.5 overflow-hidden">
-                          <div
-                            className={`h-full rounded-full ${scoreBarColor(v)}`}
-                            style={{ width: `${v}%` }}
-                          />
+                      <div key={k}>
+                        <div className="flex items-center justify-between mb-0.5">
+                          <span className="text-xs text-muted-foreground/60">{CARD_LABEL[k]}</span>
+                          <span className={`text-xs font-mono font-semibold ${scoreColor(v)}`}>{v}</span>
                         </div>
-                        <span className={`text-xs font-mono font-semibold w-7 text-right ${scoreColor(v)}`}>{v}</span>
+                        <div className="bg-border/40 rounded-full h-1.5 overflow-hidden">
+                          <div className={`h-full rounded-full ${scoreBarColor(v)}`} style={{ width: `${v}%` }} />
+                        </div>
                       </div>
                     );
                   })}
