@@ -167,18 +167,18 @@ export function ReportNav({ sections, url, scannedAt, actionsSlot }: ReportNavPr
       </nav>
 
       {/* Mobile sticky header — Option C layout */}
-      <div className="lg:hidden sticky top-0 z-30 bg-background/95 backdrop-blur border-b border-border/50 -mx-4 -mt-4">
+      <div className="lg:hidden sticky -top-4 z-30 bg-background/95 backdrop-blur border-b border-border/50 -mx-4 -mt-4">
 
         {/* Row 0: Section title + URL + date (centered, one block) */}
-        <div className="px-4 pt-3 pb-2 text-center">
-          <p className="text-base font-bold text-foreground">
+        <div className="px-4 pt-4 pb-2 text-center">
+          <p className="text-lg font-bold text-foreground leading-tight">
             {sections.find(s => s.id === activeId)?.label ?? sections[0]?.label ?? 'Executive Summary'}
           </p>
           {url && (
-            <p className="text-xs font-medium text-foreground/80 truncate mt-0.5">{url}</p>
+            <p className="text-sm font-medium text-foreground/80 truncate mt-1">{url}</p>
           )}
           {scannedAt && (
-            <p className="text-[11px] text-muted-foreground mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               Analyzed {formatDistanceToNow(new Date(scannedAt), { addSuffix: true })}
             </p>
           )}
