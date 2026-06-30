@@ -43,7 +43,7 @@ export default function ForgotPasswordPage() {
         </div>
         <p className="text-sm text-muted-foreground">
           Didn&apos;t receive an email? Check your spam folder or{' '}
-          <button onClick={() => setSent(false)} className="text-indigo-400 hover:text-indigo-300 underline">
+          <button onClick={() => setSent(false)} className="text-orange-500 hover:text-orange-500 underline">
             try again
           </button>
           .
@@ -84,7 +84,7 @@ export default function ForgotPasswordPage() {
 
       <p className="text-center text-sm text-muted-foreground">
         Remember your password?{' '}
-        <Link href="/login" className="text-indigo-400 hover:text-indigo-300 underline">
+        <Link href="/login" className="text-orange-500 hover:text-orange-500 underline">
           Sign in
         </Link>
       </p>

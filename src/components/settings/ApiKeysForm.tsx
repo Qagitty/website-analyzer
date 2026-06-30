@@ -132,7 +132,7 @@ export function ApiKeysForm({ initialKeys }: { initialKeys: ApiKeyRow[] }) {
           Use API keys to access the WebAnalyzer REST API from your own applications.{' '}
           <Link
             href="/docs?from=settings"
-            className="inline-flex items-center gap-1 text-indigo-600 dark:text-indigo-400 hover:underline"
+            className="inline-flex items-center gap-1 text-orange-700 dark:text-orange-500 hover:underline"
           >
             View API Docs <ExternalLink className="h-3 w-3" />
           </Link>
@@ -146,12 +146,12 @@ export function ApiKeysForm({ initialKeys }: { initialKeys: ApiKeyRow[] }) {
             value={name}
             onChange={(e) => setName(e.target.value)}
             maxLength={50}
-            className="flex-1 bg-background border-border text-foreground placeholder:text-muted-foreground/60 focus:border-indigo-500/50 focus:ring-indigo-500/20"
+            className="flex-1 bg-background border-border text-foreground placeholder:text-muted-foreground/60 focus:border-orange-500/50 focus:ring-orange-400/20"
           />
           <Button
             type="submit"
             disabled={generating}
-            className="bg-gradient-to-r from-indigo-500 to-violet-500 text-white hover:from-indigo-400 hover:to-violet-400"
+            className="bg-orange-600 text-white hover:from-orange-400 hover:to-orange-400"
           >
             {generating ? 'Generating...' : 'Generate API key'}
           </Button>

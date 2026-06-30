@@ -99,7 +99,7 @@ export default function CompareResultsPage({ params }: { params: Promise<{ id: s
       {error && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-6 text-center">
           <p className="text-red-400 font-medium">{error}</p>
-          <Link href="/analyze/compare" className="mt-3 inline-block text-sm text-indigo-400 hover:underline">
+          <Link href="/analyze/compare" className="mt-3 inline-block text-sm text-orange-500 hover:underline">
             Start a new comparison →
           </Link>
         </div>
@@ -133,7 +133,7 @@ export default function CompareResultsPage({ params }: { params: Promise<{ id: s
                 <Link
                   key={a.id}
                   href={`/reports/${a.id}`}
-                  className="text-xs text-indigo-400 hover:underline"
+                  className="text-xs text-orange-500 hover:underline"
                 >
                   {a.label} →
                 </Link>

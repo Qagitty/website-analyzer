@@ -141,7 +141,7 @@ function FindingCard({ finding }: { finding: SecurityHeaderFinding }) {
               <ol className="space-y-1">
                 {finding.verificationSteps.map((s, i) => (
                   <li key={i} className="flex items-start gap-1.5 text-xs text-muted-foreground">
-                    <span className="shrink-0 font-mono text-indigo-400">{i + 1}.</span>
+                    <span className="shrink-0 font-mono text-orange-500">{i + 1}.</span>
                     <span>{s}</span>
                   </li>
                 ))}
@@ -202,8 +202,8 @@ function HeaderRow({ h }: { h: SecurityHeaderAnalysisResult }) {
             <div className="space-y-2 text-xs">
               <p className="text-muted-foreground">{h.reason}</p>
               {h.recommendation && h.recommendation !== h.reason && (
-                <div className="rounded bg-indigo-500/10 border border-indigo-500/20 px-3 py-2">
-                  <span className="text-indigo-400 font-medium">Recommendation: </span>
+                <div className="rounded bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900/40 px-3 py-2">
+                  <span className="text-orange-500 font-medium">Recommendation: </span>
                   <span className="text-foreground/80">{h.recommendation}</span>
                 </div>
               )}
@@ -251,7 +251,7 @@ function RedirectChain({ chain }: { chain: RedirectHop[] }) {
                 </span>
                 <code className="text-xs font-mono text-muted-foreground break-all">{hop.url}</code>
                 {hop.location && (
-                  <span className="text-xs text-indigo-400 shrink-0">→ {hop.location}</span>
+                  <span className="text-xs text-orange-500 shrink-0">→ {hop.location}</span>
                 )}
               </div>
             </div>
@@ -570,7 +570,7 @@ function LegacyHeaderCard({ h, crawledPages }: { h: LegacySecurityHeaderResult; 
             )}
             {crawledPages.length > 0 && (
               <button
-                className="mt-2 text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors"
+                className="mt-2 text-xs text-orange-500 hover:text-orange-500 flex items-center gap-1 transition-colors"
                 onClick={() => setOpen(o => !o)}
               >
                 {open ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}

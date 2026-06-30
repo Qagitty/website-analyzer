@@ -36,7 +36,7 @@ export default function SampleReportPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* ── Top banner ──────────────────────────────────────────── */}
-      <div className="sticky top-0 z-40 bg-indigo-600/90 backdrop-blur border-b border-indigo-500/30">
+      <div className="sticky top-0 z-40 bg-orange-700/90 backdrop-blur border-b border-orange-300 dark:border-orange-900/50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-white">
             <Sparkles className="h-4 w-4 shrink-0" />
@@ -46,7 +46,7 @@ export default function SampleReportPage() {
           </div>
           <Link
             href="/signup"
-            className="shrink-0 rounded-full bg-white text-indigo-700 text-xs font-semibold px-3 py-1.5 hover:bg-indigo-50 transition-colors"
+            className="shrink-0 rounded-full bg-white text-orange-700 text-xs font-semibold px-3 py-1.5 hover:bg-orange-50 transition-colors"
           >
             Audit your site free →
           </Link>
@@ -142,7 +142,7 @@ export default function SampleReportPage() {
         <CrawledPagesSection crawledPages={analysis.crawl_pages as any} />
 
         {/* ── CTA footer ──────────────────────────────────────────── */}
-        <div className="rounded-2xl bg-indigo-500/5 border border-indigo-500/20 p-8 text-center space-y-4">
+        <div className="rounded-2xl bg-orange-600/5 border border-orange-200 dark:border-orange-900/40 p-8 text-center space-y-4">
           <h2 className="text-2xl font-bold">Ready to see your website&apos;s results?</h2>
           <p className="text-muted-foreground max-w-md mx-auto text-sm">
             Get a full audit like this for your site in under 60 seconds — completely free, no credit card needed.
@@ -150,7 +150,7 @@ export default function SampleReportPage() {
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link
               href="/signup"
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 text-white font-semibold px-6 py-3 text-sm hover:opacity-90 transition-opacity"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-orange-600 text-white font-semibold px-6 py-3 text-sm hover:opacity-90 transition-opacity"
             >
               <Sparkles className="h-4 w-4" />
               Run free audit

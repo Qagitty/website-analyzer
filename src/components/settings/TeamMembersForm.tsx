@@ -50,7 +50,7 @@ export function TeamMembersForm({ isPro, initialMembers, ownerEmail }: Props) {
             </div>
             <Button
               asChild
-              className="bg-gradient-to-r from-indigo-500 to-violet-500 text-white hover:from-indigo-400 hover:to-violet-400"
+              className="bg-orange-600 text-white hover:from-orange-400 hover:to-orange-400"
             >
               <Link href="/settings">Upgrade to Agency</Link>
             </Button>
@@ -123,14 +123,14 @@ export function TeamMembersForm({ isPro, initialMembers, ownerEmail }: Props) {
             placeholder="colleague@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="flex-1 bg-background border-border text-foreground placeholder:text-muted-foreground/60 focus:border-indigo-500/50 focus:ring-indigo-500/20"
+            className="flex-1 bg-background border-border text-foreground placeholder:text-muted-foreground/60 focus:border-orange-500/50 focus:ring-orange-400/20"
             aria-label="Invite by email"
             disabled={inviting || members.length >= 10}
           />
           <Button
             type="submit"
             disabled={inviting || !email.trim() || members.length >= 10}
-            className="bg-gradient-to-r from-indigo-500 to-violet-500 text-white hover:from-indigo-400 hover:to-violet-400"
+            className="bg-orange-600 text-white hover:from-orange-400 hover:to-orange-400"
           >
             <UserPlus className="h-4 w-4 mr-1" />
             {inviting ? 'Sending…' : 'Send Invite'}

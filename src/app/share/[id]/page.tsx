@@ -160,7 +160,7 @@ export default async function PublicReportPage(props: { params: Promise<{ id: st
           </p>
           <a
             href="/signup"
-            className="inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-indigo-500 to-violet-500 px-6 py-2.5 text-sm font-medium text-white hover:opacity-90 transition-opacity"
+            className="inline-flex items-center gap-1 rounded-lg bg-orange-600 px-6 py-2.5 text-sm font-medium text-white hover:opacity-90 transition-opacity"
           >
             Analyze your site free →
           </a>

@@ -76,8 +76,8 @@ export function TrackIssueButton({ issue, analysisId, url, trackedId, onChange }
       title={isTracked ? 'Remove from tracker' : 'Track this issue'}
       className={`flex items-center gap-1 text-xs px-2 py-1 rounded-md border transition-colors
         ${isTracked
-          ? 'border-indigo-500/40 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20'
-          : 'border-border text-muted-foreground hover:border-indigo-500/40 hover:text-indigo-400 hover:bg-indigo-500/5'
+          ? 'border-orange-400 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/30 text-orange-500 hover:bg-orange-100 dark:bg-orange-950/40'
+          : 'border-border text-muted-foreground hover:border-orange-400 dark:border-orange-800 hover:text-orange-500 hover:bg-orange-600/5'
         }
         disabled:opacity-50 disabled:cursor-not-allowed`}
     >

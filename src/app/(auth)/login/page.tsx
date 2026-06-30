@@ -14,7 +14,7 @@ export default function LoginPage() {
       <LoginForm />
       <p className="text-center text-sm text-muted-foreground">
         Don&apos;t have an account?{' '}
-        <Link href="/signup" className="font-medium text-indigo-400 hover:text-indigo-300 transition-colors">
+        <Link href="/signup" className="font-medium text-orange-500 hover:text-orange-500 transition-colors">
           Sign up free
         </Link>
       </p>

@@ -53,7 +53,7 @@ export default function TermsPage() {
             <h2 className="text-xl font-semibold text-foreground mb-3">5. Credits, Billing & Refunds</h2>
             <p className="mb-3">The Free plan includes 3 analysis credits per month. Paid plans include additional credits as described on the pricing page. Credits are consumed when an analysis is submitted and do not roll over between billing periods.</p>
             <p className="mb-3">Subscriptions are billed monthly in advance via Stripe. You may cancel your subscription at any time; cancellation takes effect at the end of the current billing period and you retain access until that date.</p>
-            <p>All fees are non-refundable except where required by applicable law (including applicable EU consumer protection regulations). If you believe you have been charged in error, contact us at <a href="mailto:support@websiteanalyzer.dev" className="text-indigo-600 dark:text-indigo-400 hover:underline">support@websiteanalyzer.dev</a> within 14 days of the charge.</p>
+            <p>All fees are non-refundable except where required by applicable law (including applicable EU consumer protection regulations). If you believe you have been charged in error, contact us at <a href="mailto:support@websiteanalyzer.dev" className="text-orange-700 dark:text-orange-500 hover:underline">support@websiteanalyzer.dev</a> within 14 days of the charge.</p>
           </section>
 
           <section>
@@ -80,7 +80,7 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-xl font-semibold text-foreground mb-3">10. Termination</h2>
-            <p>We may suspend or terminate your account immediately if you violate these Terms or engage in conduct that we reasonably believe is harmful to the Service or other users. You may delete your account at any time from the Settings page. Upon termination, your data will be deleted in accordance with our <Link href="/privacy" className="text-indigo-600 dark:text-indigo-400 hover:underline">Privacy Policy</Link>.</p>
+            <p>We may suspend or terminate your account immediately if you violate these Terms or engage in conduct that we reasonably believe is harmful to the Service or other users. You may delete your account at any time from the Settings page. Upon termination, your data will be deleted in accordance with our <Link href="/privacy" className="text-orange-700 dark:text-orange-500 hover:underline">Privacy Policy</Link>.</p>
           </section>
 
           <section>
@@ -90,7 +90,7 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-xl font-semibold text-foreground mb-3">12. Contact</h2>
-            <p>For questions about these Terms, please contact us at <a href="mailto:support@websiteanalyzer.dev" className="text-indigo-600 dark:text-indigo-400 hover:underline">support@websiteanalyzer.dev</a>.</p>
+            <p>For questions about these Terms, please contact us at <a href="mailto:support@websiteanalyzer.dev" className="text-orange-700 dark:text-orange-500 hover:underline">support@websiteanalyzer.dev</a>.</p>
           </section>
 
         </div>

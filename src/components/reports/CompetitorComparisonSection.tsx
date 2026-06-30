@@ -145,11 +145,11 @@ export function CompetitorComparisonSection({ analyses, allDone, anyFailed }: Pr
         {analyses.map((a, i) => (
           <Card
             key={a.id}
-            className={`relative ${i === 0 ? 'border-indigo-500/40 bg-indigo-500/5' : 'border-border'}`}
+            className={`relative ${i === 0 ? 'border-orange-400 dark:border-orange-800 bg-orange-600/5' : 'border-border'}`}
           >
             {i === 0 && (
               <div className="absolute -top-2.5 left-3">
-                <Badge className="text-xs bg-indigo-600 text-white">Your site</Badge>
+                <Badge className="text-xs bg-orange-700 text-white">Your site</Badge>
               </div>
             )}
             <CardHeader className="pb-2 pt-5">
@@ -200,7 +200,7 @@ export function CompetitorComparisonSection({ analyses, allDone, anyFailed }: Pr
                     {analyses.map((a, i) => (
                       <th
                         key={a.id}
-                        className={`text-center px-3 py-2.5 text-xs font-medium ${i === 0 ? 'text-indigo-400' : 'text-muted-foreground'}`}
+                        className={`text-center px-3 py-2.5 text-xs font-medium ${i === 0 ? 'text-orange-500' : 'text-muted-foreground'}`}
                         style={{ width: colWidth }}
                       >
                         {a.label}
@@ -274,7 +274,7 @@ export function CompetitorComparisonSection({ analyses, allDone, anyFailed }: Pr
       {completed.length === 0 && (
         <Card>
           <CardContent className="pt-8 pb-8 text-center space-y-2">
-            <Loader2 className="h-8 w-8 animate-spin text-indigo-500 mx-auto" />
+            <Loader2 className="h-8 w-8 animate-spin text-orange-600 mx-auto" />
             <p className="text-sm text-muted-foreground">Analyzing all sites…</p>
             <p className="text-xs text-muted-foreground/60">This usually takes 30–90 seconds per site</p>
           </CardContent>

@@ -31,11 +31,11 @@ export function CookieBanner() {
         <p className="text-sm text-muted-foreground leading-relaxed">
           We use essential cookies to operate the Service and optional analytics cookies to understand
           usage and improve performance. Analytics cookies are only activated after your consent.{' '}
-          <Link href="/cookies" className="underline text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 transition-colors">
+          <Link href="/cookies" className="underline text-orange-700 dark:text-orange-500 hover:text-orange-600 dark:hover:text-orange-500 transition-colors">
             Cookie Policy
           </Link>
           {' '}·{' '}
-          <Link href="/privacy" className="underline text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 transition-colors">
+          <Link href="/privacy" className="underline text-orange-700 dark:text-orange-500 hover:text-orange-600 dark:hover:text-orange-500 transition-colors">
             Privacy Policy
           </Link>
         </p>
@@ -48,7 +48,7 @@ export function CookieBanner() {
           </button>
           <button
             onClick={accept}
-            className="px-4 py-2 text-sm font-medium text-white rounded-lg bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400 transition-all"
+            className="px-4 py-2 text-sm font-medium text-white rounded-lg bg-orange-600 hover:from-orange-400 hover:to-orange-400 transition-all"
           >
             Accept all
           </button>

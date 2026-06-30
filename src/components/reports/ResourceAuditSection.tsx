@@ -75,7 +75,7 @@ export function ResourceAuditSection({
       <Card className="bg-card border border-border">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
-            <Image className="h-4 w-4 text-indigo-400" />
+            <Image className="h-4 w-4 text-orange-500" />
             Image Audit
           </CardTitle>
         </CardHeader>
@@ -111,7 +111,7 @@ export function ResourceAuditSection({
       <Card className="bg-card border border-border">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
-            <Globe className="h-4 w-4 text-violet-400" />
+            <Globe className="h-4 w-4 text-orange-500" />
             Third-Party Resources
           </CardTitle>
         </CardHeader>

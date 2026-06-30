@@ -28,7 +28,7 @@ export default function OgImage() {
             position: 'absolute',
             inset: 0,
             backgroundImage:
-              'linear-gradient(rgba(99,102,241,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,0.06) 1px, transparent 1px)',
+              'linear-gradient(rgba(234,88,12,0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(234,88,12,0.2) 1px, transparent 1px)',
             backgroundSize: '48px 48px',
           }}
         />
@@ -42,7 +42,7 @@ export default function OgImage() {
             transform: 'translate(-50%, -50%)',
             width: 700,
             height: 400,
-            background: 'radial-gradient(ellipse at center, rgba(99,102,241,0.15) 0%, transparent 70%)',
+            background: 'radial-gradient(ellipse at center, rgba(234,88,12,0.2) 0%, transparent 70%)',
           }}
         />
 

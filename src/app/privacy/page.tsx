@@ -148,7 +148,7 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-xl font-semibold text-foreground mb-3">Contact</h2>
             <p>For privacy inquiries, data deletion requests, or any concerns about how we handle your data, please contact us at{' '}
-              <a href="mailto:privacy@websiteanalyzer.dev" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 underline transition-colors">
+              <a href="mailto:privacy@websiteanalyzer.dev" className="text-orange-700 dark:text-orange-500 hover:text-orange-600 dark:hover:text-orange-500 underline transition-colors">
                 privacy@websiteanalyzer.dev
               </a>.
             </p>

@@ -14,7 +14,7 @@ export function OnboardingBanner({ analysisCount }: Props) {
   if (analysisCount > 0 || dismissed) return null;
 
   return (
-    <div className="relative rounded-xl border border-indigo-200 bg-indigo-50 dark:bg-indigo-950/30 dark:border-indigo-900 pl-5 pr-10 py-4">
+    <div className="relative rounded-xl border border-orange-200 bg-orange-50 dark:bg-orange-950/30 dark:border-orange-900 pl-5 pr-10 py-4">
       <button
         onClick={() => setDismissed(true)}
         className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"

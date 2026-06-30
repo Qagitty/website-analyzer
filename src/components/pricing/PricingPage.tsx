@@ -42,12 +42,12 @@ const PLANS = [
     id: 'pro',
     name: 'Pro',
     monthly: 29,
-    badge: { text: 'Most popular', colorClass: 'from-indigo-500 to-violet-500' },
-    color: 'border-indigo-500/50',
-    glow: '0 0 40px rgba(99,102,241,0.15)',
-    textColor: 'text-indigo-300',
-    checkColor: 'text-indigo-400',
-    btnClass: 'bg-gradient-to-r from-indigo-500 to-violet-500 text-white hover:from-indigo-400 hover:to-violet-400',
+    badge: { text: 'Most popular', colorClass: 'from-orange-500 to-orange-500' },
+    color: 'border-orange-500/50',
+    glow: '0 0 40px rgba(234,88,12,0.2)',
+    textColor: 'text-orange-400',
+    checkColor: 'text-orange-500',
+    btnClass: 'bg-orange-600 text-white hover:from-orange-400 hover:to-orange-400',
     cta: 'Start Pro',
     stripe: 'pro',
     features: [
@@ -76,11 +76,11 @@ const PLANS = [
     name: 'Agency',
     monthly: 99,
     badge: null,
-    color: 'border-violet-500/30',
+    color: 'border-orange-300 dark:border-orange-900/50',
     glow: '0 0 30px rgba(124,58,237,0.08)',
-    textColor: 'text-violet-300',
-    checkColor: 'text-violet-400',
-    btnClass: 'border border-violet-500/40 text-violet-300 hover:bg-violet-500/10',
+    textColor: 'text-orange-400',
+    checkColor: 'text-orange-500',
+    btnClass: 'border border-orange-500/40 text-orange-400 hover:bg-orange-50 dark:bg-orange-950/30',
     cta: 'Start Agency',
     stripe: 'agency',
     features: [
@@ -267,7 +267,7 @@ export function PricingPage() {
       <nav className="fixed top-0 w-full z-50 border-b border-border bg-background/80 backdrop-blur-xl">
         <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 font-bold text-base">
-            <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center">
+            <div className="h-7 w-7 rounded-lg bg-orange-600 flex items-center justify-center">
               <Zap className="h-4 w-4 text-white" />
             </div>
             WebAnalyzer
@@ -283,7 +283,7 @@ export function PricingPage() {
             <button onClick={() => setModal({ open: true, tab: 'signin' })} className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:block">Sign in</button>
             <button
               onClick={() => setModal({ open: true, tab: 'signup' })}
-              className="rounded-lg bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-1.5 text-sm font-medium text-white hover:from-indigo-400 hover:to-violet-400 transition-all"
+              className="rounded-lg bg-orange-600 px-4 py-1.5 text-sm font-medium text-white hover:from-orange-400 hover:to-orange-400 transition-all"
             >
               Get started free
             </button>
@@ -294,13 +294,13 @@ export function PricingPage() {
       {/* ── Hero ─────────────────────────────────────────────────────── */}
       <section className="pt-32 pb-8 px-4 text-center relative">
         <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-          <div className="w-[600px] h-[300px] bg-indigo-600/8 rounded-full blur-[100px]" />
+          <div className="w-[600px] h-[300px] bg-orange-700/8 rounded-full blur-[100px]" />
         </div>
         <div className="relative max-w-2xl mx-auto">
-          <p className="text-xs font-semibold uppercase tracking-widest text-indigo-400 mb-4">Pricing</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-orange-500 mb-4">Pricing</p>
           <h1 className="text-5xl font-bold tracking-tight mb-4">
             Start free.{' '}
-            <span className="bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">
+            <span className="bg-orange-600 bg-clip-text text-transparent">
               Scale as you grow.
             </span>
           </h1>
@@ -315,7 +315,7 @@ export function PricingPage() {
               onClick={() => setBilling('monthly')}
               className={`rounded-lg px-5 py-2 text-sm font-medium transition-all ${
                 billing === 'monthly'
-                  ? 'bg-indigo-500 text-white shadow-sm'
+                  ? 'bg-orange-600 text-white shadow-sm'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -326,7 +326,7 @@ export function PricingPage() {
               onClick={() => setBilling('annual')}
               className={`rounded-lg px-5 py-2 text-sm font-medium transition-all flex items-center gap-2 ${
                 billing === 'annual'
-                  ? 'bg-indigo-500 text-white shadow-sm'
+                  ? 'bg-orange-600 text-white shadow-sm'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -409,7 +409,7 @@ export function PricingPage() {
         </p>
       </section>
 
-      <div className="h-px bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent" />
+      <div className="h-px bg-gradient-to-r from-transparent via-orange-500/20 to-transparent" />
 
       {/* ── Feature comparison table ──────────────────────────────────── */}
       <section className="py-16 px-4">
@@ -472,7 +472,7 @@ export function PricingPage() {
         </div>
       </section>
 
-      <div className="h-px bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent" />
+      <div className="h-px bg-gradient-to-r from-transparent via-orange-500/20 to-transparent" />
 
       {/* ── Target audience summary ───────────────────────────────────── */}
       <section className="py-16 px-4">
@@ -484,14 +484,14 @@ export function PricingPage() {
                 icon: Building2,
                 label: 'Small Business',
                 plan: 'Free or Pro',
-                planColor: 'text-indigo-400',
+                planColor: 'text-orange-500',
                 desc: 'Run a few audits a month, catch quick wins on your site, and share your score with stakeholders.',
               },
               {
                 icon: Users,
                 label: 'Agency / Studio',
                 plan: 'Agency',
-                planColor: 'text-violet-400',
+                planColor: 'text-orange-500',
                 desc: 'White-label PDF reports, competitor benchmarks, lead widget, team access, API and webhooks for your workflow.',
               },
               {
@@ -503,8 +503,8 @@ export function PricingPage() {
               },
             ].map(({ icon: Icon, label, plan, planColor, desc }) => (
               <div key={label} className="rounded-xl border border-border bg-card p-5 space-y-3">
-                <div className="h-9 w-9 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
-                  <Icon className="h-5 w-5 text-indigo-400" />
+                <div className="h-9 w-9 rounded-lg bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900/40 flex items-center justify-center">
+                  <Icon className="h-5 w-5 text-orange-500" />
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground uppercase tracking-widest font-medium mb-0.5">{label}</p>
@@ -517,14 +517,14 @@ export function PricingPage() {
         </div>
       </section>
 
-      <div className="h-px bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent" />
+      <div className="h-px bg-gradient-to-r from-transparent via-orange-500/20 to-transparent" />
 
       {/* ── FAQ ──────────────────────────────────────────────────────── */}
       <section className="py-16 px-4">
         <div className="max-w-2xl mx-auto">
           <div className="text-center mb-10">
             <h2 className="text-2xl font-bold mb-2">Frequently asked questions</h2>
-            <p className="text-sm text-muted-foreground">Can&apos;t find your answer? <a href="mailto:hello@webanalyzer.app" className="text-indigo-400 hover:underline">Email us</a>.</p>
+            <p className="text-sm text-muted-foreground">Can&apos;t find your answer? <a href="mailto:hello@webanalyzer.app" className="text-orange-500 hover:underline">Email us</a>.</p>
           </div>
           <div className="rounded-xl border border-border bg-card px-6">
             {FAQ.map((item) => (
@@ -534,7 +534,7 @@ export function PricingPage() {
         </div>
       </section>
 
-      <div className="h-px bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent" />
+      <div className="h-px bg-gradient-to-r from-transparent via-orange-500/20 to-transparent" />
 
       {/* ── Final CTA ─────────────────────────────────────────────────── */}
       <section className="py-20 px-4 text-center">
@@ -545,8 +545,8 @@ export function PricingPage() {
             <button
               type="button"
               onClick={() => setModal({ open: true, tab: 'signup' })}
-              className="inline-flex items-center gap-2 justify-center rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-7 py-3 text-sm font-semibold text-white hover:from-indigo-400 hover:to-violet-400 transition-all"
-              style={{ boxShadow: '0 0 24px rgba(99,102,241,0.3)' }}
+              className="inline-flex items-center gap-2 justify-center rounded-xl bg-orange-600 px-7 py-3 text-sm font-semibold text-white hover:from-orange-400 hover:to-orange-400 transition-all"
+              style={{ boxShadow: '0 0 24px rgba(234,88,12,0.3)' }}
             >
               Get started free <ArrowRight className="h-4 w-4" />
             </button>
@@ -565,7 +565,7 @@ export function PricingPage() {
       <footer className="border-t border-border py-8">
         <div className="max-w-6xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground/60">
           <div className="flex items-center gap-2">
-            <div className="h-5 w-5 rounded bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center">
+            <div className="h-5 w-5 rounded bg-orange-600 flex items-center justify-center">
               <Zap className="h-3 w-3 text-white" />
             </div>
             <span>WebAnalyzer</span>

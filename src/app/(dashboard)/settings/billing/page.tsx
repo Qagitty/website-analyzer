@@ -57,7 +57,7 @@ export default async function BillingPage() {
             <div className="space-y-1.5">
               <div className="h-2 w-full rounded-full bg-secondary overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all"
+                  className="h-full rounded-full bg-orange-600 transition-all"
                   style={{ width: `${Math.min(100, (creditsUsed / creditsTotal) * 100)}%` }}
                 />
               </div>
@@ -93,7 +93,7 @@ export default async function BillingPage() {
                 key={p}
                 className={`bg-card border rounded-xl p-5 space-y-4 ${
                   isCurrent
-                    ? 'border-indigo-500/50 ring-1 ring-indigo-500/20'
+                    ? 'border-orange-500/50 ring-1 ring-orange-500/20'
                     : 'border-border'
                 }`}
               >
@@ -109,7 +109,7 @@ export default async function BillingPage() {
                     </p>
                   </div>
                   {isCurrent && (
-                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-orange-50 dark:bg-orange-950/30 text-orange-500 border border-orange-200 dark:border-orange-900/40">
                       Current
                     </span>
                   )}
@@ -123,7 +123,7 @@ export default async function BillingPage() {
                   ))}
                 </ul>
                 {!isCurrent && (
-                  <div className="flex items-center gap-1 text-xs text-indigo-400 font-medium">
+                  <div className="flex items-center gap-1 text-xs text-orange-500 font-medium">
                     <span>Upgrade</span>
                     <ArrowRight className="h-3 w-3" />
                   </div>

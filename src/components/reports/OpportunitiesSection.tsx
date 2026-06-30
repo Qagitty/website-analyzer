@@ -86,12 +86,12 @@ function OpportunityCard({ opp }: { opp: PerformanceOpportunity }) {
       {hasSavings && (
         <div className="flex items-center gap-2 flex-wrap pl-7">
           {opp.estimatedSavingsMs != null && (
-            <span className="text-[10px] bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded px-1.5 py-0.5">
+            <span className="text-[10px] bg-orange-50 dark:bg-orange-950/30 text-orange-500 border border-orange-200 dark:border-orange-900/40 rounded px-1.5 py-0.5">
               ~{opp.estimatedSavingsMs}ms potential saving
             </span>
           )}
           {opp.estimatedSavingsBytes != null && (
-            <span className="text-[10px] bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded px-1.5 py-0.5">
+            <span className="text-[10px] bg-orange-50 dark:bg-orange-950/30 text-orange-500 border border-orange-200 dark:border-orange-900/40 rounded px-1.5 py-0.5">
               ~{formatBytes(opp.estimatedSavingsBytes)} potential saving
             </span>
           )}
@@ -180,7 +180,7 @@ export function OpportunitiesSection({
           Performance Opportunities
         </h2>
         <Badge
-          className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-xs"
+          className="bg-orange-50 dark:bg-orange-950/30 text-orange-500 border border-orange-200 dark:border-orange-900/40 text-xs"
           title="Issues detected via static HTML analysis and HTTP header inspection"
         >
           Static analysis

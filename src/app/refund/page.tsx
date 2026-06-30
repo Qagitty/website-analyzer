@@ -57,7 +57,7 @@ export default function RefundPage() {
             <p>To request a refund or credit restoration, contact us by email within a reasonable time after the charge in question — preferably within 14 days. Please include your account email address and a description of the issue. We aim to respond to all billing requests within 2 business days.</p>
             <p className="mt-3">
               Email:{' '}
-              <a href="mailto:billing@websiteanalyzer.dev" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 underline transition-colors">
+              <a href="mailto:billing@websiteanalyzer.dev" className="text-orange-700 dark:text-orange-500 hover:text-orange-600 dark:hover:text-orange-500 underline transition-colors">
                 billing@websiteanalyzer.dev
               </a>
             </p>

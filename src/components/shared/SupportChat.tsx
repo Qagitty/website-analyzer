@@ -146,10 +146,10 @@ export function SupportChat() {
         <div
           ref={panelRef}
           className="w-[360px] max-h-[560px] flex flex-col rounded-2xl border border-border bg-card shadow-2xl overflow-hidden"
-          style={{ boxShadow: '0 8px 40px rgba(99,102,241,0.18)' }}
+          style={{ boxShadow: '0 8px 40px rgba(234,88,12,0.2)' }}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 shrink-0">
+          <div className="flex items-center justify-between px-4 py-3 bg-orange-600 shrink-0">
             <div className="flex items-center gap-3">
               {screen !== 'home' && (
                 <button
@@ -195,7 +195,7 @@ export function SupportChat() {
                       <button
                         key={item.q}
                         onClick={() => openFaq(item)}
-                        className="w-full text-left text-sm px-3 py-2.5 rounded-lg border border-border bg-background hover:bg-accent hover:border-indigo-500/30 transition-colors"
+                        className="w-full text-left text-sm px-3 py-2.5 rounded-lg border border-border bg-background hover:bg-accent hover:border-orange-300 dark:border-orange-900/50 transition-colors"
                       >
                         {item.q}
                       </button>
@@ -209,7 +209,7 @@ export function SupportChat() {
                   </p>
                   <button
                     onClick={() => setScreen('contact-info')}
-                    className="w-full text-sm font-medium px-3 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors"
+                    className="w-full text-sm font-medium px-3 py-2.5 rounded-lg bg-orange-700 hover:bg-orange-600 text-white transition-colors"
                   >
                     Chat with us
                   </button>
@@ -221,7 +221,7 @@ export function SupportChat() {
             {screen === 'faq-answer' && activeFaq && (
               <div className="p-4 space-y-3">
                 <div className="rounded-xl bg-secondary/50 px-3 py-2.5">
-                  <p className="text-xs font-semibold text-indigo-400 mb-1">Your question</p>
+                  <p className="text-xs font-semibold text-orange-500 mb-1">Your question</p>
                   <p className="text-sm font-medium text-foreground">{activeFaq.q}</p>
                 </div>
                 <div className="rounded-xl border border-border px-3 py-2.5">
@@ -232,7 +232,7 @@ export function SupportChat() {
                   <p className="text-xs text-muted-foreground mb-2">Still have questions?</p>
                   <button
                     onClick={() => setScreen('contact-info')}
-                    className="w-full text-sm font-medium px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors"
+                    className="w-full text-sm font-medium px-3 py-2 rounded-lg bg-orange-700 hover:bg-orange-600 text-white transition-colors"
                   >
                     Chat with us
                   </button>
@@ -259,7 +259,7 @@ export function SupportChat() {
                       value={contact.name}
                       onChange={(e) => setContact((c) => ({ ...c, name: e.target.value }))}
                       placeholder="John Smith"
-                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-colors"
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-colors"
                     />
                     {contactErrors.name && (
                       <p className="text-xs text-red-400 mt-1">{contactErrors.name}</p>
@@ -274,7 +274,7 @@ export function SupportChat() {
                       value={contact.email}
                       onChange={(e) => setContact((c) => ({ ...c, email: e.target.value }))}
                       placeholder="you@example.com"
-                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-colors"
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-colors"
                     />
                     {contactErrors.email && (
                       <p className="text-xs text-red-400 mt-1">{contactErrors.email}</p>
@@ -289,7 +289,7 @@ export function SupportChat() {
                       value={contact.phone}
                       onChange={(e) => setContact((c) => ({ ...c, phone: e.target.value }))}
                       placeholder="+1 (555) 000-0000"
-                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-colors"
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-colors"
                     />
                     {contactErrors.phone && (
                       <p className="text-xs text-red-400 mt-1">{contactErrors.phone}</p>
@@ -297,7 +297,7 @@ export function SupportChat() {
                   </div>
                   <button
                     onClick={handleContactNext}
-                    className="w-full text-sm font-medium px-3 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors mt-1"
+                    className="w-full text-sm font-medium px-3 py-2.5 rounded-lg bg-orange-700 hover:bg-orange-600 text-white transition-colors mt-1"
                   >
                     Continue →
                   </button>
@@ -320,13 +320,13 @@ export function SupportChat() {
                     onChange={(e) => setMessage(e.target.value)}
                     placeholder="Describe your question or issue..."
                     rows={5}
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-colors resize-none"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-colors resize-none"
                   />
                 </div>
                 <button
                   onClick={handleSend}
                   disabled={sending || !message.trim()}
-                  className="w-full flex items-center justify-center gap-2 text-sm font-medium px-3 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-colors"
+                  className="w-full flex items-center justify-center gap-2 text-sm font-medium px-3 py-2.5 rounded-lg bg-orange-700 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-colors"
                 >
                   {sending ? (
                     <><Loader2 className="h-4 w-4 animate-spin" /> Sending…</>
@@ -350,7 +350,7 @@ export function SupportChat() {
                 </p>
                 <button
                   onClick={reset}
-                  className="mt-2 text-sm text-indigo-400 hover:text-indigo-300 transition-colors underline"
+                  className="mt-2 text-sm text-orange-500 hover:text-orange-500 transition-colors underline"
                 >
                   Back to FAQ
                 </button>
@@ -364,8 +364,8 @@ export function SupportChat() {
       <button
         onClick={toggleOpen}
         aria-label={open ? 'Close support chat' : 'Open support chat'}
-        className="h-14 w-14 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 shadow-lg hover:shadow-indigo-500/40 hover:scale-105 active:scale-95 transition-all duration-200 flex items-center justify-center"
-        style={{ boxShadow: '0 4px 24px rgba(99,102,241,0.4)' }}
+        className="h-14 w-14 rounded-full bg-orange-600 shadow-lg hover:shadow-orange-500/40 hover:scale-105 active:scale-95 transition-all duration-200 flex items-center justify-center"
+        style={{ boxShadow: '0 4px 24px rgba(234,88,12,0.4)' }}
       >
         {open ? (
           <X className="h-5 w-5 text-white" />

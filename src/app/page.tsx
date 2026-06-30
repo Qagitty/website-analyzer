@@ -17,9 +17,8 @@ const PLANS = [
     price: '$0',
     period: 'forever free',
     description: 'Try the product. No credit card required.',
-    color: 'border-border',
+    featured: false,
     badge: null,
-    buttonClass: 'border border-border hover:bg-accent',
     buttonText: 'Get started free',
     features: [
       '3 audits/month',
@@ -35,12 +34,8 @@ const PLANS = [
     price: '$29',
     period: '/mo',
     description: 'For freelancers and small business owners.',
-    color: 'border-indigo-500/40',
-    glow: '0 0 40px rgba(99,102,241,0.15)',
-    badge: { text: 'Most popular', class: 'bg-gradient-to-r from-indigo-500 to-violet-500 text-white' },
-    labelColor: 'text-indigo-300',
-    checkColor: 'text-indigo-400',
-    buttonClass: 'bg-gradient-to-r from-indigo-500 to-violet-500 text-white hover:from-indigo-400 hover:to-violet-400',
+    featured: true,
+    badge: 'Most popular',
     buttonText: 'Start Pro',
     features: [
       '100 audits/month',
@@ -61,11 +56,8 @@ const PLANS = [
     price: '$99',
     period: '/mo',
     description: 'For web studios and small agencies.',
-    color: 'border-border',
+    featured: false,
     badge: null,
-    labelColor: 'text-violet-400',
-    checkColor: 'text-violet-400',
-    buttonClass: 'border border-border hover:bg-accent',
     buttonText: 'Start Agency',
     features: [
       'Unlimited audits (fair use)',
@@ -86,12 +78,8 @@ const PLANS = [
     price: '$249',
     period: '/mo',
     description: 'For businesses that need accessibility compliance tracking.',
-    color: 'border-emerald-500/30',
-    glow: '0 0 30px rgba(5,150,105,0.1)',
-    badge: { text: 'EAA ready', class: 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white' },
-    labelColor: 'text-emerald-400',
-    checkColor: 'text-emerald-400',
-    buttonClass: 'border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10',
+    featured: false,
+    badge: 'EAA ready',
     buttonText: 'Start Compliance',
     features: [
       'Unlimited audits (fair use)',
@@ -111,7 +99,6 @@ const AUDIENCES = [
   {
     icon: Building2,
     label: 'Small Business',
-    color: 'indigo',
     headline: 'Find what is hurting your website before your customers do.',
     points: [
       'Improve page speed and reduce bounce rate',
@@ -126,7 +113,6 @@ const AUDIENCES = [
   {
     icon: Users,
     label: 'Agencies',
-    color: 'violet',
     headline: 'Generate client-ready website audit reports in minutes.',
     points: [
       'White-label PDF reports with your agency branding',
@@ -141,7 +127,6 @@ const AUDIENCES = [
   {
     icon: Code2,
     label: 'Developers',
-    color: 'violet',
     headline: 'Turn vague website issues into clear technical tasks.',
     points: [
       'Console errors with root-cause analysis',
@@ -165,13 +150,13 @@ export default function LandingPage() {
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
 
       {/* ── Nav ─────────────────────────────────────────────────────── */}
-      <nav className="fixed top-0 w-full z-50 border-b border-border bg-background/80 backdrop-blur-xl">
+      <nav className="fixed top-0 w-full z-50 border-b border-border bg-background/95 backdrop-blur-sm">
         <div className="max-w-6xl mx-auto px-4 h-14 relative flex items-center justify-between">
           <div className="flex items-center gap-2 z-10">
-            <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center">
+            <div className="h-7 w-7 rounded bg-orange-600 flex items-center justify-center">
               <Zap className="h-4 w-4 text-white" />
             </div>
-            <span className="font-bold text-base">WebAnalyzer</span>
+            <span className="font-bold text-base tracking-tight">WebAnalyzer</span>
           </div>
           <div className="hidden md:flex items-center gap-6 text-sm text-muted-foreground absolute left-1/2 -translate-x-1/2">
             <a href="#features" className="hover:text-foreground transition-colors">Features</a>
@@ -182,8 +167,16 @@ export default function LandingPage() {
           </div>
           <div className="flex items-center gap-3 z-10">
             <ThemeToggle />
-            <button onClick={() => setModal({ open: true, tab: 'signin' })} className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:block">Sign in</button>
-            <button onClick={openSignup} className="rounded-lg bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-1.5 text-sm font-medium text-white hover:from-indigo-400 hover:to-violet-400 transition-all">
+            <button
+              onClick={() => setModal({ open: true, tab: 'signin' })}
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:block"
+            >
+              Sign in
+            </button>
+            <button
+              onClick={openSignup}
+              className="rounded bg-orange-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-orange-500 transition-colors"
+            >
               Get started free
             </button>
           </div>
@@ -191,20 +184,16 @@ export default function LandingPage() {
       </nav>
 
       {/* ── Hero ────────────────────────────────────────────────────── */}
-      <section className="relative pt-32 pb-20 px-4 bg-grid">
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-[700px] h-[400px] bg-indigo-600/10 rounded-full blur-[120px]" />
-        </div>
-
-        <div className="relative max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4 py-1.5 text-xs font-medium text-indigo-300 mb-8">
-            <span className="h-1.5 w-1.5 rounded-full bg-indigo-400 animate-pulse" />
+      <section className="pt-32 pb-20 px-4">
+        <div className="max-w-4xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 rounded border border-orange-200 bg-orange-50 dark:border-orange-900/40 dark:bg-orange-950/30 px-3 py-1 text-xs font-medium text-orange-700 dark:text-orange-400 mb-8">
+            <span className="h-1.5 w-1.5 rounded-full bg-orange-500" />
             AI-powered website audits for SMBs &amp; agencies
           </div>
 
-          <h1 className="text-5xl md:text-7xl font-bold tracking-tight leading-[1.1] mb-6">
+          <h1 className="font-serif text-5xl md:text-7xl font-bold tracking-tight leading-[1.1] mb-6">
             Website audits your clients{' '}
-            <span className="bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">
+            <span className="text-orange-600 dark:text-orange-400">
               actually understand.
             </span>
           </h1>
@@ -218,18 +207,17 @@ export default function LandingPage() {
           </p>
 
           {/* CTAs */}
-          <div className="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto mb-4">
+          <div className="flex flex-col sm:flex-row gap-2 max-w-lg mx-auto mb-4">
             <input
               type="url"
               value={url}
               onChange={e => setUrl(e.target.value)}
               placeholder="https://yoursite.com"
-              className="flex-1 rounded-xl border border-indigo-500/20 bg-card px-4 py-3 text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+              className="flex-1 rounded border border-border bg-background px-4 py-3 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-400 transition-all"
             />
             <button
               onClick={openSignup}
-              className="rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-6 py-3 text-sm font-semibold text-white hover:from-indigo-400 hover:to-violet-400 transition-all whitespace-nowrap flex items-center gap-2 justify-center"
-              style={{ boxShadow: '0 0 24px rgba(99,102,241,0.3)' }}
+              className="rounded bg-orange-600 px-6 py-3 text-sm font-semibold text-white hover:bg-orange-500 transition-colors whitespace-nowrap flex items-center gap-2 justify-center"
             >
               Run free audit <ArrowRight className="h-4 w-4" />
             </button>
@@ -240,82 +228,80 @@ export default function LandingPage() {
             <span>·</span>
             <span>3 free audits/month</span>
             <span>·</span>
-            <Link href="/sample-report" className="text-indigo-400 hover:text-indigo-300 transition-colors underline underline-offset-4">
+            <Link href="/sample-report" className="text-orange-600 dark:text-orange-400 hover:underline underline-offset-4">
               View sample report →
             </Link>
           </div>
         </div>
 
         {/* Score preview card */}
-        <div className="relative max-w-3xl mx-auto mt-16">
-          <div className="rounded-2xl border border-indigo-500/20 bg-card p-6 shadow-2xl" style={{ boxShadow: '0 0 60px rgba(99,102,241,0.1)' }}>
-            <div className="flex items-center gap-2 mb-6">
-              <div className="h-2.5 w-2.5 rounded-full bg-red-500/70" />
-              <div className="h-2.5 w-2.5 rounded-full bg-amber-500/70" />
-              <div className="h-2.5 w-2.5 rounded-full bg-emerald-500/70" />
-              <span className="ml-2 text-xs text-muted-foreground/60 font-mono">example.com — analysis complete · 28s</span>
+        <div className="max-w-3xl mx-auto mt-16">
+          <div className="rounded border border-border bg-card p-6 shadow-sm">
+            <div className="flex items-center gap-2 mb-6 pb-4 border-b border-border">
+              <div className="h-2.5 w-2.5 rounded-full bg-red-400" />
+              <div className="h-2.5 w-2.5 rounded-full bg-amber-400" />
+              <div className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
+              <span className="ml-2 text-xs text-muted-foreground font-mono">example.com — analysis complete · 28s</span>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
               {[
-                { label: 'Performance', score: 87, color: 'text-emerald-400' },
-                { label: 'Accessibility', score: 92, color: 'text-emerald-400' },
-                { label: 'SEO', score: 78, color: 'text-amber-400' },
-                { label: 'AI-Readiness', score: 63, color: 'text-amber-400' },
-              ].map(({ label, score, color }) => (
-                <div key={label} className="rounded-xl border border-border bg-background p-4 text-center">
-                  <div className={`text-4xl font-bold tabular-nums ${color}`}>{score}</div>
+                { label: 'Performance', score: 87, cls: 'text-emerald-600 dark:text-emerald-400' },
+                { label: 'Accessibility', score: 92, cls: 'text-emerald-600 dark:text-emerald-400' },
+                { label: 'SEO', score: 78, cls: 'text-amber-600 dark:text-amber-400' },
+                { label: 'AI-Readiness', score: 63, cls: 'text-amber-600 dark:text-amber-400' },
+              ].map(({ label, score, cls }) => (
+                <div key={label} className="rounded border border-border bg-background p-4 text-center">
+                  <div className={`text-4xl font-bold tabular-nums ${cls}`}>{score}</div>
                   <div className="text-xs text-muted-foreground mt-1">{label}</div>
                 </div>
               ))}
             </div>
-            {/* Fix roadmap preview */}
-            <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3">
-              <p className="text-xs font-medium text-amber-400 mb-2">Top priority fix</p>
+            <div className="rounded border border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-950/20 p-3">
+              <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-1.5">Top priority fix</p>
               <p className="text-sm font-medium">Hero image is slowing down page load</p>
               <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
-                <span className="rounded-full bg-red-500/20 text-red-400 px-2 py-0.5">High impact</span>
+                <span className="rounded bg-red-100 dark:bg-red-950/40 text-red-700 dark:text-red-400 px-2 py-0.5">High impact</span>
                 <span>Effort: Small</span>
                 <span>Owner: Developer</span>
               </div>
             </div>
           </div>
-          <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-3/4 h-8 bg-indigo-500/20 blur-2xl rounded-full" />
         </div>
       </section>
 
-      <div className="h-px bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent" />
+      <div className="divider" />
 
       {/* ── For Who ─────────────────────────────────────────────────── */}
       <section id="for-who" className="py-24 px-4">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <p className="text-xs font-semibold uppercase tracking-widest text-indigo-400 mb-3">Built for real people</p>
-            <h2 className="text-4xl font-bold mb-4">Who is it for?</h2>
+            <p className="text-xs font-semibold uppercase tracking-widest text-orange-600 dark:text-orange-400 mb-3">Built for real people</p>
+            <h2 className="font-serif text-4xl font-bold mb-4">Who is it for?</h2>
             <p className="text-muted-foreground max-w-xl mx-auto">Not a platform for enterprise SEO teams. Built for people who need clear answers, fast.</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
-            {AUDIENCES.map(({ icon: Icon, label, color, headline, points, cta, href }) => (
-              <div key={label} className={`rounded-2xl border border-${color}-500/20 bg-card p-7 flex flex-col hover:border-${color}-500/40 transition-colors`}>
-                <div className={`h-10 w-10 rounded-xl bg-${color}-500/10 border border-${color}-500/20 flex items-center justify-center mb-5`}>
-                  <Icon className={`h-5 w-5 text-${color}-400`} />
+          <div className="grid md:grid-cols-3 gap-5">
+            {AUDIENCES.map(({ icon: Icon, label, headline, points, cta, href }) => (
+              <div key={label} className="rounded border border-border bg-card p-7 flex flex-col hover:border-orange-300 dark:hover:border-orange-800 transition-colors">
+                <div className="h-9 w-9 rounded bg-orange-100 dark:bg-orange-950/40 flex items-center justify-center mb-5">
+                  <Icon className="h-5 w-5 text-orange-600 dark:text-orange-400" />
                 </div>
-                <p className={`text-xs font-semibold uppercase tracking-widest text-${color}-400 mb-2`}>{label}</p>
-                <h3 className="text-lg font-bold mb-4 leading-snug">{headline}</h3>
+                <p className="text-xs font-semibold uppercase tracking-widest text-orange-600 dark:text-orange-400 mb-2">{label}</p>
+                <h3 className="font-serif text-lg font-bold mb-4 leading-snug">{headline}</h3>
                 <ul className="space-y-2.5 text-sm text-muted-foreground flex-1 mb-6">
                   {points.map(p => (
                     <li key={p} className="flex items-start gap-2">
-                      <CheckCircle2 className={`h-3.5 w-3.5 text-${color}-400 shrink-0 mt-0.5`} />
+                      <CheckCircle2 className="h-3.5 w-3.5 text-orange-500 shrink-0 mt-0.5" />
                       {p}
                     </li>
                   ))}
                 </ul>
                 {href === '/sample-report' ? (
-                  <Link href={href} className={`flex items-center gap-2 text-sm font-semibold text-${color}-400 hover:text-${color}-300 transition-colors`}>
+                  <Link href={href} className="flex items-center gap-2 text-sm font-semibold text-orange-600 dark:text-orange-400 hover:text-orange-500 transition-colors">
                     {cta} <ArrowRight className="h-4 w-4" />
                   </Link>
                 ) : (
-                  <button onClick={openSignup} className={`flex items-center gap-2 text-sm font-semibold text-${color}-400 hover:text-${color}-300 transition-colors`}>
+                  <button onClick={openSignup} className="flex items-center gap-2 text-sm font-semibold text-orange-600 dark:text-orange-400 hover:text-orange-500 transition-colors">
                     {cta} <ArrowRight className="h-4 w-4" />
                   </button>
                 )}
@@ -325,18 +311,18 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <div className="h-px bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent" />
+      <div className="divider" />
 
       {/* ── Features ────────────────────────────────────────────────── */}
       <section id="features" className="py-24 px-4">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <p className="text-xs font-semibold uppercase tracking-widest text-indigo-400 mb-3">What you get</p>
-            <h2 className="text-4xl font-bold mb-4">Not just a score. A full action plan.</h2>
+            <p className="text-xs font-semibold uppercase tracking-widest text-orange-600 dark:text-orange-400 mb-3">What you get</p>
+            <h2 className="font-serif text-4xl font-bold mb-4">Not just a score. A full action plan.</h2>
             <p className="text-muted-foreground max-w-xl mx-auto">Seven analysis engines. One clear report. Prioritized fixes your team can act on.</p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[
               { icon: Zap, title: 'Performance audit', desc: 'TTFB, LCP, CLS with 3× median sampling. Specific fixes for render-blocking resources, image compression, and server response.' },
               { icon: Shield, title: 'Accessibility & WCAG', desc: 'Automated WCAG 2.1 AA checks with plain-English explanations, affected users, and copy-paste code fixes.' },
@@ -348,9 +334,9 @@ export default function LandingPage() {
               { icon: Bell, title: 'Monitoring & alerts', desc: 'Recurring checks with email alerts when scores drop. Know before your users complain.' },
               { icon: CheckCircle2, title: 'Client-ready PDFs', desc: 'Export clean branded PDF reports. White-label with your agency name and colors on Agency plan.' },
             ].map(({ icon: Icon, title, desc }) => (
-              <div key={title} className="rounded-xl border border-border bg-card p-5 hover:border-indigo-500/30 transition-colors group">
-                <div className="h-9 w-9 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-4 group-hover:bg-indigo-500/20 transition-colors">
-                  <Icon className="h-5 w-5 text-indigo-400" />
+              <div key={title} className="rounded border border-border bg-card p-5 hover:border-orange-300 dark:hover:border-orange-800 transition-colors group">
+                <div className="h-9 w-9 rounded bg-orange-100 dark:bg-orange-950/40 flex items-center justify-center mb-4 group-hover:bg-orange-200 dark:group-hover:bg-orange-950/60 transition-colors">
+                  <Icon className="h-5 w-5 text-orange-600 dark:text-orange-400" />
                 </div>
                 <h3 className="font-semibold mb-1.5">{title}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">{desc}</p>
@@ -360,25 +346,25 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <div className="h-px bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent" />
+      <div className="divider" />
 
       {/* ── Sample report CTA ────────────────────────────────────────── */}
       <section className="py-16 px-4">
-        <div className="max-w-3xl mx-auto rounded-2xl border border-indigo-500/20 bg-card p-10 text-center" style={{ boxShadow: '0 0 40px rgba(99,102,241,0.08)' }}>
-          <p className="text-xs font-semibold uppercase tracking-widest text-indigo-400 mb-3">See it before you sign up</p>
-          <h2 className="text-3xl font-bold mb-3">What does a report look like?</h2>
+        <div className="max-w-3xl mx-auto rounded border border-border bg-card p-10 text-center">
+          <p className="text-xs font-semibold uppercase tracking-widest text-orange-600 dark:text-orange-400 mb-3">See it before you sign up</p>
+          <h2 className="font-serif text-3xl font-bold mb-3">What does a report look like?</h2>
           <p className="text-muted-foreground mb-8 max-w-xl mx-auto">Browse a real sample report — scores, fix roadmap, AI recommendations, and PDF preview — before creating an account.</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link
               href="/sample-report"
-              className="inline-flex items-center gap-2 rounded-xl border border-indigo-500/30 px-6 py-3 text-sm font-semibold text-indigo-400 hover:bg-indigo-500/10 transition-colors"
+              className="inline-flex items-center gap-2 rounded border border-border px-6 py-3 text-sm font-semibold hover:bg-accent transition-colors"
             >
               <FileText className="h-4 w-4" />
               View sample report
             </Link>
             <button
               onClick={openSignup}
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-6 py-3 text-sm font-semibold text-white hover:from-indigo-400 hover:to-violet-400 transition-all"
+              className="inline-flex items-center gap-2 rounded bg-orange-600 px-6 py-3 text-sm font-semibold text-white hover:bg-orange-500 transition-colors"
             >
               Run audit on my site <ArrowRight className="h-4 w-4" />
             </button>
@@ -386,61 +372,74 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <div className="h-px bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent" />
+      <div className="divider" />
 
       {/* ── Pricing ─────────────────────────────────────────────────── */}
       <section id="pricing" className="py-24 px-4">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <p className="text-xs font-semibold uppercase tracking-widest text-indigo-400 mb-3">Pricing</p>
-            <h2 className="text-4xl font-bold mb-4">Start free. Scale as you grow.</h2>
+            <p className="text-xs font-semibold uppercase tracking-widest text-orange-600 dark:text-orange-400 mb-3">Pricing</p>
+            <h2 className="font-serif text-4xl font-bold mb-4">Start free. Scale as you grow.</h2>
             <p className="text-muted-foreground">No credit card required to get started.</p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5 mt-5">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mt-5">
             {PLANS.map((plan) => (
               <div
                 key={plan.name}
-                className={`rounded-2xl border ${plan.color} bg-card p-6 flex flex-col relative`}
-                style={plan.glow ? { boxShadow: plan.glow } : undefined}
+                className={`rounded border bg-card p-6 flex flex-col relative ${
+                  plan.featured
+                    ? 'border-orange-400 dark:border-orange-600'
+                    : 'border-border'
+                }`}
               >
                 {plan.badge && (
-                  <span className={`absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full px-4 py-1 text-xs font-semibold whitespace-nowrap ${plan.badge.class}`}>
-                    {plan.badge.text}
+                  <span className={`absolute -top-3 left-1/2 -translate-x-1/2 rounded px-3 py-0.5 text-xs font-semibold whitespace-nowrap ${
+                    plan.featured
+                      ? 'bg-orange-600 text-white'
+                      : 'bg-foreground text-background'
+                  }`}>
+                    {plan.badge}
                   </span>
                 )}
                 <div className={`${plan.badge ? 'mt-2' : ''} mb-5`}>
-                  <p className={`text-sm font-medium mb-1 ${plan.labelColor ?? 'text-muted-foreground'}`}>{plan.name}</p>
+                  <p className={`text-sm font-semibold mb-1 ${plan.featured ? 'text-orange-600 dark:text-orange-400' : 'text-muted-foreground'}`}>
+                    {plan.name}
+                  </p>
                   <div className="flex items-end gap-1">
                     <span className="text-4xl font-bold">{plan.price}</span>
                     {plan.period !== 'forever free' && (
                       <span className="text-muted-foreground mb-1.5">{plan.period}</span>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground/60 mt-1">{plan.period === 'forever free' ? 'Forever free' : 'Billed monthly'}</p>
+                  <p className="text-xs text-muted-foreground/60 mt-1">
+                    {plan.period === 'forever free' ? 'Forever free' : 'Billed monthly'}
+                  </p>
                   <p className="text-xs text-muted-foreground mt-2">{plan.description}</p>
                 </div>
 
                 <ul className="space-y-2 text-sm mb-4 flex-1">
                   {plan.features.map(f => (
                     <li key={f} className="flex items-start gap-2 text-muted-foreground">
-                      <CheckCircle2 className={`h-3.5 w-3.5 shrink-0 mt-0.5 ${plan.checkColor ?? 'text-emerald-500'}`} />
+                      <CheckCircle2 className="h-3.5 w-3.5 shrink-0 mt-0.5 text-emerald-500" />
                       {f}
                     </li>
                   ))}
-                  {plan.locked && plan.locked.length > 0 && (
-                    plan.locked.map(f => (
-                      <li key={f} className="flex items-start gap-2 text-muted-foreground/40">
-                        <X className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                        {f}
-                      </li>
-                    ))
-                  )}
+                  {plan.locked.map(f => (
+                    <li key={f} className="flex items-start gap-2 text-muted-foreground/40">
+                      <X className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                      {f}
+                    </li>
+                  ))}
                 </ul>
 
                 <button
                   onClick={openSignup}
-                  className={`w-full rounded-xl px-4 py-2.5 text-sm font-semibold transition-all mt-auto ${plan.buttonClass}`}
+                  className={`w-full rounded px-4 py-2.5 text-sm font-semibold transition-colors mt-auto ${
+                    plan.featured
+                      ? 'bg-orange-600 text-white hover:bg-orange-500'
+                      : 'border border-border hover:bg-accent'
+                  }`}
                 >
                   {plan.buttonText}
                 </button>
@@ -454,35 +453,26 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <div className="h-px bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent" />
+      <div className="divider" />
 
       {/* ── Final CTA ───────────────────────────────────────────────── */}
       <section className="py-24 px-4 text-center">
         <div className="max-w-2xl mx-auto">
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-80 h-40 bg-indigo-600/15 rounded-full blur-[80px]" />
-            </div>
-            <h2 className="relative text-4xl md:text-5xl font-bold mb-5">
-              Ready to see your{' '}
-              <span className="bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">
-                real score?
-              </span>
-            </h2>
-          </div>
+          <h2 className="font-serif text-4xl md:text-5xl font-bold mb-5">
+            Ready to see your real score?
+          </h2>
           <p className="text-muted-foreground mb-3">Start free. Your first report takes under 30 seconds.</p>
           <p className="text-sm text-muted-foreground/60 mb-8">No credit card · 3 free audits/month · Cancel anytime</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <button
               onClick={openSignup}
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-8 py-3.5 text-base font-semibold text-white hover:from-indigo-400 hover:to-violet-400 transition-all"
-              style={{ boxShadow: '0 0 32px rgba(99,102,241,0.35)' }}
+              className="inline-flex items-center gap-2 rounded bg-orange-600 px-8 py-3.5 text-base font-semibold text-white hover:bg-orange-500 transition-colors"
             >
               Run a free audit <ArrowRight className="h-4 w-4" />
             </button>
             <Link
               href="/sample-report"
-              className="inline-flex items-center gap-2 rounded-xl border border-border px-8 py-3.5 text-base font-medium hover:bg-accent transition-colors"
+              className="inline-flex items-center gap-2 rounded border border-border px-8 py-3.5 text-base font-medium hover:bg-accent transition-colors"
             >
               <FileText className="h-4 w-4" />
               View sample report
@@ -502,10 +492,10 @@ export default function LandingPage() {
       <footer className="border-t border-border py-10">
         <div className="max-w-6xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground/60">
           <div className="flex items-center gap-2">
-            <div className="h-5 w-5 rounded bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center">
+            <div className="h-5 w-5 rounded bg-orange-600 flex items-center justify-center">
               <Zap className="h-3 w-3 text-white" />
             </div>
-            <span>WebAnalyzer</span>
+            <span className="font-semibold text-foreground">WebAnalyzer</span>
           </div>
           <div className="flex flex-wrap items-center gap-4 md:gap-6">
             <Link href="/pricing" className="hover:text-muted-foreground transition-colors">Pricing</Link>

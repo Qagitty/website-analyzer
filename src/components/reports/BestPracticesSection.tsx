@@ -236,8 +236,8 @@ function FindingCard({ finding }: { finding: BestPracticeFinding }) {
           )}
 
           {finding.recommendation && (
-            <div className="rounded-md bg-indigo-500/5 border border-indigo-500/15 px-3 py-2">
-              <p className="text-xs font-medium text-indigo-300 mb-1">Recommendation</p>
+            <div className="rounded-md bg-orange-600/5 border border-orange-500/15 px-3 py-2">
+              <p className="text-xs font-medium text-orange-400 mb-1">Recommendation</p>
               <p className="text-sm text-foreground">{finding.recommendation}</p>
               {!finding.safeToApplyDirectly && (
                 <p className="text-xs text-amber-400 flex items-center gap-1 mt-2">
@@ -265,7 +265,7 @@ function FindingCard({ finding }: { finding: BestPracticeFinding }) {
               <ol className="space-y-1">
                 {finding.verificationSteps.map((s, i) => (
                   <li key={i} className="text-xs text-muted-foreground flex gap-2">
-                    <span className="text-indigo-400 font-mono shrink-0">{i + 1}.</span>
+                    <span className="text-orange-500 font-mono shrink-0">{i + 1}.</span>
                     {s}
                   </li>
                 ))}
@@ -394,7 +394,7 @@ export function BestPracticesSection({ bestPracticesAudit, legacyScore, legacyCh
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <CardTitle className="text-base flex items-center gap-2">
-              <Shield className="h-4 w-4 text-indigo-400" />
+              <Shield className="h-4 w-4 text-orange-500" />
               Security Headers
               <span className={`text-sm font-semibold ${headersPresent >= 5 ? 'text-emerald-400' : headersPresent >= 3 ? 'text-amber-400' : 'text-red-400'}`}>
                 {headersPresent}/{securityHeaders.length} present
@@ -482,7 +482,7 @@ export function BestPracticesSection({ bestPracticesAudit, legacyScore, legacyCh
             onClick={() => setActiveFilter(f.key)}
             className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
               activeFilter === f.key
-                ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
+                ? 'bg-orange-100 dark:bg-orange-950/40 text-orange-400 border-orange-300 dark:border-orange-900/50'
                 : 'bg-secondary text-muted-foreground border-border hover:border-muted-foreground'
             }`}
           >

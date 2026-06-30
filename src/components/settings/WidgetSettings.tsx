@@ -151,7 +151,7 @@ export function WidgetSettings({
           </div>
           <a
             href="/settings"
-            className="inline-block mt-2 px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-500 to-violet-500 text-white text-sm font-medium hover:opacity-90 transition-opacity"
+            className="inline-block mt-2 px-4 py-2 rounded-lg bg-orange-600 text-white text-sm font-medium hover:opacity-90 transition-opacity"
           >
             Upgrade to Agency →
           </a>
@@ -196,7 +196,7 @@ export function WidgetSettings({
                 href={hostedUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-indigo-400 hover:text-indigo-300 transition-colors shrink-0"
+                className="text-orange-500 hover:text-orange-500 transition-colors shrink-0"
                 title="Open hosted widget"
               >
                 <ExternalLink className="h-3.5 w-3.5" />
@@ -258,7 +258,7 @@ export function WidgetSettings({
                   type="checkbox"
                   checked={showEmail}
                   onChange={(e) => setShowEmail(e.target.checked)}
-                  className="h-4 w-4 cursor-pointer rounded accent-indigo-500"
+                  className="h-4 w-4 cursor-pointer rounded accent-orange-500"
                 />
                 <Label htmlFor="wa-show-email" className="cursor-pointer font-normal">
                   Ask for contact email
@@ -271,7 +271,7 @@ export function WidgetSettings({
         <Button
           onClick={handleSave}
           disabled={saving}
-          className="bg-gradient-to-r from-indigo-500 to-violet-500 text-white hover:from-indigo-400 hover:to-violet-400"
+          className="bg-orange-600 text-white hover:from-orange-400 hover:to-orange-400"
         >
           {saving ? 'Saving…' : 'Save Widget Settings'}
         </Button>

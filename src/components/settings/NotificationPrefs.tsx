@@ -54,8 +54,8 @@ export function NotificationPrefs({ initial }: Props) {
             role="switch"
             aria-checked={prefs[key]}
             onClick={() => toggle(key)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 ${
-              prefs[key] ? 'bg-indigo-500' : 'bg-secondary'
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/50 ${
+              prefs[key] ? 'bg-orange-600' : 'bg-secondary'
             }`}
           >
             <span
@@ -69,7 +69,7 @@ export function NotificationPrefs({ initial }: Props) {
       <Button
         onClick={save}
         disabled={loading}
-        className="w-full bg-gradient-to-r from-indigo-500 to-violet-500 text-white hover:from-indigo-400 hover:to-violet-400"
+        className="w-full bg-orange-600 text-white hover:from-orange-400 hover:to-orange-400"
       >
         {loading ? 'Saving…' : 'Save preferences'}
       </Button>

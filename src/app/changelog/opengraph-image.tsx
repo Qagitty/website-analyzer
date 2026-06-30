@@ -30,8 +30,8 @@ export default function ChangelogOgImage() {
         }}
       >
         {/* Grid */}
-        <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(99,102,241,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,0.05) 1px, transparent 1px)', backgroundSize: '48px 48px' }} />
-        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 600, height: 300, background: 'radial-gradient(ellipse at center, rgba(99,102,241,0.12) 0%, transparent 70%)' }} />
+        <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(234,88,12,0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(234,88,12,0.2) 1px, transparent 1px)', backgroundSize: '48px 48px' }} />
+        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 600, height: 300, background: 'radial-gradient(ellipse at center, rgba(234,88,12,0.2) 0%, transparent 70%)' }} />
 
         {/* Logo + label */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
@@ -41,7 +41,7 @@ export default function ChangelogOgImage() {
             </svg>
           </div>
           <span style={{ fontSize: 18, fontWeight: 700, color: '#ffffff' }}>WebAnalyzer</span>
-          <span style={{ fontSize: 14, color: '#6366f1', background: 'rgba(99,102,241,0.15)', padding: '3px 10px', borderRadius: 100, border: '1px solid rgba(99,102,241,0.3)' }}>Changelog</span>
+          <span style={{ fontSize: 14, color: '#6366f1', background: 'rgba(234,88,12,0.2)', padding: '3px 10px', borderRadius: 100, border: '1px solid rgba(234,88,12,0.3)' }}>Changelog</span>
         </div>
 
         <div style={{ fontSize: 48, fontWeight: 800, color: '#ffffff', marginBottom: 40, letterSpacing: '-0.03em', textAlign: 'center' }}>
@@ -52,7 +52,7 @@ export default function ChangelogOgImage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%', maxWidth: 700 }}>
           {RELEASES.map(({ version, title }, i) => (
             <div key={version} style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '14px 20px', opacity: 1 - i * 0.15 }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#6366f1', background: 'rgba(99,102,241,0.15)', padding: '3px 10px', borderRadius: 6, minWidth: 36, textAlign: 'center' }}>v{version}</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#6366f1', background: 'rgba(234,88,12,0.2)', padding: '3px 10px', borderRadius: 6, minWidth: 36, textAlign: 'center' }}>v{version}</span>
               <span style={{ fontSize: 16, color: '#e2e8f0', fontWeight: 500 }}>{title}</span>
             </div>
           ))}

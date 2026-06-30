@@ -23,7 +23,7 @@ export function Sidebar() {
     <aside className="hidden md:flex w-56 shrink-0 border-r border-border bg-background flex-col">
       <div className="h-14 flex items-center px-4 border-b border-border shrink-0">
         <Link href="/dashboard" className="flex items-center gap-2 font-bold text-base text-foreground">
-          <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center shrink-0">
+          <div className="h-7 w-7 rounded bg-orange-600 flex items-center justify-center shrink-0">
             <Zap className="h-4 w-4 text-white" />
           </div>
           WebAnalyzer
@@ -39,7 +39,7 @@ export function Sidebar() {
               className={cn(
                 'flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors',
                 ((item as any).exact ? pathname === item.href : pathname.startsWith(item.href))
-                  ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 border-l-2 border-indigo-500 pl-[10px]'
+                  ? 'bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-400 border-l-2 border-orange-500 pl-[10px]'
                   : 'text-muted-foreground hover:bg-accent hover:text-foreground'
               )}
             >
@@ -53,7 +53,7 @@ export function Sidebar() {
           className={cn(
             'flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors',
             pathname.startsWith('/docs')
-              ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 border-l-2 border-indigo-500 pl-[10px]'
+              ? 'bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-400 border-l-2 border-orange-500 pl-[10px]'
               : 'text-muted-foreground hover:bg-accent hover:text-foreground'
           )}
         >

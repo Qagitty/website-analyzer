@@ -195,8 +195,8 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
             onClick={toggleShare}
             disabled={loading}
             className={isPublic
-              ? 'gap-1.5 bg-gradient-to-r from-indigo-500 to-violet-500 text-white border-0 hover:from-indigo-400 hover:to-violet-400'
-              : 'gap-1.5 border-indigo-500/40 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-500/10'}
+              ? 'gap-1.5 bg-orange-600 text-white border-0 hover:from-orange-400 hover:to-orange-400'
+              : 'gap-1.5 border-orange-400 dark:border-orange-800 text-orange-700 dark:text-orange-400 hover:bg-orange-50 dark:bg-orange-950/30'}
           >
             {isPublic ? (
               <Link2 className="h-3.5 w-3.5" />
@@ -212,7 +212,7 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
               variant="outline"
               size="sm"
               onClick={copyLink}
-              className="gap-1.5 border-indigo-500/40 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-500/10"
+              className="gap-1.5 border-orange-400 dark:border-orange-800 text-orange-700 dark:text-orange-400 hover:bg-orange-50 dark:bg-orange-950/30"
             >
               {copied ? (
                 <><Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" /> Copied</>
@@ -242,7 +242,7 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
             size="sm"
             onClick={() => downloadExport('compliance-pdf')}
             disabled={downloading !== null}
-            className="gap-1.5 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10 hover:text-indigo-300"
+            className="gap-1.5 border-orange-300 dark:border-orange-900/50 text-orange-500 hover:bg-orange-50 dark:bg-orange-950/30 hover:text-orange-500"
           >
             {downloading === 'compliance-pdf'
               ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -275,7 +275,7 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
                     onClick={() => downloadExport(format)}
                     className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-secondary/60 transition-colors"
                   >
-                    <Icon className="h-4 w-4 text-indigo-400 shrink-0" />
+                    <Icon className="h-4 w-4 text-orange-500 shrink-0" />
                     <div>
                       <p className="text-sm font-medium text-foreground leading-none">{label}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
@@ -288,7 +288,7 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
 
           {/* Monitor this site */}
           {monitoringActive ? (
-            <Badge className="gap-1.5 px-2.5 py-1 text-xs bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+            <Badge className="gap-1.5 px-2.5 py-1 text-xs bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-500 border border-orange-200 dark:border-orange-900/40">
               <Activity className="h-3 w-3" />
               Monitoring active
             </Badge>
@@ -317,7 +317,7 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
                           onClick={() => setFrequency(f)}
                           className={`flex-1 px-3 py-1.5 capitalize transition-colors ${
                             frequency === f
-                              ? 'bg-gradient-to-r from-indigo-500 to-violet-500 text-white'
+                              ? 'bg-orange-600 text-white'
                               : 'bg-card hover:bg-accent text-muted-foreground'
                           }`}
                         >
@@ -334,7 +334,7 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
                       type="button"
                       onClick={() => setNotify((v) => !v)}
                       className={`flex items-center gap-1.5 w-full rounded-md border px-3 py-1.5 text-sm transition-colors ${
-                        notify ? 'border-indigo-500/50 text-indigo-300' : 'border-border text-muted-foreground/60'
+                        notify ? 'border-orange-500/50 text-orange-400' : 'border-border text-muted-foreground/60'
                       }`}
                     >
                       {notify ? <Bell className="h-3.5 w-3.5" /> : <BellOff className="h-3.5 w-3.5" />}
@@ -361,7 +361,7 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
                     onClick={createMonitor}
                     disabled={monitoring}
                     size="sm"
-                    className="w-full bg-gradient-to-r from-indigo-500 to-violet-500 text-white hover:from-indigo-400 hover:to-violet-400 border-0"
+                    className="w-full bg-orange-600 text-white hover:from-orange-400 hover:to-orange-400 border-0"
                   >
                     {monitoring ? 'Creating…' : 'Create monitor'}
                   </Button>
@@ -374,7 +374,7 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
 
       {/* Public badge */}
       {isPublic && (
-        <div className="flex items-center gap-2 rounded-md border border-indigo-500/20 bg-indigo-500/10 px-3 py-2 text-sm text-indigo-600 dark:text-indigo-300">
+        <div className="flex items-center gap-2 rounded-md border border-orange-200 dark:border-orange-900/40 bg-orange-50 dark:bg-orange-950/30 px-3 py-2 text-sm text-orange-700 dark:text-orange-400">
           <Link2 className="h-3.5 w-3.5 shrink-0" />
           <span>This report is public. </span>
           <a

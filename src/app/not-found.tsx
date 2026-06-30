@@ -10,7 +10,7 @@ export default function NotFound() {
       </div>
       <Button
         asChild
-        className="bg-gradient-to-r from-indigo-500 to-violet-500 text-white hover:opacity-90 border-0"
+        className="bg-orange-600 text-white hover:opacity-90 border-0"
       >
         <Link href="/">Go home</Link>
       </Button>

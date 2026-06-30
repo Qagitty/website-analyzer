@@ -27,7 +27,7 @@ export function CreditsDisplay({ credits }: CreditsDisplayProps) {
       {isEmpty && (
         <Link
           href="/settings"
-          className="mt-1 block text-center text-xs text-indigo-400 hover:text-indigo-300"
+          className="mt-1 block text-center text-xs text-orange-500 hover:text-orange-500"
         >
           Upgrade to get more
         </Link>

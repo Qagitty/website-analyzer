@@ -43,7 +43,7 @@ export default async function CompareAnalyzePage() {
           </p>
           <a
             href="/settings"
-            className="inline-block mt-2 px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-500 to-violet-500 text-white text-sm font-medium hover:from-indigo-400 hover:to-violet-400 transition-colors"
+            className="inline-block mt-2 px-4 py-2 rounded-lg bg-orange-600 text-white text-sm font-medium hover:from-orange-400 hover:to-orange-400 transition-colors"
           >
             Upgrade plan →
           </a>

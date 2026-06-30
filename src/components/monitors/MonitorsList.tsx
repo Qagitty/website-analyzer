@@ -98,7 +98,7 @@ function CreateMonitorForm({ onCreated }: { onCreated: (m: Monitor) => void }) {
                   onClick={() => setFrequency(f)}
                   className={`px-3 py-1.5 capitalize transition-colors ${
                     frequency === f
-                      ? 'bg-gradient-to-r from-indigo-500 to-violet-500 text-white'
+                      ? 'bg-orange-600 text-white'
                       : 'bg-card hover:bg-accent text-muted-foreground'
                   }`}
                 >
@@ -112,7 +112,7 @@ function CreateMonitorForm({ onCreated }: { onCreated: (m: Monitor) => void }) {
               type="button"
               onClick={() => setNotify((v) => !v)}
               className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-colors ${
-                notify ? 'border-indigo-500/50 text-indigo-300' : 'border-border text-muted-foreground/60'
+                notify ? 'border-orange-500/50 text-orange-400' : 'border-border text-muted-foreground/60'
               }`}
             >
               {notify ? <Bell className="h-3.5 w-3.5" /> : <BellOff className="h-3.5 w-3.5" />}
@@ -136,7 +136,7 @@ function CreateMonitorForm({ onCreated }: { onCreated: (m: Monitor) => void }) {
             )}
           </div>
 
-          <Button type="submit" disabled={loading} size="sm" className="bg-gradient-to-r from-indigo-500 to-violet-500 text-white hover:from-indigo-400 hover:to-violet-400 border-0">
+          <Button type="submit" disabled={loading} size="sm" className="bg-orange-600 text-white hover:from-orange-400 hover:to-orange-400 border-0">
             {loading ? 'Creating…' : 'Create monitor'}
           </Button>
         </form>
@@ -215,7 +215,7 @@ function HistoryPanel({ url }: { url: string }) {
                       )}
                       <a
                         href={`/reports/${e.id}`}
-                        className="text-xs text-indigo-400 hover:underline whitespace-nowrap"
+                        className="text-xs text-orange-500 hover:underline whitespace-nowrap"
                       >
                         View →
                       </a>
@@ -281,7 +281,7 @@ function MonitorCard({
   const scores = monitor.last_scores;
 
   return (
-    <div className="bg-card border border-border rounded-xl hover:border-indigo-500/20 transition-colors p-4 space-y-3">
+    <div className="bg-card border border-border rounded-xl hover:border-orange-200 dark:border-orange-900/40 transition-colors p-4 space-y-3">
         {/* URL + status — dimmed when paused, actions row stays at full opacity */}
         <div className={monitor.is_active ? '' : 'opacity-60'}>
         {/* URL + status */}

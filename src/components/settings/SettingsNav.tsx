@@ -26,7 +26,7 @@ export function SettingsNav() {
             className={cn(
               'shrink-0 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap',
               active
-                ? 'border-indigo-500 text-indigo-400'
+                ? 'border-orange-500 text-orange-500'
                 : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
             )}
           >

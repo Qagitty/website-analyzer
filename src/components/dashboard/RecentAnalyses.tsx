@@ -12,7 +12,7 @@ export function RecentAnalyses({ analyses }: { analyses: any[] }) {
         {analyses.length === 0 ? (
           <p className="text-muted-foreground/60 text-center py-8 text-sm">
             No analyses yet.{' '}
-            <Link href="/analyze" className="text-indigo-400 hover:text-indigo-300">
+            <Link href="/analyze" className="text-orange-500 hover:text-orange-500">
               Analyze your first site
             </Link>
           </p>
@@ -23,7 +23,7 @@ export function RecentAnalyses({ analyses }: { analyses: any[] }) {
                 const base = 'text-xs font-medium px-2.5 py-0.5 rounded-full';
                 if (a.status === 'completed') return `${base} bg-emerald-500/10 text-emerald-400 border border-emerald-500/20`;
                 if (a.status === 'failed')    return `${base} bg-red-500/10 text-red-400 border border-red-500/20`;
-                return `${base} bg-indigo-500/10 text-indigo-300 border border-indigo-500/20`;
+                return `${base} bg-orange-50 dark:bg-orange-950/30 text-orange-400 border border-orange-200 dark:border-orange-900/40`;
               })();
               return (
                 <Link

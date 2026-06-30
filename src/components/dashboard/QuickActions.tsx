@@ -11,16 +11,16 @@ export function QuickActions({ credits }: { credits: number }) {
       <CardContent className="space-y-3">
         <Button
           asChild
-          className="w-full bg-gradient-to-r from-indigo-500 to-violet-500 text-white hover:from-indigo-400 hover:to-violet-400"
+          className="w-full bg-orange-600 text-white hover:from-orange-400 hover:to-orange-400"
           disabled={credits === 0}
         >
           <Link href="/analyze">New Analysis</Link>
         </Button>
-        <Button asChild variant="outline" className="w-full border border-indigo-500/30 text-indigo-300 bg-transparent hover:bg-indigo-500/10">
+        <Button asChild variant="outline" className="w-full border border-orange-300 dark:border-orange-900/50 text-orange-400 bg-transparent hover:bg-orange-50 dark:bg-orange-950/30">
           <Link href="/reports">View All Reports</Link>
         </Button>
         {credits === 0 && (
-          <Button asChild variant="outline" className="w-full border border-indigo-500/30 text-indigo-300 bg-transparent hover:bg-indigo-500/10">
+          <Button asChild variant="outline" className="w-full border border-orange-300 dark:border-orange-900/50 text-orange-400 bg-transparent hover:bg-orange-50 dark:bg-orange-950/30">
             <Link href="/settings">Upgrade Plan</Link>
           </Button>
         )}

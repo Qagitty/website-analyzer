@@ -86,7 +86,7 @@ export default async function LeadsPage() {
               Visitors submit their URL, you get the analysis and the contact.
             </p>
             <Link href="/settings">
-              <Button className="mt-1 bg-gradient-to-r from-indigo-500 to-violet-500 text-white">
+              <Button className="mt-1 bg-orange-600 text-white">
                 Upgrade to Agency →
               </Button>
             </Link>
@@ -161,7 +161,7 @@ export default async function LeadsPage() {
                           {row.lead_email ? (
                             <a
                               href={`mailto:${row.lead_email}`}
-                              className="text-xs text-indigo-400 hover:underline"
+                              className="text-xs text-orange-500 hover:underline"
                             >
                               {row.lead_email}
                             </a>
@@ -181,7 +181,7 @@ export default async function LeadsPage() {
                           {row.status === 'completed' && (
                             <Link
                               href={`/reports/${row.id}`}
-                              className="text-xs text-indigo-400 hover:underline whitespace-nowrap"
+                              className="text-xs text-orange-500 hover:underline whitespace-nowrap"
                             >
                               View report →
                             </Link>

@@ -170,8 +170,8 @@ function FindingCard({ finding }: { finding: SeoFinding }) {
 
           {/* Recommendation */}
           {isActionable && finding.recommendation && (
-            <div className="rounded-md bg-indigo-500/8 border border-indigo-500/20 px-3 py-2">
-              <p className="text-xs font-medium text-indigo-300 mb-0.5">Recommendation</p>
+            <div className="rounded-md bg-orange-600/8 border border-orange-200 dark:border-orange-900/40 px-3 py-2">
+              <p className="text-xs font-medium text-orange-400 mb-0.5">Recommendation</p>
               <p className="text-sm text-foreground">{finding.recommendation}</p>
             </div>
           )}
@@ -406,7 +406,7 @@ export function SEOSection({ seoAudit, legacyScore, legacyChecks }: Props) {
                 onClick={() => setActiveFilter(f.key)}
                 className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
                   activeFilter === f.key
-                    ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
+                    ? 'bg-orange-100 dark:bg-orange-950/40 text-orange-400 border border-orange-300 dark:border-orange-900/50'
                     : 'bg-secondary text-muted-foreground border border-border hover:bg-white/10'
                 }`}
               >

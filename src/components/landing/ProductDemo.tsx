@@ -139,7 +139,7 @@ export function ProductDemo() {
       <div className="max-w-4xl mx-auto">
         {/* Section header */}
         <div className="text-center mb-10">
-          <p className="text-xs font-semibold uppercase tracking-widest text-indigo-400 mb-3">See it in action</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-orange-500 mb-3">See it in action</p>
           <h2 className="text-3xl md:text-4xl font-bold mb-3">From URL to full report in 30 seconds</h2>
           <p className="text-muted-foreground max-w-xl mx-auto text-sm">
             Watch a live walkthrough of exactly what happens when you analyze a site.
@@ -148,8 +148,8 @@ export function ProductDemo() {
 
         {/* Browser chrome */}
         <div
-          className="rounded-2xl border border-indigo-500/20 overflow-hidden"
-          style={{ boxShadow: '0 0 60px rgba(99,102,241,0.12)' }}
+          className="rounded-2xl border border-orange-200 dark:border-orange-900/40 overflow-hidden"
+          style={{ boxShadow: '0 0 60px rgba(234,88,12,0.2)' }}
         >
           {/* Title bar */}
           <div className="flex items-center gap-2 px-4 py-3 bg-card border-b border-border">
@@ -180,13 +180,13 @@ export function ProductDemo() {
                   </div>
                   {/* URL input row */}
                   <div className="w-full max-w-lg flex gap-3">
-                    <div className="flex-1 rounded-xl border border-indigo-500/30 bg-card px-4 py-3 text-sm font-mono text-foreground/90 flex items-center min-h-[46px]">
+                    <div className="flex-1 rounded-xl border border-orange-300 dark:border-orange-900/50 bg-card px-4 py-3 text-sm font-mono text-foreground/90 flex items-center min-h-[46px]">
                       <span>{typedUrl}</span>
                       {showCursor && (
                         <motion.span
                           animate={{ opacity: [1, 0] }}
                           transition={{ repeat: Infinity, duration: 0.6 }}
-                          className="ml-0.5 inline-block w-[2px] h-[14px] bg-indigo-400 align-middle"
+                          className="ml-0.5 inline-block w-[2px] h-[14px] bg-orange-500 align-middle"
                         />
                       )}
                     </div>
@@ -198,11 +198,11 @@ export function ProductDemo() {
                             opacity: 1,
                             scale: buttonActive ? [1, 1.06, 1] : 1,
                             boxShadow: buttonActive
-                              ? ['0 0 0px rgba(99,102,241,0)', '0 0 20px rgba(99,102,241,0.6)', '0 0 0px rgba(99,102,241,0)']
-                              : '0 0 0px rgba(99,102,241,0)',
+                              ? ['0 0 0px rgba(234,88,12,0.2)', '0 0 20px rgba(234,88,12,0.2)', '0 0 0px rgba(234,88,12,0.2)']
+                              : '0 0 0px rgba(234,88,12,0.2)',
                           }}
                           transition={{ duration: 0.4 }}
-                          className="rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-5 py-3 text-sm font-semibold text-white whitespace-nowrap"
+                          className="rounded-xl bg-orange-600 px-5 py-3 text-sm font-semibold text-white whitespace-nowrap"
                         >
                           Analyze →
                         </motion.button>
@@ -226,8 +226,8 @@ export function ProductDemo() {
                 >
                   <div className="text-center mb-2">
                     <div className="flex items-center justify-center gap-2 mb-2">
-                      <Loader2 className="h-4 w-4 text-indigo-400 animate-spin" />
-                      <p className="text-sm font-semibold text-indigo-300">Analyzing {DEMO_URL}</p>
+                      <Loader2 className="h-4 w-4 text-orange-500 animate-spin" />
+                      <p className="text-sm font-semibold text-orange-400">Analyzing {DEMO_URL}</p>
                     </div>
                     <p className="text-xs text-muted-foreground">Running 4 analysis engines in parallel…</p>
                   </div>
@@ -245,7 +245,7 @@ export function ProductDemo() {
                         {i < stepsVisible - 1 ? (
                           <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
                         ) : i === stepsVisible - 1 ? (
-                          <Loader2 className="h-4 w-4 text-indigo-400 animate-spin shrink-0" />
+                          <Loader2 className="h-4 w-4 text-orange-500 animate-spin shrink-0" />
                         ) : null}
                       </motion.div>
                     ))}
@@ -333,7 +333,7 @@ export function ProductDemo() {
           {/* Progress bar */}
           <div className="h-1 bg-border">
             <motion.div
-              className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full"
+              className="h-full bg-orange-600 rounded-full"
               style={{ width: running ? `${Math.min(100, (elapsed / PHASE.HOLD_END) * 100)}%` : isDone ? '100%' : '0%' }}
               transition={{ ease: 'linear' }}
             />
@@ -345,8 +345,8 @@ export function ProductDemo() {
           {!running ? (
             <button
               onClick={start}
-              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-6 py-2.5 text-sm font-semibold text-white hover:from-indigo-400 hover:to-violet-400 transition-all"
-              style={{ boxShadow: '0 0 20px rgba(99,102,241,0.3)' }}
+              className="flex items-center gap-2 rounded-xl bg-orange-600 px-6 py-2.5 text-sm font-semibold text-white hover:from-orange-400 hover:to-orange-400 transition-all"
+              style={{ boxShadow: '0 0 20px rgba(234,88,12,0.3)' }}
             >
               {elapsed > 0 ? (
                 <><RotateCcw className="h-4 w-4" /> Replay demo</>
@@ -356,7 +356,7 @@ export function ProductDemo() {
             </button>
           ) : (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin text-indigo-400" />
+              <Loader2 className="h-4 w-4 animate-spin text-orange-500" />
               <span>Running demo…</span>
             </div>
           )}

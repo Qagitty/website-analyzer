@@ -126,7 +126,7 @@ export function CompareInput({ credits, maxCompetitors, plan: _plan }: CompareIn
       <div className="space-y-1.5">
         <Label htmlFor="primary-url" className="flex items-center gap-2">
           Your website
-          <span className="text-xs bg-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded-full">Primary</span>
+          <span className="text-xs bg-orange-100 dark:bg-orange-950/40 text-orange-500 px-2 py-0.5 rounded-full">Primary</span>
         </Label>
         <Input
           id="primary-url"
@@ -191,7 +191,7 @@ export function CompareInput({ credits, maxCompetitors, plan: _plan }: CompareIn
           <button
             type="button"
             onClick={addCompetitor}
-            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-indigo-400 transition-colors"
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-orange-500 transition-colors"
           >
             <Plus className="h-3.5 w-3.5" />
             Add another competitor
@@ -213,7 +213,7 @@ export function CompareInput({ credits, maxCompetitors, plan: _plan }: CompareIn
       <Button
         type="submit"
         disabled={loading || credits < totalUrls}
-        className="w-full bg-gradient-to-r from-indigo-500 to-violet-500 text-white hover:from-indigo-400 hover:to-violet-400"
+        className="w-full bg-orange-600 text-white hover:from-orange-400 hover:to-orange-400"
       >
         {loading ? (
           <><Loader2 className="h-4 w-4 animate-spin mr-2" />Starting comparison…</>

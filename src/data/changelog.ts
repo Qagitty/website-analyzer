@@ -86,7 +86,7 @@ export const RELEASES: Release[] = [
     title: 'Dark Observatory Design System',
     summary: 'Complete visual overhaul of all 43 pages and components with a consistent dark design system.',
     items: [
-      '#0A0A0F base background, indigo-500→violet-500 primary gradient',
+      '#0A0A0F base background, orange-500→orange-500 primary gradient',
       'Score-aware colour palette: emerald (≥80), amber (50–79), red (<50)',
       '.text-gradient, .glow-indigo, .bg-grid CSS utilities',
       'Mobile-first layout audit across all dashboard pages',

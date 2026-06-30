@@ -146,7 +146,7 @@ export function ProfileForm({ email, initialName }: Props) {
               <Input
                 id="displayName"
                 placeholder="Your name"
-                className="mt-1 bg-background border-border text-foreground placeholder:text-muted-foreground/60 focus:border-indigo-500/50 focus:ring-indigo-500/20"
+                className="mt-1 bg-background border-border text-foreground placeholder:text-muted-foreground/60 focus:border-orange-500/50 focus:ring-orange-400/20"
                 {...register('displayName')}
               />
               {errors.displayName && (
@@ -156,7 +156,7 @@ export function ProfileForm({ email, initialName }: Props) {
             <Button
               type="submit"
               disabled={loading || !isDirty}
-              className="bg-gradient-to-r from-indigo-500 to-violet-500 text-white hover:from-indigo-400 hover:to-violet-400"
+              className="bg-orange-600 text-white hover:from-orange-400 hover:to-orange-400"
             >
               {loading ? 'Saving…' : 'Save changes'}
             </Button>
@@ -182,7 +182,7 @@ export function ProfileForm({ email, initialName }: Props) {
                   id="currentPassword"
                   type={showCurrent ? 'text' : 'password'}
                   placeholder="Enter current password"
-                  className="pr-10 bg-background border-border text-foreground placeholder:text-muted-foreground/60 focus:border-indigo-500/50 focus:ring-indigo-500/20"
+                  className="pr-10 bg-background border-border text-foreground placeholder:text-muted-foreground/60 focus:border-orange-500/50 focus:ring-orange-400/20"
                   {...regPw('currentPassword')}
                 />
                 <button
@@ -209,7 +209,7 @@ export function ProfileForm({ email, initialName }: Props) {
                   id="newPassword"
                   type={showNew ? 'text' : 'password'}
                   placeholder="At least 8 characters"
-                  className="pr-10 bg-background border-border text-foreground placeholder:text-muted-foreground/60 focus:border-indigo-500/50 focus:ring-indigo-500/20"
+                  className="pr-10 bg-background border-border text-foreground placeholder:text-muted-foreground/60 focus:border-orange-500/50 focus:ring-orange-400/20"
                   {...regPw('newPassword')}
                 />
                 <button
@@ -236,7 +236,7 @@ export function ProfileForm({ email, initialName }: Props) {
                   id="confirmPassword"
                   type={showConfirm ? 'text' : 'password'}
                   placeholder="Repeat new password"
-                  className="pr-10 bg-background border-border text-foreground placeholder:text-muted-foreground/60 focus:border-indigo-500/50 focus:ring-indigo-500/20"
+                  className="pr-10 bg-background border-border text-foreground placeholder:text-muted-foreground/60 focus:border-orange-500/50 focus:ring-orange-400/20"
                   {...regPw('confirmPassword')}
                 />
                 <button
@@ -257,7 +257,7 @@ export function ProfileForm({ email, initialName }: Props) {
               <Button
                 type="submit"
                 disabled={pwLoading}
-                className="bg-gradient-to-r from-indigo-500 to-violet-500 text-white hover:from-indigo-400 hover:to-violet-400"
+                className="bg-orange-600 text-white hover:from-orange-400 hover:to-orange-400"
               >
                 {pwLoading ? 'Updating…' : 'Update password'}
               </Button>

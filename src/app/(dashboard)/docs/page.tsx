@@ -44,7 +44,7 @@ function MethodBadge({ method }: { method: 'GET' | 'POST' }) {
       className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-bold font-mono ${
         method === 'POST'
           ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-          : 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20'
+          : 'bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-500 border border-orange-200 dark:border-orange-900/40'
       }`}
     >
       {method}
@@ -80,7 +80,7 @@ export default function DocsPage() {
           </Suspense>
           <div className="flex items-center gap-3 mb-3">
             <h1 className="text-4xl font-bold text-foreground">WebAnalyzer API</h1>
-            <Badge className="text-sm bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">v1</Badge>
+            <Badge className="text-sm bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-500 border border-orange-200 dark:border-orange-900/40">v1</Badge>
           </div>
           <p className="text-lg text-muted-foreground">
             Analyze any website programmatically and retrieve detailed performance, accessibility, and AI reports.
@@ -100,7 +100,7 @@ export default function DocsPage() {
           <h2 className="text-2xl font-semibold text-foreground">Authentication</h2>
           <p className="text-muted-foreground">
             All API requests require an API key passed in the{' '}
-            <code className="rounded bg-accent px-1 py-0.5 text-sm font-mono text-indigo-600 dark:text-indigo-300">Authorization</code>{' '}
+            <code className="rounded bg-accent px-1 py-0.5 text-sm font-mono text-orange-700 dark:text-orange-400">Authorization</code>{' '}
             header as a Bearer token.
           </p>
           <CodeBlock
@@ -109,7 +109,7 @@ export default function DocsPage() {
           />
           <p className="text-sm text-muted-foreground">
             You can generate API keys in your{' '}
-            <Link href="/settings" className="underline text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 transition-colors">
+            <Link href="/settings" className="underline text-orange-700 dark:text-orange-500 hover:text-orange-600 transition-colors">
               account settings
             </Link>
             .
@@ -181,7 +181,7 @@ export default function DocsPage() {
                 <code className="font-mono font-normal">/api/v1/analyze</code>
               </CardTitle>
               <p className="text-sm text-muted-foreground">
-                Submit a URL for analysis. Returns immediately with an <code className="rounded bg-accent px-1 py-0.5 text-xs font-mono text-indigo-600 dark:text-indigo-300">analysisId</code> that
+                Submit a URL for analysis. Returns immediately with an <code className="rounded bg-accent px-1 py-0.5 text-xs font-mono text-orange-700 dark:text-orange-400">analysisId</code> that
                 you can use to poll for results. Consumes one credit.
               </p>
             </CardHeader>
@@ -228,8 +228,8 @@ export default function DocsPage() {
               </CardTitle>
               <p className="text-sm text-muted-foreground">
                 Retrieve a completed analysis report by ID. Poll this endpoint after submitting a
-                URL until <code className="rounded bg-accent px-1 py-0.5 text-xs font-mono text-indigo-600 dark:text-indigo-300">status</code> is{' '}
-                <code className="rounded bg-accent px-1 py-0.5 text-xs font-mono text-indigo-600 dark:text-indigo-300">completed</code>.
+                URL until <code className="rounded bg-accent px-1 py-0.5 text-xs font-mono text-orange-700 dark:text-orange-400">status</code> is{' '}
+                <code className="rounded bg-accent px-1 py-0.5 text-xs font-mono text-orange-700 dark:text-orange-400">completed</code>.
               </p>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -378,14 +378,14 @@ export default function DocsPage() {
         </section>
 
         {/* CTA */}
-        <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-8 text-center space-y-4">
+        <div className="rounded-xl border border-orange-200 dark:border-orange-900/40 bg-orange-600/5 p-8 text-center space-y-4">
           <h3 className="text-xl font-semibold text-foreground">Ready to get started?</h3>
           <p className="text-muted-foreground">
             Generate your API key in settings and start analyzing websites programmatically.
           </p>
           <Link
             href="/settings"
-            className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-indigo-500 to-violet-500 px-5 py-2.5 text-sm font-medium text-white hover:from-indigo-400 hover:to-violet-400 transition-all"
+            className="inline-flex items-center gap-2 rounded-lg bg-orange-600 px-5 py-2.5 text-sm font-medium text-white hover:from-orange-400 hover:to-orange-400 transition-all"
           >
             Get your API key in Settings &rarr;
           </Link>

@@ -264,7 +264,7 @@ export function ExecSummarySection({ vm }: Props) {
 
       {/* §4 — AI plain-language summary */}
       {overview.aiSummary && (
-        <Card className="bg-indigo-500/5 border border-indigo-500/20">
+        <Card className="bg-orange-600/5 border border-orange-200 dark:border-orange-900/40">
           <CardContent className="pt-5 pb-5">
             <div className="flex items-start gap-3">
               <span className="text-xl shrink-0 mt-0.5">💬</span>

@@ -52,8 +52,8 @@ export default async function NotificationsPage() {
             </div>
           </div>
           <div className="bg-card border border-border rounded-xl p-4 flex gap-3">
-            <div className="h-9 w-9 rounded-lg bg-indigo-500/10 flex items-center justify-center shrink-0">
-              <BarChart2 className="h-4 w-4 text-indigo-400" />
+            <div className="h-9 w-9 rounded-lg bg-orange-50 dark:bg-orange-950/30 flex items-center justify-center shrink-0">
+              <BarChart2 className="h-4 w-4 text-orange-500" />
             </div>
             <div>
               <p className="text-sm font-medium text-foreground">Weekly digest</p>

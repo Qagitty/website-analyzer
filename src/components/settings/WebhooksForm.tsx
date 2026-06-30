@@ -164,14 +164,14 @@ export function WebhooksForm({ initialWebhooks }: Props) {
               placeholder="https://hooks.slack.com/… or https://your-endpoint.com/webhook"
               value={newUrl}
               onChange={(e) => setNewUrl(e.target.value)}
-              className="flex-1 bg-background border-border text-foreground placeholder:text-muted-foreground/60 focus:border-indigo-500/50 focus:ring-indigo-500/20"
+              className="flex-1 bg-background border-border text-foreground placeholder:text-muted-foreground/60 focus:border-orange-500/50 focus:ring-orange-400/20"
               aria-label="Webhook URL"
             />
             <Button
               type="submit"
               size="sm"
               disabled={adding || !newUrl.trim() || webhooks.length >= 5}
-              className="bg-gradient-to-r from-indigo-500 to-violet-500 text-white hover:from-indigo-400 hover:to-violet-400"
+              className="bg-orange-600 text-white hover:from-orange-400 hover:to-orange-400"
             >
               <Plus className="h-4 w-4 mr-1" />
               {adding ? 'Adding…' : 'Add'}
@@ -237,7 +237,7 @@ export function WebhooksForm({ initialWebhooks }: Props) {
                     </div>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {webhook.events.map((ev) => (
-                        <span key={ev} className="bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 text-xs px-2 py-0.5 rounded-full">
+                        <span key={ev} className="bg-orange-50 dark:bg-orange-950/30 text-orange-400 border border-orange-200 dark:border-orange-900/40 text-xs px-2 py-0.5 rounded-full">
                           {EVENT_LABELS[ev] ?? ev}
                         </span>
                       ))}
@@ -260,7 +260,7 @@ export function WebhooksForm({ initialWebhooks }: Props) {
                       type="button"
                       onClick={() => handleToggle(webhook)}
                       disabled={togglingId === webhook.id}
-                      className="text-xs px-2 py-1 rounded border border-indigo-500/30 text-indigo-300 bg-transparent hover:bg-indigo-500/10 transition-colors disabled:opacity-50"
+                      className="text-xs px-2 py-1 rounded border border-orange-300 dark:border-orange-900/50 text-orange-400 bg-transparent hover:bg-orange-50 dark:bg-orange-950/30 transition-colors disabled:opacity-50"
                       title={webhook.active ? 'Disable' : 'Enable'}
                     >
                       {togglingId === webhook.id

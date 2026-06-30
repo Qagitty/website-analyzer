@@ -128,7 +128,7 @@ function SiteCard({ site }: { site: SiteCompliance }) {
         <div className="mt-3 pt-3 border-t border-border/50">
           <Link
             href={`/reports/${site.analysisId}`}
-            className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+            className="text-xs text-orange-500 hover:text-orange-500 transition-colors"
           >
             View latest report →
           </Link>
@@ -293,7 +293,7 @@ export default function CompliancePage() {
         <div className="flex items-center gap-2">
           <Link
             href="/compliance/remediation"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-indigo-500/30 text-sm text-indigo-400 hover:bg-indigo-500/10 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-orange-300 dark:border-orange-900/50 text-sm text-orange-500 hover:bg-orange-50 dark:bg-orange-950/30 transition-colors"
           >
             <ClipboardList className="h-3.5 w-3.5" />
             Remediation Tracker
@@ -326,7 +326,7 @@ export default function CompliancePage() {
           </p>
           <Link
             href="/monitors"
-            className="inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-2 text-sm font-medium text-white hover:opacity-90 transition-opacity"
+            className="inline-flex items-center gap-1 rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:opacity-90 transition-opacity"
           >
             Set up a monitor →
           </Link>

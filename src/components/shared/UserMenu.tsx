@@ -11,8 +11,8 @@ type Plan = 'free' | 'pro' | 'agency';
 
 const PLAN_BADGE: Record<Plan, string> = {
   free: 'bg-secondary text-muted-foreground border border-border',
-  pro: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 border border-indigo-500/20',
-  agency: 'bg-violet-500/10 text-violet-600 dark:text-violet-300 border border-violet-500/20',
+  pro: 'bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-400 border border-orange-200 dark:border-orange-900/40',
+  agency: 'bg-orange-100 dark:bg-orange-950/40 text-orange-800 dark:text-orange-300 border border-orange-200 dark:border-orange-900/40',
 };
 
 const PLAN_LABEL: Record<Plan, string> = {
@@ -73,7 +73,7 @@ export function UserMenu() {
         <div className="absolute bottom-full left-3 right-3 mb-2 bg-card border border-border rounded-xl shadow-xl overflow-hidden z-50">
           {/* Header */}
           <div className="p-3 flex items-center gap-3">
-            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center shrink-0 text-sm font-bold text-white">
+            <div className="h-8 w-8 rounded-full bg-orange-600 flex items-center justify-center shrink-0 text-sm font-bold text-white">
               {initials}
             </div>
             <div className="min-w-0 flex-1">
@@ -143,7 +143,7 @@ export function UserMenu() {
           open && 'bg-accent'
         )}
       >
-        <div className="h-7 w-7 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center shrink-0 text-xs font-bold text-white">
+        <div className="h-7 w-7 rounded-full bg-orange-600 flex items-center justify-center shrink-0 text-xs font-bold text-white">
           {initials}
         </div>
         <div className="min-w-0 flex-1 text-left">

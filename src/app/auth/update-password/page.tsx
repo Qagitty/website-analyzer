@@ -66,7 +66,7 @@ export default function UpdatePasswordPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <div className="w-full max-w-md bg-card border border-border rounded-xl shadow-2xl p-8 text-center">
-          <div className="h-8 w-8 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin mx-auto mb-4" />
+          <div className="h-8 w-8 rounded-full border-2 border-orange-500 border-t-transparent animate-spin mx-auto mb-4" />
           <p className="text-muted-foreground text-sm">Verifying reset link…</p>
         </div>
       </div>

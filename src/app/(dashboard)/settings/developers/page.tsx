@@ -38,9 +38,9 @@ export default async function DevelopersPage() {
   return (
     <div className="space-y-8">
       {/* Docs banner */}
-      <div className="flex items-center justify-between bg-indigo-500/5 border border-indigo-500/20 rounded-xl px-5 py-4">
+      <div className="flex items-center justify-between bg-orange-600/5 border border-orange-200 dark:border-orange-900/40 rounded-xl px-5 py-4">
         <div className="flex items-center gap-3">
-          <Code2 className="h-5 w-5 text-indigo-400 shrink-0" />
+          <Code2 className="h-5 w-5 text-orange-500 shrink-0" />
           <div>
             <p className="text-sm font-medium text-foreground">API Documentation</p>
             <p className="text-xs text-muted-foreground">Full REST API reference with examples.</p>
@@ -48,7 +48,7 @@ export default async function DevelopersPage() {
         </div>
         <Link
           href="/docs"
-          className="flex items-center gap-1.5 text-xs font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
+          className="flex items-center gap-1.5 text-xs font-medium text-orange-500 hover:text-orange-500 transition-colors"
         >
           View docs
           <ExternalLink className="h-3.5 w-3.5" />

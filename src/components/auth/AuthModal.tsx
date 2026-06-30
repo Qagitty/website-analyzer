@@ -71,7 +71,7 @@ export function AuthModal({ open, defaultTab = 'signup', onClose }: AuthModalPro
             onClick={() => setActiveTab('signin')}
             className={`flex-1 px-4 py-4 text-sm font-medium transition-colors ${
               activeTab === 'signin'
-                ? 'text-foreground border-b-2 border-indigo-500 bg-indigo-500/5'
+                ? 'text-foreground border-b-2 border-orange-500 bg-orange-600/5'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -81,7 +81,7 @@ export function AuthModal({ open, defaultTab = 'signup', onClose }: AuthModalPro
             onClick={() => setActiveTab('signup')}
             className={`flex-1 px-4 py-4 text-sm font-medium transition-colors ${
               activeTab === 'signup'
-                ? 'text-foreground border-b-2 border-indigo-500 bg-indigo-500/5'
+                ? 'text-foreground border-b-2 border-orange-500 bg-orange-600/5'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -99,7 +99,7 @@ export function AuthModal({ open, defaultTab = 'signup', onClose }: AuthModalPro
                 Don&apos;t have an account?{' '}
                 <button
                   onClick={() => setActiveTab('signup')}
-                  className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 underline"
+                  className="text-orange-700 dark:text-orange-500 hover:text-orange-600 dark:hover:text-orange-500 underline"
                 >
                   Create one free
                 </button>
@@ -113,7 +113,7 @@ export function AuthModal({ open, defaultTab = 'signup', onClose }: AuthModalPro
                 Already have an account?{' '}
                 <button
                   onClick={() => setActiveTab('signin')}
-                  className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 underline"
+                  className="text-orange-700 dark:text-orange-500 hover:text-orange-600 dark:hover:text-orange-500 underline"
                 >
                   Sign in
                 </button>

@@ -194,7 +194,7 @@ export function AnalysisProgress({ analysisId, initialData }: Props) {
   const statusBadgeClass = (() => {
     const base = 'text-xs font-medium px-2.5 py-0.5 rounded-full';
     if (state.status === 'completed') return `${base} bg-emerald-500/10 text-emerald-400 border border-emerald-500/20`;
-    if (state.status === 'running')   return `${base} bg-indigo-500/10 text-indigo-300 border border-indigo-500/20`;
+    if (state.status === 'running')   return `${base} bg-orange-50 dark:bg-orange-950/30 text-orange-400 border border-orange-200 dark:border-orange-900/40`;
     return `${base} bg-secondary text-muted-foreground border border-border`;
   })();
 

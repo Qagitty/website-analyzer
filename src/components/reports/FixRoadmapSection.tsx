@@ -168,7 +168,7 @@ function RoadmapCard({ insight, index }: { insight: AIInsight; index: number }) 
                       key={i}
                       className={`w-1.5 h-3 rounded-sm ${
                         i < insight.impactScore!
-                          ? 'bg-indigo-500'
+                          ? 'bg-orange-600'
                           : 'bg-secondary'
                       }`}
                     />
@@ -178,7 +178,7 @@ function RoadmapCard({ insight, index }: { insight: AIInsight; index: number }) 
               </div>
             )}
             {insight.wcagReference && (
-              <span className="text-xs text-indigo-400 bg-indigo-500/5 border border-indigo-500/20 rounded px-2 py-0.5">
+              <span className="text-xs text-orange-500 bg-orange-600/5 border border-orange-200 dark:border-orange-900/40 rounded px-2 py-0.5">
                 {insight.wcagReference}
               </span>
             )}
@@ -347,7 +347,7 @@ export function FixRoadmapSection({ insights }: Props) {
             onClick={() => setActiveFilter(key)}
             className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
               activeFilter === key
-                ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30'
+                ? 'bg-orange-50 dark:bg-orange-950/30 text-orange-500 border-orange-300 dark:border-orange-900/50'
                 : 'text-muted-foreground border-border hover:bg-accent hover:text-foreground'
             }`}
           >
@@ -356,7 +356,7 @@ export function FixRoadmapSection({ insights }: Props) {
               <span
                 className={`ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${
                   activeFilter === key
-                    ? 'bg-indigo-500/20 text-indigo-300'
+                    ? 'bg-orange-100 dark:bg-orange-950/40 text-orange-400'
                     : 'bg-secondary text-muted-foreground/70'
                 }`}
               >

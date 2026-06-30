@@ -68,8 +68,8 @@ export function SubscriptionCard({ plan, status, periodEnd, credits, stripeConfi
               {(() => {
                 const base = 'text-xs font-medium px-2.5 py-0.5 rounded-full';
                 if (plan === 'compliance') return <span className={`${base} bg-emerald-500/10 text-emerald-300 border border-emerald-500/20`}>{plan}</span>;
-                if (plan === 'agency')     return <span className={`${base} bg-violet-500/10 text-violet-300 border border-violet-500/20`}>{plan}</span>;
-                if (plan === 'pro')        return <span className={`${base} bg-indigo-500/10 text-indigo-300 border border-indigo-500/20`}>{plan}</span>;
+                if (plan === 'agency')     return <span className={`${base} bg-orange-50 dark:bg-orange-950/30 text-orange-400 border border-orange-200 dark:border-orange-900/40`}>{plan}</span>;
+                if (plan === 'pro')        return <span className={`${base} bg-orange-50 dark:bg-orange-950/30 text-orange-400 border border-orange-200 dark:border-orange-900/40`}>{plan}</span>;
                 return <span className={`${base} bg-secondary text-muted-foreground border border-border`}>{plan}</span>;
               })()}
             </div>
@@ -116,7 +116,7 @@ export function SubscriptionCard({ plan, status, periodEnd, credits, stripeConfi
             variant="outline"
             onClick={openPortal}
             disabled={loadingPortal}
-            className="w-full border border-indigo-500/30 text-indigo-300 bg-transparent hover:bg-indigo-500/10"
+            className="w-full border border-orange-300 dark:border-orange-900/50 text-orange-400 bg-transparent hover:bg-orange-50 dark:bg-orange-950/30"
           >
             {loadingPortal ? 'Opening…' : 'Manage Billing & Invoices'}
           </Button>
@@ -160,7 +160,7 @@ export function SubscriptionCard({ plan, status, periodEnd, credits, stripeConfi
                         className={`w-full text-white ${
                           isCompliance
                             ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500'
-                            : 'bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400'
+                            : 'bg-orange-600 hover:from-orange-400 hover:to-orange-400'
                         }`}
                         disabled={loadingUpgrade === p}
                         onClick={() => upgrade(p)}

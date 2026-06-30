@@ -75,12 +75,12 @@ function LegacyLLMReadinessSection({ scores }: LegacyProps) {
         </CardContent>
       </Card>
       {llmSignals && llmSignals.length > 0 && (
-        <div className="bg-card border border-indigo-500/20 rounded-xl p-4 space-y-2">
+        <div className="bg-card border border-orange-200 dark:border-orange-900/40 rounded-xl p-4 space-y-2">
           <p className="text-sm font-semibold text-foreground">How to improve</p>
           <ul className="space-y-1.5">
             {llmSignals.map((tip, i) => (
               <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                <span className="text-indigo-400 mt-0.5 shrink-0">•</span>
+                <span className="text-orange-500 mt-0.5 shrink-0">•</span>
                 {tip}
               </li>
             ))}
@@ -170,7 +170,7 @@ function FindingCard({ finding }: { finding: LlmReadinessFinding }) {
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-medium text-foreground">{finding.title}</span>
             {finding.experimental && (
-              <span className="inline-flex items-center gap-1 text-xs text-violet-400 border border-violet-500/20 rounded px-1.5 py-0.5">
+              <span className="inline-flex items-center gap-1 text-xs text-orange-500 border border-orange-200 dark:border-orange-900/40 rounded px-1.5 py-0.5">
                 <FlaskConical className="h-3 w-3" /> Experimental
               </span>
             )}
@@ -472,7 +472,7 @@ export function LLMReadinessSection({ scores }: Props) {
                   onClick={() => setFilter(f.key)}
                   className={`rounded-full px-2.5 py-0.5 text-xs font-medium border transition-colors ${
                     filter === f.key
-                      ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-300'
+                      ? 'bg-orange-100 dark:bg-orange-950/40 border-orange-400 dark:border-orange-800 text-orange-400'
                       : 'bg-card border-border text-muted-foreground hover:text-foreground'
                   }`}
                 >

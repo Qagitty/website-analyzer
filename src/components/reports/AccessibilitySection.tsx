@@ -427,7 +427,7 @@ export function AccessibilitySection({
             {priorityFindings.length} finding{priorityFindings.length !== 1 ? 's' : ''}
           </Badge>
           {trackedMap.size > 0 && analysisId && (
-            <span className="text-xs text-indigo-400">{trackedMap.size} tracked</span>
+            <span className="text-xs text-orange-500">{trackedMap.size} tracked</span>
           )}
           {analysisId && url && untrackedCritical.length > 0 && (
             <Button variant="outline" size="sm" onClick={trackAllCritical} disabled={bulkTracking} className="ml-auto text-xs h-7 gap-1">
@@ -616,7 +616,7 @@ export function AccessibilitySection({
           {issues.length} issue{issues.length !== 1 ? 's' : ''}
         </Badge>
         {trackedMap.size > 0 && analysisId && (
-          <span className="text-xs text-indigo-400">{trackedMap.size} tracked</span>
+          <span className="text-xs text-orange-500">{trackedMap.size} tracked</span>
         )}
         {analysisId && url && untrackedCriticalCount > 0 && (
           <Button variant="outline" size="sm" onClick={trackAllCriticalLegacy} disabled={bulkTracking} className="ml-auto text-xs h-7 gap-1">

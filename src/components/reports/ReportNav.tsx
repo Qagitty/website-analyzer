@@ -69,7 +69,7 @@ function NavItem({
       onClick={(e) => { e.preventDefault(); onClick(); }}
       className={`group flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors
         ${isActive
-          ? 'bg-indigo-500/10 text-indigo-400 font-medium'
+          ? 'bg-orange-50 dark:bg-orange-950/30 text-orange-500 font-medium'
           : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
         }`}
       aria-current={isActive ? 'location' : undefined}
@@ -174,7 +174,7 @@ export function ReportNav({ sections }: ReportNavProps) {
               onClick={(e) => { e.preventDefault(); scrollToSection(section.id); }}
               className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors
                 ${activeId === section.id
-                  ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'
+                  ? 'bg-orange-100 dark:bg-orange-950/40 text-orange-500 border border-orange-300 dark:border-orange-900/50'
                   : 'bg-secondary text-muted-foreground hover:text-foreground'
                 }`}
               aria-current={activeId === section.id ? 'location' : undefined}

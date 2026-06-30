@@ -121,7 +121,7 @@ function InsightCard({ insight }: { insight: AIInsight }) {
               </span>
             )}
             {insight.wcagReference && (
-              <span className="text-xs text-indigo-400 bg-indigo-500/5 border border-indigo-500/20 rounded px-2 py-0.5">
+              <span className="text-xs text-orange-500 bg-orange-600/5 border border-orange-200 dark:border-orange-900/40 rounded px-2 py-0.5">
                 {insight.wcagReference}
               </span>
             )}
@@ -184,7 +184,7 @@ function InsightCard({ insight }: { insight: AIInsight }) {
                       onClick={() => setFrameworkTab('html')}
                       className={`px-2 py-0.5 rounded border ${
                         frameworkTab === 'html'
-                          ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+                          ? 'bg-orange-50 dark:bg-orange-950/30 text-orange-500 border-orange-200 dark:border-orange-900/40'
                           : 'text-muted-foreground border-border hover:bg-accent'
                       }`}
                     >
@@ -195,7 +195,7 @@ function InsightCard({ insight }: { insight: AIInsight }) {
                         onClick={() => setFrameworkTab('react')}
                         className={`px-2 py-0.5 rounded border ${
                           frameworkTab === 'react'
-                            ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+                            ? 'bg-orange-50 dark:bg-orange-950/30 text-orange-500 border-orange-200 dark:border-orange-900/40'
                             : 'text-muted-foreground border-border hover:bg-accent'
                         }`}
                       >
@@ -207,7 +207,7 @@ function InsightCard({ insight }: { insight: AIInsight }) {
                         onClick={() => setFrameworkTab('nextjs')}
                         className={`px-2 py-0.5 rounded border ${
                           frameworkTab === 'nextjs'
-                            ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+                            ? 'bg-orange-50 dark:bg-orange-950/30 text-orange-500 border-orange-200 dark:border-orange-900/40'
                             : 'text-muted-foreground border-border hover:bg-accent'
                         }`}
                       >
@@ -219,7 +219,7 @@ function InsightCard({ insight }: { insight: AIInsight }) {
                         onClick={() => setFrameworkTab('vue')}
                         className={`px-2 py-0.5 rounded border ${
                           frameworkTab === 'vue'
-                            ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+                            ? 'bg-orange-50 dark:bg-orange-950/30 text-orange-500 border-orange-200 dark:border-orange-900/40'
                             : 'text-muted-foreground border-border hover:bg-accent'
                         }`}
                       >
@@ -270,7 +270,7 @@ export function AIInsightsSection({ insights }: { insights: AIInsights | undefin
       <h2 className="text-2xl font-bold">AI Insights</h2>
 
       {typeof insights.summary === 'string' && insights.summary.trim().length > 5 && (
-        <Card className="bg-indigo-500/5 border border-indigo-500/20">
+        <Card className="bg-orange-600/5 border border-orange-200 dark:border-orange-900/40">
           <CardContent className="pt-6">
             <p className="text-sm leading-relaxed text-muted-foreground">{insights.summary}</p>
           </CardContent>

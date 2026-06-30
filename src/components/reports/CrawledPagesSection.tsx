@@ -67,7 +67,7 @@ function getStatusCode(page: CrawledPageData): number | undefined {
 
 function pageTypeBadge(type: string | undefined): string {
   switch (type) {
-    case 'homepage': return 'bg-violet-500/10 text-violet-400 border-violet-500/20';
+    case 'homepage': return 'bg-orange-50 dark:bg-orange-950/30 text-orange-500 border-orange-200 dark:border-orange-900/40';
     case 'article': return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
     case 'product': return 'bg-orange-500/10 text-orange-400 border-orange-500/20';
     case 'category': return 'bg-teal-500/10 text-teal-400 border-teal-500/20';
@@ -101,7 +101,7 @@ export function CrawledPagesSection({ crawledPages, pages, crawlCoverage }: Prop
     <section className="space-y-4">
       <div className="flex items-center gap-3">
         <h2 className="text-2xl font-bold">Crawled Pages</h2>
-        <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
+        <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-orange-50 dark:bg-orange-950/30 text-orange-400 border border-orange-200 dark:border-orange-900/40">
           {data.length} page{data.length !== 1 ? 's' : ''}
         </span>
       </div>
@@ -215,7 +215,7 @@ export function CrawledPagesSection({ crawledPages, pages, crawlCoverage }: Prop
                           page.measurementMode === 'full-fetch'
                             ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
                             : page.measurementMode === 'lightweight-fetch'
-                            ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+                            ? 'bg-orange-50 dark:bg-orange-950/30 text-orange-500 border-orange-200 dark:border-orange-900/40'
                             : 'bg-red-500/10 text-red-500 border-red-500/20'
                         }`}>
                           {auditLabel}
@@ -258,7 +258,7 @@ export function CrawledPagesSection({ crawledPages, pages, crawlCoverage }: Prop
       {/* Coverage limitations */}
       {crawlCoverage?.limitations && crawlCoverage.limitations.length > 0 && (
         <div className="flex gap-2 text-xs text-muted-foreground/60 bg-secondary/50 rounded-lg px-4 py-3">
-          <Info className="h-3.5 w-3.5 shrink-0 mt-0.5 text-indigo-400/60" aria-hidden />
+          <Info className="h-3.5 w-3.5 shrink-0 mt-0.5 text-orange-500/60" aria-hidden />
           <div className="space-y-0.5">
             {crawlCoverage.limitations.map((l, i) => <p key={i}>{l}</p>)}
           </div>

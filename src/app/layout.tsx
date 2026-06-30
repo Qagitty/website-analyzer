@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Inter, Fraunces } from 'next/font/google';
 import { headers } from 'next/headers';
 import { Toaster } from 'sonner';
 import { ThemeProvider } from '@/components/shared/ThemeProvider';
@@ -8,7 +8,8 @@ import { ConsentAnalytics } from '@/components/shared/ConsentAnalytics';
 import { SupportChat } from '@/components/shared/SupportChat';
 import './globals.css';
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+const fraunces = Fraunces({ subsets: ['latin'], variable: '--font-fraunces', display: 'swap' });
 
 export const metadata: Metadata = {
   title: {
@@ -44,8 +45,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
+      <body className={`${inter.variable} ${fraunces.variable} font-sans`}>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} disableTransitionOnChange>
           {children}
           <CookieBanner />
           <SupportChat />

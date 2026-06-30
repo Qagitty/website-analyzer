@@ -31,7 +31,7 @@ function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
     completed: 'bg-emerald-500/10 text-emerald-400',
     failed:    'bg-red-500/10 text-red-400',
-    running:   'bg-indigo-500/10 text-indigo-400',
+    running:   'bg-orange-50 dark:bg-orange-950/30 text-orange-500',
     queued:    'bg-amber-500/10 text-amber-400',
     pending:   'bg-accent text-muted-foreground',
   };
@@ -129,7 +129,7 @@ export default function ReportsPage() {
           <p className="text-sm text-muted-foreground">Run your first analysis to see results here.</p>
           <a
             href="/analyze"
-            className="inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-2 text-sm font-medium text-white hover:opacity-90 transition-opacity"
+            className="inline-flex items-center gap-1 rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:opacity-90 transition-opacity"
           >
             Analyze a site →
           </a>

@@ -110,11 +110,11 @@ export default function CookiesPage() {
             <h2 className="text-xl font-semibold text-foreground mb-3">More Information</h2>
             <p>
               For full details on how we collect, use, and protect your personal data — including your rights under GDPR — see our{' '}
-              <Link href="/privacy" className="underline text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 transition-colors">
+              <Link href="/privacy" className="underline text-orange-700 dark:text-orange-500 hover:text-orange-600 dark:hover:text-orange-500 transition-colors">
                 Privacy Policy
               </Link>
               . For any questions about cookies or consent, contact us at{' '}
-              <a href="mailto:privacy@websiteanalyzer.dev" className="underline text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 transition-colors">
+              <a href="mailto:privacy@websiteanalyzer.dev" className="underline text-orange-700 dark:text-orange-500 hover:text-orange-600 dark:hover:text-orange-500 transition-colors">
                 privacy@websiteanalyzer.dev
               </a>
               .

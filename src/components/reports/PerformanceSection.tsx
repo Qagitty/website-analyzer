@@ -309,7 +309,7 @@ function MainFindings({ opportunities }: { opportunities: PerformanceOpportunity
               )}
             </div>
             {opp.estimatedSavingsMs != null && (
-              <span className="text-[10px] shrink-0 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded px-1.5 py-0.5 self-start">
+              <span className="text-[10px] shrink-0 bg-orange-50 dark:bg-orange-950/30 text-orange-500 border border-orange-200 dark:border-orange-900/40 rounded px-1.5 py-0.5 self-start">
                 ~{fmtMs(opp.estimatedSavingsMs)} saving
               </span>
             )}
@@ -508,7 +508,7 @@ function ActionList({ items, icon, emptyText }: { items: PerformanceOpportunity[
             <p className="text-sm font-medium text-foreground leading-snug">{opp.title}</p>
             <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{opp.recommendation}</p>
             {opp.estimatedSavingsMs != null && (
-              <p className="text-[10px] text-indigo-400 mt-0.5">~{fmtMs(opp.estimatedSavingsMs)} potential saving</p>
+              <p className="text-[10px] text-orange-500 mt-0.5">~{fmtMs(opp.estimatedSavingsMs)} potential saving</p>
             )}
           </div>
         </li>
@@ -527,7 +527,7 @@ function RecommendedActions({ opportunities }: { opportunities: PerformanceOppor
   const tabs = [
     { id: 'quick' as const, label: 'Quick Wins', count: quickWins.length, icon: <Zap className="h-3.5 w-3.5 text-emerald-500" aria-hidden /> },
     { id: 'medium' as const, label: 'Medium Effort', count: mediumEffort.length, icon: <Info className="h-3.5 w-3.5 text-amber-500" aria-hidden /> },
-    { id: 'engineering' as const, label: 'Engineering', count: engineeringWork.length, icon: <Shield className="h-3.5 w-3.5 text-indigo-400" aria-hidden /> },
+    { id: 'engineering' as const, label: 'Engineering', count: engineeringWork.length, icon: <Shield className="h-3.5 w-3.5 text-orange-500" aria-hidden /> },
   ];
 
   const current = tab === 'quick' ? quickWins : tab === 'medium' ? mediumEffort : engineeringWork;
@@ -535,7 +535,7 @@ function RecommendedActions({ opportunities }: { opportunities: PerformanceOppor
     ? <Zap className="h-3.5 w-3.5 text-emerald-500" aria-hidden />
     : tab === 'medium'
     ? <Info className="h-3.5 w-3.5 text-amber-500" aria-hidden />
-    : <Shield className="h-3.5 w-3.5 text-indigo-400" aria-hidden />;
+    : <Shield className="h-3.5 w-3.5 text-orange-500" aria-hidden />;
 
   return (
     <div className="space-y-3">
@@ -558,7 +558,7 @@ function RecommendedActions({ opportunities }: { opportunities: PerformanceOppor
             {t.icon}
             <span className="hidden sm:inline">{t.label}</span>
             {t.count > 0 && (
-              <span className={`rounded-full px-1 text-[10px] font-bold ${tab === t.id ? 'bg-indigo-500/20 text-indigo-400' : 'bg-muted text-muted-foreground/60'}`}>
+              <span className={`rounded-full px-1 text-[10px] font-bold ${tab === t.id ? 'bg-orange-100 dark:bg-orange-950/40 text-orange-500' : 'bg-muted text-muted-foreground/60'}`}>
                 {t.count}
               </span>
             )}

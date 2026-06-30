@@ -213,8 +213,8 @@ export function URLInput({ credits }: { credits: number }) {
                   flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed
                   p-6 cursor-pointer transition-colors select-none
                   ${dragOver
-                    ? 'border-indigo-500/50 bg-indigo-500/5'
-                    : 'border-border hover:border-indigo-500/30 hover:bg-white/[0.02]'}
+                    ? 'border-orange-500/50 bg-orange-600/5'
+                    : 'border-border hover:border-orange-300 dark:border-orange-900/50 hover:bg-white/[0.02]'}
                 `}
               >
                 <ImageIcon className="h-8 w-8 text-muted-foreground" />

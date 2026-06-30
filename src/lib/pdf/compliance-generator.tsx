@@ -12,9 +12,9 @@ import { getComplianceSummary, type ComplianceLevel } from '@/lib/compliance';
 
 // ── Palette ───────────────────────────────────────────────────────────────────
 const C = {
-  indigo:      '#4F46E5',
-  indigoLight: '#EEF2FF',
-  violet:      '#7C3AED',
+  indigo:      '#EA580C',
+  indigoLight: '#FFF7ED',
+  violet:      '#EA580C',
   emerald:     '#059669',
   emeraldBg:   '#ECFDF5',
   amber:       '#D97706',

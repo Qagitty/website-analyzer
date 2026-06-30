@@ -37,7 +37,7 @@ const STATUS_CONFIG: Record<RemediationStatus, {
 }> = {
   open:        { label: 'Open',        color: 'text-slate-400',   bg: 'bg-slate-500/10 border-slate-500/20',    next: 'in_progress', Icon: CircleDot    },
   in_progress: { label: 'In Progress', color: 'text-amber-400',   bg: 'bg-amber-500/10 border-amber-500/20',    next: 'resolved',    Icon: Clock        },
-  resolved:    { label: 'Resolved',    color: 'text-indigo-400',  bg: 'bg-indigo-500/10 border-indigo-500/20',  next: 'verified',    Icon: CheckCircle2 },
+  resolved:    { label: 'Resolved',    color: 'text-orange-500',  bg: 'bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-900/40',  next: 'verified',    Icon: CheckCircle2 },
   verified:    { label: 'Verified ✓',  color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20', next: null,         Icon: CheckCircle2 },
 };
 
@@ -83,7 +83,7 @@ function ProgressBar({ items }: { items: RemediationItem[] }) {
           <div className="bg-emerald-500 h-full transition-all" style={{ width: pct(verified) }} />
         )}
         {resolved > 0 && (
-          <div className="bg-indigo-500 h-full transition-all" style={{ width: pct(resolved) }} />
+          <div className="bg-orange-600 h-full transition-all" style={{ width: pct(resolved) }} />
         )}
         {in_progress > 0 && (
           <div className="bg-amber-500 h-full transition-all" style={{ width: pct(in_progress) }} />
@@ -98,7 +98,7 @@ function ProgressBar({ items }: { items: RemediationItem[] }) {
         {[
           { label: 'Open',        count: open,        color: 'bg-slate-500/40' },
           { label: 'In Progress', count: in_progress, color: 'bg-amber-500'  },
-          { label: 'Resolved',    count: resolved,    color: 'bg-indigo-500' },
+          { label: 'Resolved',    count: resolved,    color: 'bg-orange-600' },
           { label: 'Verified',    count: verified,    color: 'bg-emerald-500' },
         ].map(({ label, count, color }) => (
           <div key={label} className="flex items-center gap-2">
@@ -266,7 +266,7 @@ function ItemCard({
                 value={assignee}
                 onChange={(e) => setAssignee(e.target.value)}
                 placeholder="Developer name or email"
-                className="w-full text-xs bg-background border border-border rounded-md px-3 py-1.5 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full text-xs bg-background border border-border rounded-md px-3 py-1.5 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-orange-500"
               />
             </div>
             <div>
@@ -277,7 +277,7 @@ function ItemCard({
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="w-full text-xs bg-background border border-border rounded-md px-3 py-1.5 text-foreground focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full text-xs bg-background border border-border rounded-md px-3 py-1.5 text-foreground focus:outline-none focus:ring-1 focus:ring-orange-500"
               />
             </div>
           </div>
@@ -290,18 +290,18 @@ function ItemCard({
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Steps taken, PR links, blockers..."
               rows={3}
-              className="w-full text-xs bg-background border border-border rounded-md px-3 py-2 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-none"
+              className="w-full text-xs bg-background border border-border rounded-md px-3 py-2 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-orange-500 resize-none"
             />
           </div>
 
           <div className="flex items-center justify-between">
-            <Link href={`/reports/${item.analysis_id}`} className="text-xs text-indigo-400 hover:text-indigo-300">
+            <Link href={`/reports/${item.analysis_id}`} className="text-xs text-orange-500 hover:text-orange-500">
               View original report →
             </Link>
             <button
               onClick={saveFields}
               disabled={savingNotes}
-              className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-indigo-500 text-white hover:bg-indigo-400 transition-colors disabled:opacity-50"
+              className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-orange-600 text-white hover:bg-orange-500 transition-colors disabled:opacity-50"
             >
               {savingNotes && <Loader2 className="h-3 w-3 animate-spin" />}
               Save
@@ -423,7 +423,7 @@ export default function RemediationPage() {
           </p>
           <Link
             href="/reports"
-            className="inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-2 text-sm font-medium text-white hover:opacity-90 transition-opacity"
+            className="inline-flex items-center gap-1 rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:opacity-90 transition-opacity"
           >
             Go to Reports →
           </Link>
@@ -443,14 +443,14 @@ export default function RemediationPage() {
                 onClick={() => setActiveTab(tab.key)}
                 className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px whitespace-nowrap
                   ${activeTab === tab.key
-                    ? 'border-indigo-500 text-indigo-400'
+                    ? 'border-orange-500 text-orange-500'
                     : 'border-transparent text-muted-foreground hover:text-foreground'
                   }`}
               >
                 {tab.label}
                 <span className={`text-xs px-1.5 py-0.5 rounded-full ${
                   activeTab === tab.key
-                    ? 'bg-indigo-500/20 text-indigo-400'
+                    ? 'bg-orange-100 dark:bg-orange-950/40 text-orange-500'
                     : 'bg-accent text-muted-foreground'
                 }`}>
                   {counts[tab.key as keyof typeof counts]}
