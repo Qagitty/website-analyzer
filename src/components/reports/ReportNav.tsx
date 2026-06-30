@@ -167,16 +167,6 @@ export function ReportNav({ sections, url, scannedAt }: ReportNavProps) {
 
       {/* Mobile sticky header: URL + date + pill nav */}
       <div className="lg:hidden sticky top-14 z-30 bg-background/95 backdrop-blur border-b border-border/50 -mx-4">
-        {url && (
-          <div className="px-4 pt-2 pb-1 flex items-baseline gap-2 min-w-0">
-            <span className="text-xs font-semibold text-foreground truncate min-w-0">{url.replace(/^https?:\/\//, '')}</span>
-            {scannedAt && (
-              <span className="text-[10px] text-muted-foreground shrink-0">
-                · {formatDistanceToNow(new Date(scannedAt), { addSuffix: true })}
-              </span>
-            )}
-          </div>
-        )}
       <nav
         aria-label="Report sections"
         className="px-4 py-2 overflow-x-auto"
