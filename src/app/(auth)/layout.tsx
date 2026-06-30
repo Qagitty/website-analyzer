@@ -1,5 +1,9 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
+import { NOINDEX_NOFOLLOW_ROBOTS } from '@/lib/seo/robots';
+
+export const metadata: Metadata = { robots: NOINDEX_NOFOLLOW_ROBOTS };
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (

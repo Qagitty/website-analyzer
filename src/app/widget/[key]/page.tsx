@@ -7,6 +7,7 @@
 import type { Metadata } from 'next';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { WidgetForm } from '@/components/widget/WidgetForm';
+import { NOINDEX_NOFOLLOW_ROBOTS } from '@/lib/seo/robots';
 
 interface PageProps {
   params: Promise<{ key: string }>;
@@ -25,6 +26,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: `Free Website Audit — ${agencyName}`,
     description: 'Get a free performance, accessibility, and AI analysis of your website.',
+    robots: NOINDEX_NOFOLLOW_ROBOTS,
   };
 }
 

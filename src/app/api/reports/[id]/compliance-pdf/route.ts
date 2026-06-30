@@ -60,6 +60,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     headers: {
       'Content-Type': 'application/pdf',
       'Content-Disposition': `attachment; filename="compliance-report-${hostname}.pdf"`,
+      'X-Robots-Tag': 'noindex, nofollow, noarchive',
     },
   });
 }

@@ -78,6 +78,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     headers: {
       'Content-Type': 'application/pdf',
       'Content-Disposition': `attachment; filename="${filename}"`,
+      'X-Robots-Tag': 'noindex, nofollow, noarchive',
       'Cache-Control': 'no-store, no-cache',
       'X-Content-Type-Options': 'nosniff',
     },

@@ -25,6 +25,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     headers: {
       'Content-Type': 'application/json; charset=utf-8',
       'Content-Disposition': `attachment; filename="report-${hostname}.json"`,
+        'X-Robots-Tag': 'noindex, nofollow, noarchive',
     },
   });
 }

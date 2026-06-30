@@ -26,6 +26,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     headers: {
       'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       'Content-Disposition': `attachment; filename="report-${hostname}.docx"`,
+        'X-Robots-Tag': 'noindex, nofollow, noarchive',
     },
   });
 }
