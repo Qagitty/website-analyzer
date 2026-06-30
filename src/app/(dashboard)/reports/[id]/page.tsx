@@ -110,15 +110,6 @@ export default async function ReportPage(props: { params: Promise<{ id: string }
           />
         )}
 
-        {/* Security Headers */}
-        <section id="security" aria-labelledby="security-heading" className="scroll-mt-20">
-          <SecurityHeadersSection
-            securityHeadersAudit={(analysis.lighthouse_scores as any)?.securityHeadersAudit}
-            securityHeaders={(analysis.lighthouse_scores as any)?.securityHeaders}
-            crawledPages={analysis.crawl_pages as any}
-          />
-        </section>
-
         <ResourceAuditSection resourceAudit={(analysis.network_requests as any)?.resourceAudit} />
 
         {/* Accessibility */}
@@ -161,6 +152,22 @@ export default async function ReportPage(props: { params: Promise<{ id: string }
           />
         </section>
 
+        {/* Security Headers */}
+        <section id="security" aria-labelledby="security-heading" className="scroll-mt-20">
+          <SecurityHeadersSection
+            securityHeadersAudit={(analysis.lighthouse_scores as any)?.securityHeadersAudit}
+            securityHeaders={(analysis.lighthouse_scores as any)?.securityHeaders}
+            crawledPages={analysis.crawl_pages as any}
+          />
+        </section>
+
+        {/* AI Readiness */}
+        {analysis.lighthouse_scores && (
+          <section id="llm-readiness" aria-labelledby="llm-readiness-heading" className="scroll-mt-20">
+            <LLMReadinessSection scores={analysis.lighthouse_scores as any} />
+          </section>
+        )}
+
         {/* Console errors */}
         {hasConsoleErrors && (
           <section id="console-errors" aria-labelledby="console-errors-heading" className="scroll-mt-20">
@@ -181,13 +188,6 @@ export default async function ReportPage(props: { params: Promise<{ id: string }
               designScreenshotUrl={designSignedUrl ?? undefined}
               screenshotUrl={screenshotSignedUrl ?? undefined}
             />
-          </section>
-        )}
-
-        {/* LLM / AI Readiness */}
-        {analysis.lighthouse_scores && (
-          <section id="llm-readiness" aria-labelledby="llm-readiness-heading" className="scroll-mt-20">
-            <LLMReadinessSection scores={analysis.lighthouse_scores as any} />
           </section>
         )}
 
