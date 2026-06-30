@@ -8,6 +8,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Link2, Check } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
 import type { NavSection, CategoryScore, ScoreAvailable } from '@/lib/report/view-model';
 
 // ─── Score pip ─────────────────────────────────────────────────────────────────
@@ -89,9 +90,11 @@ function NavItem({
 
 interface ReportNavProps {
   sections: NavSection[];
+  url?: string;
+  scannedAt?: string;
 }
 
-export function ReportNav({ sections }: ReportNavProps) {
+export function ReportNav({ sections, url, scannedAt }: ReportNavProps) {
   const [activeId, setActiveId] = useState<string>(sections[0]?.id ?? '');
   const observerRef = useRef<IntersectionObserver | null>(null);
   const isManualScrollRef = useRef(false);
@@ -162,10 +165,21 @@ export function ReportNav({ sections }: ReportNavProps) {
         ))}
       </nav>
 
-      {/* Mobile horizontal pill nav */}
+      {/* Mobile sticky header: URL + date + pill nav */}
+      <div className="lg:hidden sticky top-14 z-30 bg-background/95 backdrop-blur border-b border-border/50 -mx-4">
+        {url && (
+          <div className="px-4 pt-2 pb-1 flex items-baseline gap-2 min-w-0">
+            <span className="text-xs font-semibold text-foreground truncate min-w-0">{url.replace(/^https?:\/\//, '')}</span>
+            {scannedAt && (
+              <span className="text-[10px] text-muted-foreground shrink-0">
+                · {formatDistanceToNow(new Date(scannedAt), { addSuffix: true })}
+              </span>
+            )}
+          </div>
+        )}
       <nav
         aria-label="Report sections"
-        className="lg:hidden sticky top-14 z-30 bg-background/95 backdrop-blur border-b border-border/50 -mx-4 px-4 py-2 overflow-x-auto"
+        className="px-4 py-2 overflow-x-auto"
       >
         <div className="flex gap-1.5 w-max">
           {sections.map(section => (
@@ -191,6 +205,7 @@ export function ReportNav({ sections }: ReportNavProps) {
           ))}
         </div>
       </nav>
+      </div>
     </>
   );
 }

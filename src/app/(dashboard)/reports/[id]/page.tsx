@@ -65,7 +65,7 @@ export default async function ReportPage(props: { params: Promise<{ id: string }
   return (
     <div className="flex flex-col lg:flex-row lg:gap-8 max-w-[1280px] mx-auto">
       {/* §7 — Sticky navigation sidebar (desktop) + horizontal pill nav (mobile) */}
-      <ReportNav sections={navSections} />
+      <ReportNav sections={navSections} url={analysis.url} scannedAt={analysis.created_at} />
 
       {/* Main report content */}
       <main className="flex-1 min-w-0 space-y-10 pb-16">
