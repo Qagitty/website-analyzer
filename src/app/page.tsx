@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { ThemeToggle } from '@/components/shared/ThemeToggle';
+import { WebScoreLogo } from '@/components/shared/WebScoreLogo';
 
 type ModalState = { open: boolean; tab: 'signin' | 'signup' };
 
@@ -153,10 +154,7 @@ export default function LandingPage() {
       <nav className="fixed top-0 w-full z-50 border-b border-border bg-background/95 backdrop-blur-sm">
         <div className="max-w-6xl mx-auto px-4 h-14 relative flex items-center justify-between">
           <div className="flex items-center gap-2 z-10">
-            <div className="h-7 w-7 rounded bg-orange-600 flex items-center justify-center">
-              <Zap className="h-4 w-4 text-white" />
-            </div>
-            <span className="font-bold text-base tracking-tight">WebAnalyzer</span>
+            <WebScoreLogo size={26} className="text-base" />
           </div>
           <div className="hidden md:flex items-center gap-6 text-sm text-muted-foreground absolute left-1/2 -translate-x-1/2">
             <a href="#features" className="hover:text-foreground transition-colors">Features</a>
@@ -491,12 +489,7 @@ export default function LandingPage() {
       {/* ── Footer ──────────────────────────────────────────────────── */}
       <footer className="border-t border-border py-10">
         <div className="max-w-6xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground/60">
-          <div className="flex items-center gap-2">
-            <div className="h-5 w-5 rounded bg-orange-600 flex items-center justify-center">
-              <Zap className="h-3 w-3 text-white" />
-            </div>
-            <span className="font-semibold text-foreground">WebAnalyzer</span>
-          </div>
+          <WebScoreLogo size={22} className="text-sm" />
           <div className="flex flex-wrap items-center gap-4 md:gap-6">
             <Link href="/pricing" className="hover:text-muted-foreground transition-colors">Pricing</Link>
             <Link href="/changelog" className="hover:text-muted-foreground transition-colors">Changelog</Link>

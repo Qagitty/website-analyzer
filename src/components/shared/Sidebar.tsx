@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { UserMenu } from '@/components/shared/UserMenu';
-import { Code2, Zap, ShieldCheck, BarChart2, Users } from 'lucide-react';
+import { Code2, ShieldCheck, BarChart2, Users } from 'lucide-react';
+import { WebScoreLogo } from '@/components/shared/WebScoreLogo';
 
 const NAV_ITEMS = [
   { href: '/dashboard',       label: 'Dashboard' },
@@ -22,11 +23,8 @@ export function Sidebar() {
   return (
     <aside className="hidden md:flex w-56 shrink-0 border-r border-border bg-background flex-col">
       <div className="h-14 flex items-center px-4 border-b border-border shrink-0">
-        <Link href="/dashboard" className="flex items-center gap-2 font-bold text-base text-foreground">
-          <div className="h-7 w-7 rounded bg-orange-600 flex items-center justify-center shrink-0">
-            <Zap className="h-4 w-4 text-white" />
-          </div>
-          WebAnalyzer
+        <Link href="/dashboard">
+          <WebScoreLogo size={26} className="text-base" />
         </Link>
       </div>
       <nav className="flex-1 p-3 space-y-1">
