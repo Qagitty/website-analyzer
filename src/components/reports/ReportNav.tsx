@@ -7,6 +7,7 @@
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { Link2, Check } from 'lucide-react';
 import type { NavSection, CategoryScore, ScoreAvailable } from '@/lib/report/view-model';
 
 // ─── Score pip ─────────────────────────────────────────────────────────────────
@@ -47,7 +48,7 @@ function CopyLinkButton({ sectionId }: { sectionId: string }) {
       className="opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity
                  text-muted-foreground/40 hover:text-muted-foreground text-xs ml-1 shrink-0"
     >
-      {copied ? '✓' : '#'}
+      {copied ? <Check className="h-3 w-3" /> : <Link2 className="h-3 w-3" />}
     </button>
   );
 }
