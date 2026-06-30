@@ -283,37 +283,37 @@ describe('performance category limitations', () => {
 describe('buildNavSections', () => {
   it('always includes overview', () => {
     const vm = buildReportViewModel(makeAnalysis());
-    const sections = buildNavSections(vm, false, false, false);
+    const sections = buildNavSections(vm, false, false, 0);
     expect(sections.some(s => s.id === 'overview')).toBe(true);
   });
 
   it('excludes console-errors section when no errors', () => {
     const vm = buildReportViewModel(makeAnalysis());
-    const sections = buildNavSections(vm, false, false, false);
+    const sections = buildNavSections(vm, false, false, 0);
     expect(sections.some(s => s.id === 'console-errors')).toBe(false);
   });
 
   it('includes console-errors when hasConsoleErrors is true', () => {
     const vm = buildReportViewModel(makeAnalysis());
-    const sections = buildNavSections(vm, true, false, false);
+    const sections = buildNavSections(vm, true, false, 0);
     expect(sections.some(s => s.id === 'console-errors')).toBe(true);
   });
 
   it('includes crawled-pages when hasCrawlPages is true', () => {
     const vm = buildReportViewModel(makeAnalysis());
-    const sections = buildNavSections(vm, false, false, true);
+    const sections = buildNavSections(vm, false, false, 5);
     expect(sections.some(s => s.id === 'crawled-pages')).toBe(true);
   });
 
   it('excludes design section when no design comparison', () => {
     const vm = buildReportViewModel(makeAnalysis());
-    const sections = buildNavSections(vm, false, false, false);
+    const sections = buildNavSections(vm, false, false, 0);
     expect(sections.some(s => s.id === 'design')).toBe(false);
   });
 
   it('sections are in the expected display order', () => {
     const vm = buildReportViewModel(makeAnalysis());
-    const sections = buildNavSections(vm, false, false, false);
+    const sections = buildNavSections(vm, false, false, 0);
     const ids = sections.map(s => s.id);
     // Overview must come first
     expect(ids[0]).toBe('overview');
@@ -327,7 +327,7 @@ describe('buildNavSections', () => {
 
   it('performance section includes score', () => {
     const vm = buildReportViewModel(makeAnalysis());
-    const sections = buildNavSections(vm, false, false, false);
+    const sections = buildNavSections(vm, false, false, 0);
     const perfSection = sections.find(s => s.id === 'performance')!;
     expect(perfSection.score).not.toBeNull();
     expect(perfSection.score!.available).toBe(true);

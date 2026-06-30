@@ -620,26 +620,46 @@ export interface NavSection {
   available: boolean;
 }
 
+function countScore(value: number, colorClass: ScoreColorClass): CategoryScore {
+  return {
+    available: true,
+    value,
+    grade: 'A',
+    label: String(value),
+    colorClass,
+    barColor: 'bg-emerald-500',
+  };
+}
+
 export function buildNavSections(
   vm: ReportViewModel,
   hasConsoleErrors: boolean,
   hasDesignComparison: boolean,
-  hasCrawlPages: boolean,
+  crawlPageCount: number,
 ): NavSection[] {
   const categoryMap = Object.fromEntries(vm.categories.map(c => [c.id, c]));
 
+  const issueCount = vm.overview.criticalFindings + vm.overview.highFindings;
+  const actionPlanScore: CategoryScore | null = issueCount > 0
+    ? countScore(issueCount, issueCount > 5 ? 'text-red-400' : 'text-amber-400')
+    : null;
+
+  const crawledPagesScore: CategoryScore | null = crawlPageCount > 0
+    ? countScore(crawlPageCount, 'text-emerald-400')
+    : null;
+
   const sections: NavSection[] = [
-    { id: 'overview',      label: 'Overview',        icon: '📊', score: null,                             available: true },
-    { id: 'action-plan',   label: 'Action Plan',     icon: '🎯', score: null,                             available: vm.overview.criticalFindings + vm.overview.highFindings > 0 },
-    { id: 'performance',   label: 'Performance',     icon: '⚡', score: categoryMap['performance']?.score ?? null,    available: true },
-    { id: 'accessibility', label: 'Accessibility',   icon: '♿', score: categoryMap['accessibility']?.score ?? null, available: true },
-    { id: 'seo',           label: 'SEO',             icon: '🔍', score: categoryMap['seo']?.score ?? null,           available: true },
-    { id: 'best-practices',label: 'Best Practices',  icon: '✅', score: categoryMap['best-practices']?.score ?? null, available: true },
-    { id: 'security',      label: 'Security',        icon: '🔒', score: categoryMap['security']?.score ?? null,      available: !!categoryMap['security']?.hasV2Audit },
-    { id: 'llm-readiness', label: 'AI Readiness',   icon: '🤖', score: categoryMap['llm-readiness']?.score ?? null, available: !!categoryMap['llm-readiness'] },
-    { id: 'console-errors',label: 'Console',         icon: '🐛', score: null,                             available: hasConsoleErrors },
-    { id: 'design',        label: 'Design',          icon: '🎨', score: null,                             available: hasDesignComparison },
-    { id: 'crawled-pages', label: 'Crawled Pages',   icon: '🕷️', score: null,                             available: hasCrawlPages },
+    { id: 'overview',      label: 'Overview',       icon: '📊', score: null,                                          available: true },
+    { id: 'action-plan',   label: 'Action Plan',    icon: '🎯', score: actionPlanScore,                               available: issueCount > 0 },
+    { id: 'performance',   label: 'Performance',    icon: '⚡', score: categoryMap['performance']?.score ?? null,     available: true },
+    { id: 'accessibility', label: 'Accessibility',  icon: '♿', score: categoryMap['accessibility']?.score ?? null,  available: true },
+    { id: 'seo',           label: 'SEO',            icon: '🔍', score: categoryMap['seo']?.score ?? null,            available: true },
+    { id: 'best-practices',label: 'Best Practices', icon: '✅', score: categoryMap['best-practices']?.score ?? null, available: true },
+    { id: 'security',      label: 'Security',       icon: '🔒', score: categoryMap['security']?.score ?? null,       available: !!categoryMap['security']?.hasV2Audit },
+    { id: 'llm-readiness', label: 'AI Readiness',  icon: '🤖', score: categoryMap['llm-readiness']?.score ?? null,  available: !!categoryMap['llm-readiness'] },
+    { id: 'console-errors',label: 'Console',        icon: '🐛', score: null,                                          available: hasConsoleErrors },
+    { id: 'design',        label: 'Design',         icon: '🎨', score: null,                                          available: hasDesignComparison },
+    { id: 'crawled-pages', label: 'Crawled Pages',  icon: '🕷️', score: crawledPagesScore,                            available: crawlPageCount > 0 },
   ];
 
   return sections.filter(s => s.available);

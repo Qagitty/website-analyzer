@@ -57,9 +57,9 @@ export default async function ReportPage(props: { params: Promise<{ id: string }
 
   const hasConsoleErrors = !!(analysis.console_errors?.length);
   const hasDesignComparison = !!(analysis.design_comparison);
-  const hasCrawlPages = !!(analysis.crawl_pages?.length);
+  const crawlPageCount = analysis.crawl_pages?.length ?? 0;
 
-  const navSections = buildNavSections(vm, hasConsoleErrors, hasDesignComparison, hasCrawlPages);
+  const navSections = buildNavSections(vm, hasConsoleErrors, hasDesignComparison, crawlPageCount);
 
   return (
     <div className="flex gap-8 max-w-[1280px] mx-auto">
@@ -191,7 +191,7 @@ export default async function ReportPage(props: { params: Promise<{ id: string }
         )}
 
         {/* Crawled pages */}
-        {hasCrawlPages && (
+        {crawlPageCount > 0 && (
           <section id="crawled-pages" aria-labelledby="crawled-pages-heading" className="scroll-mt-20">
             <CrawledPagesSection
               crawledPages={analysis.crawl_pages as any}
