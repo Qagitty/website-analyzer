@@ -167,19 +167,7 @@ export function ReportNav({ sections, url, scannedAt, actionsSlot }: ReportNavPr
       </nav>
 
       {/* Mobile sticky header — Option C layout */}
-      <div className="lg:hidden sticky top-14 z-30 bg-background/95 backdrop-blur border-b border-border/50 -mx-4">
-
-        {/* Row 0: URL + date */}
-        {url && (
-          <div className="px-4 pt-2.5 pb-1">
-            <p className="text-sm font-semibold text-foreground truncate">{url}</p>
-            {scannedAt && (
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                Analyzed {formatDistanceToNow(new Date(scannedAt), { addSuffix: true })}
-              </p>
-            )}
-          </div>
-        )}
+      <div className="lg:hidden sticky top-14 z-30 bg-background/95 backdrop-blur border-b border-border/50 -mx-4 -mt-4">
 
         {/* Row 1: Action buttons (scrollable) */}
         {actionsSlot && (
