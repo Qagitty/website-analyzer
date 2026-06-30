@@ -63,7 +63,7 @@ export default async function ReportPage(props: { params: Promise<{ id: string }
   const navSections = buildNavSections(vm, hasConsoleErrors, hasDesignComparison, crawlPageCount, actionPlanCount);
 
   return (
-    <div className="flex gap-8 max-w-[1280px] mx-auto">
+    <div className="flex flex-col lg:flex-row lg:gap-8 max-w-[1280px] mx-auto">
       {/* §7 — Sticky navigation sidebar (desktop) + horizontal pill nav (mobile) */}
       <ReportNav sections={navSections} />
 
