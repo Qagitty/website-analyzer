@@ -185,7 +185,8 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="overflow-x-auto -mx-1 px-1">
+        <div className="flex items-center gap-2 w-max">
           <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">Completed</Badge>
 
           {/* Share toggle */}
@@ -369,6 +370,7 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
               )}
             </div>
           )}
+        </div>
         </div>
       </div>
 
