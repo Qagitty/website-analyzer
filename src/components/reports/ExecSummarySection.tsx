@@ -216,9 +216,9 @@ export function ExecSummarySection({ vm }: Props) {
   return (
     <section className="space-y-6">
       {/* §4 — Title + metadata */}
-      <div>
+      <div className="text-center lg:text-left">
         <h2 id="overview-heading" className="text-2xl font-bold">Executive Summary</h2>
-        <p className="text-sm text-muted-foreground mt-0.5 flex flex-wrap items-center gap-2">
+        <p className="text-sm text-muted-foreground mt-0.5 flex flex-wrap items-center justify-center lg:justify-start gap-2">
           <span>{domain}{date ? ` · Analysed ${date}` : ''}</span>
           {overview.auditModeLabel && (
             <span className="text-xs bg-secondary px-1.5 py-0.5 rounded">
