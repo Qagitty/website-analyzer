@@ -58,8 +58,9 @@ export default async function ReportPage(props: { params: Promise<{ id: string }
   const hasConsoleErrors = !!(analysis.console_errors?.length);
   const hasDesignComparison = !!(analysis.design_comparison);
   const crawlPageCount = analysis.crawl_pages?.length ?? 0;
+  const actionPlanCount = ((analysis.ai_insights as any)?.insights as any[] | null)?.length ?? 0;
 
-  const navSections = buildNavSections(vm, hasConsoleErrors, hasDesignComparison, crawlPageCount);
+  const navSections = buildNavSections(vm, hasConsoleErrors, hasDesignComparison, crawlPageCount, actionPlanCount);
 
   return (
     <div className="flex gap-8 max-w-[1280px] mx-auto">

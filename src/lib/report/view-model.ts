@@ -636,12 +636,12 @@ export function buildNavSections(
   hasConsoleErrors: boolean,
   hasDesignComparison: boolean,
   crawlPageCount: number,
+  actionPlanCount: number,
 ): NavSection[] {
   const categoryMap = Object.fromEntries(vm.categories.map(c => [c.id, c]));
 
-  const issueCount = vm.overview.criticalFindings + vm.overview.highFindings;
-  const actionPlanScore: CategoryScore | null = issueCount > 0
-    ? countScore(issueCount, issueCount > 5 ? 'text-red-400' : 'text-amber-400')
+  const actionPlanScore: CategoryScore | null = actionPlanCount > 0
+    ? countScore(actionPlanCount, actionPlanCount > 5 ? 'text-red-400' : 'text-amber-400')
     : null;
 
   const crawledPagesScore: CategoryScore | null = crawlPageCount > 0
@@ -650,7 +650,7 @@ export function buildNavSections(
 
   const sections: NavSection[] = [
     { id: 'overview',      label: 'Overview',       icon: '📊', score: null,                                          available: true },
-    { id: 'action-plan',   label: 'Action Plan',    icon: '🎯', score: actionPlanScore,                               available: issueCount > 0 },
+    { id: 'action-plan',   label: 'Action Plan',    icon: '🎯', score: actionPlanScore,                               available: actionPlanCount > 0 },
     { id: 'performance',   label: 'Performance',    icon: '⚡', score: categoryMap['performance']?.score ?? null,     available: true },
     { id: 'accessibility', label: 'Accessibility',  icon: '♿', score: categoryMap['accessibility']?.score ?? null,  available: true },
     { id: 'seo',           label: 'SEO',            icon: '🔍', score: categoryMap['seo']?.score ?? null,            available: true },
