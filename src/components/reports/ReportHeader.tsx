@@ -176,16 +176,17 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-bold truncate text-foreground">{analysis.url}</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Analyzed {formatDistanceToNow(new Date(analysis.created_at), { addSuffix: true })}
-            {duration && <> · {duration}s</>}
-          </p>
-        </div>
+      {/* URL + date: visible on desktop only (mobile shows them in sticky nav) */}
+      <div className="hidden lg:block">
+        <h1 className="text-2xl font-bold truncate text-foreground">{analysis.url}</h1>
+        <p className="text-muted-foreground text-sm mt-1">
+          Analyzed {formatDistanceToNow(new Date(analysis.created_at), { addSuffix: true })}
+          {duration && <> · {duration}s</>}
+        </p>
+      </div>
 
-        <div className="overflow-x-auto -mx-1 px-1">
+      {/* Action buttons: desktop only (mobile shows them in sticky nav) */}
+      <div className="hidden lg:block overflow-x-auto -mx-1 px-1">
         <div className="flex items-center gap-2 w-max">
           <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">Completed</Badge>
 
@@ -370,7 +371,6 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
               )}
             </div>
           )}
-        </div>
         </div>
       </div>
 

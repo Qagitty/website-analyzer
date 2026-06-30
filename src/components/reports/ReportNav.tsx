@@ -6,7 +6,7 @@
  * §8 — Stable deep links: copy-link action per section.
  */
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, type ReactNode } from 'react';
 import { Link2, Check } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import type { NavSection, CategoryScore, ScoreAvailable } from '@/lib/report/view-model';
@@ -92,9 +92,10 @@ interface ReportNavProps {
   sections: NavSection[];
   url?: string;
   scannedAt?: string;
+  actionsSlot?: ReactNode;
 }
 
-export function ReportNav({ sections, url, scannedAt }: ReportNavProps) {
+export function ReportNav({ sections, url, scannedAt, actionsSlot }: ReportNavProps) {
   const [activeId, setActiveId] = useState<string>(sections[0]?.id ?? '');
   const observerRef = useRef<IntersectionObserver | null>(null);
   const isManualScrollRef = useRef(false);
@@ -165,36 +166,54 @@ export function ReportNav({ sections, url, scannedAt }: ReportNavProps) {
         ))}
       </nav>
 
-      {/* Mobile sticky header: URL + date + pill nav */}
+      {/* Mobile sticky header — Option C layout */}
       <div className="lg:hidden sticky top-14 z-30 bg-background/95 backdrop-blur border-b border-border/50 -mx-4">
-      <nav
-        aria-label="Report sections"
-        className="px-4 py-2 overflow-x-auto"
-      >
-        <div className="flex gap-1.5 w-max">
-          {sections.map(section => (
-            <a
-              key={section.id}
-              href={`#${section.id}`}
-              onClick={(e) => { e.preventDefault(); scrollToSection(section.id); }}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors
-                ${activeId === section.id
-                  ? 'bg-orange-100 dark:bg-orange-950/40 text-orange-500 border border-orange-300 dark:border-orange-900/50'
-                  : 'bg-secondary text-muted-foreground hover:text-foreground'
-                }`}
-              aria-current={activeId === section.id ? 'location' : undefined}
-            >
-              <span aria-hidden="true">{section.icon}</span>
-              {section.label}
-              {section.score?.available && (
-                <span className={`font-bold ${(section.score as ScoreAvailable).colorClass}`}>
-                  {(section.score as ScoreAvailable).value}
-                </span>
-              )}
-            </a>
-          ))}
-        </div>
-      </nav>
+
+        {/* Row 0: URL + date */}
+        {url && (
+          <div className="px-4 pt-2.5 pb-1">
+            <p className="text-sm font-semibold text-foreground truncate">{url}</p>
+            {scannedAt && (
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Analyzed {formatDistanceToNow(new Date(scannedAt), { addSuffix: true })}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Row 1: Action buttons (scrollable) */}
+        {actionsSlot && (
+          <div className="overflow-x-auto px-4 py-1.5">
+            {actionsSlot}
+          </div>
+        )}
+
+        {/* Row 2: Nav pills (scrollable) */}
+        <nav aria-label="Report sections" className="overflow-x-auto px-4 py-2">
+          <div className="flex gap-1.5 w-max">
+            {sections.map(section => (
+              <a
+                key={section.id}
+                href={`#${section.id}`}
+                onClick={(e) => { e.preventDefault(); scrollToSection(section.id); }}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors
+                  ${activeId === section.id
+                    ? 'bg-orange-100 dark:bg-orange-950/40 text-orange-500 border border-orange-300 dark:border-orange-900/50'
+                    : 'bg-secondary text-muted-foreground hover:text-foreground'
+                  }`}
+                aria-current={activeId === section.id ? 'location' : undefined}
+              >
+                <span aria-hidden="true">{section.icon}</span>
+                {section.label}
+                {section.score?.available && (
+                  <span className={`font-bold ${(section.score as ScoreAvailable).colorClass}`}>
+                    {(section.score as ScoreAvailable).value}
+                  </span>
+                )}
+              </a>
+            ))}
+          </div>
+        </nav>
       </div>
     </>
   );

@@ -5,6 +5,7 @@ import { getSignedUrlOrNull } from '@/lib/supabase/storage';
 import { buildReportViewModel, buildNavSections } from '@/lib/report/view-model';
 import { ReportNav } from '@/components/reports/ReportNav';
 import { ReportHeader } from '@/components/reports/ReportHeader';
+import { ReportActionBar } from '@/components/reports/ReportActionBar';
 import { ExecSummarySection } from '@/components/reports/ExecSummarySection';
 import { FixRoadmapSection } from '@/components/reports/FixRoadmapSection';
 import { PerformanceSection } from '@/components/reports/PerformanceSection';
@@ -65,7 +66,12 @@ export default async function ReportPage(props: { params: Promise<{ id: string }
   return (
     <div className="flex flex-col lg:flex-row lg:gap-8 max-w-[1280px] mx-auto">
       {/* §7 — Sticky navigation sidebar (desktop) + horizontal pill nav (mobile) */}
-      <ReportNav sections={navSections} url={analysis.url} scannedAt={analysis.created_at} />
+      <ReportNav
+        sections={navSections}
+        url={analysis.url}
+        scannedAt={analysis.created_at}
+        actionsSlot={<ReportActionBar analysis={analysis} />}
+      />
 
       {/* Main report content */}
       <main className="flex-1 min-w-0 space-y-10 pb-16">
