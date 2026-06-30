@@ -165,7 +165,7 @@ export default function LandingPage() {
             <Link href="/changelog" className="hover:text-foreground transition-colors">Changelog</Link>
             <Link href="/sample-report" className="hover:text-foreground transition-colors">Sample report</Link>
           </div>
-          <div className="flex items-center gap-3 z-10">
+          <div className="flex items-center gap-2 z-10">
             <ThemeToggle />
             <button
               onClick={() => setModal({ open: true, tab: 'signin' })}
@@ -175,7 +175,7 @@ export default function LandingPage() {
             </button>
             <button
               onClick={openSignup}
-              className="rounded bg-orange-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-orange-500 transition-colors"
+              className="rounded bg-orange-600 px-3 py-1 text-xs sm:text-sm sm:px-4 sm:py-1.5 font-medium text-white hover:bg-orange-500 transition-colors whitespace-nowrap"
             >
               Get started free
             </button>
