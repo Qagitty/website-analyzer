@@ -15,14 +15,61 @@ export default function AppleIcon() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          position: 'relative',
         }}
       >
-        <svg width="120" height="120" viewBox="0 0 22 22" fill="none">
-          <path d="M9 17 A11 11 0 0 1 20 6" stroke="#0ea5e9" strokeWidth="2.2" strokeLinecap="round" opacity="0.35"/>
-          <path d="M9 17 A8 8 0 0 1 17 9" stroke="#0ea5e9" strokeWidth="2.2" strokeLinecap="round" opacity="0.65"/>
-          <path d="M9 17 A5 5 0 0 1 14 12" stroke="#0ea5e9" strokeWidth="2.2" strokeLinecap="round"/>
-          <circle cx="9" cy="17" r="2.5" fill="#0ea5e9"/>
-        </svg>
+        {/* Dot */}
+        <div style={{
+          position: 'absolute',
+          left: 42,
+          bottom: 42,
+          width: 22,
+          height: 22,
+          borderRadius: '50%',
+          background: '#0ea5e9',
+        }} />
+        {/* Inner arc */}
+        <div style={{
+          position: 'absolute',
+          left: 42,
+          bottom: 42,
+          width: 50,
+          height: 50,
+          borderRadius: '50%',
+          borderLeft: '7px solid transparent',
+          borderBottom: '7px solid transparent',
+          borderTop: '7px solid #0ea5e9',
+          borderRight: '7px solid #0ea5e9',
+          transform: 'rotate(225deg)',
+        }} />
+        {/* Mid arc */}
+        <div style={{
+          position: 'absolute',
+          left: 42,
+          bottom: 42,
+          width: 82,
+          height: 82,
+          borderRadius: '50%',
+          borderLeft: '7px solid transparent',
+          borderBottom: '7px solid transparent',
+          borderTop: '7px solid rgba(14,165,233,0.65)',
+          borderRight: '7px solid rgba(14,165,233,0.65)',
+          transform: 'rotate(225deg)',
+        }} />
+        {/* Outer arc */}
+        <div style={{
+          position: 'absolute',
+          left: 42,
+          bottom: 42,
+          width: 114,
+          height: 114,
+          borderRadius: '50%',
+          borderLeft: '7px solid transparent',
+          borderBottom: '7px solid transparent',
+          borderTop: '7px solid rgba(14,165,233,0.35)',
+          borderRight: '7px solid rgba(14,165,233,0.35)',
+          transform: 'rotate(225deg)',
+        }} />
       </div>
     ),
     { ...size }

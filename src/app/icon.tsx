@@ -15,18 +15,61 @@ export default function Icon() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          position: 'relative',
         }}
       >
-        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-          {/* outer arc */}
-          <path d="M9 17 A11 11 0 0 1 20 6" stroke="#0ea5e9" strokeWidth="2.2" strokeLinecap="round" opacity="0.35"/>
-          {/* mid arc */}
-          <path d="M9 17 A8 8 0 0 1 17 9" stroke="#0ea5e9" strokeWidth="2.2" strokeLinecap="round" opacity="0.65"/>
-          {/* inner arc */}
-          <path d="M9 17 A5 5 0 0 1 14 12" stroke="#0ea5e9" strokeWidth="2.2" strokeLinecap="round"/>
-          {/* dot */}
-          <circle cx="9" cy="17" r="2.5" fill="#0ea5e9"/>
-        </svg>
+        {/* Dot */}
+        <div style={{
+          position: 'absolute',
+          left: 7,
+          bottom: 7,
+          width: 5,
+          height: 5,
+          borderRadius: '50%',
+          background: '#0ea5e9',
+        }} />
+        {/* Inner arc — border trick */}
+        <div style={{
+          position: 'absolute',
+          left: 7,
+          bottom: 7,
+          width: 9,
+          height: 9,
+          borderRadius: '50%',
+          borderLeft: '2px solid transparent',
+          borderBottom: '2px solid transparent',
+          borderTop: '2px solid #0ea5e9',
+          borderRight: '2px solid #0ea5e9',
+          transform: 'rotate(225deg)',
+        }} />
+        {/* Mid arc */}
+        <div style={{
+          position: 'absolute',
+          left: 7,
+          bottom: 7,
+          width: 15,
+          height: 15,
+          borderRadius: '50%',
+          borderLeft: '2px solid transparent',
+          borderBottom: '2px solid transparent',
+          borderTop: '2px solid rgba(14,165,233,0.65)',
+          borderRight: '2px solid rgba(14,165,233,0.65)',
+          transform: 'rotate(225deg)',
+        }} />
+        {/* Outer arc */}
+        <div style={{
+          position: 'absolute',
+          left: 7,
+          bottom: 7,
+          width: 21,
+          height: 21,
+          borderRadius: '50%',
+          borderLeft: '2px solid transparent',
+          borderBottom: '2px solid transparent',
+          borderTop: '2px solid rgba(14,165,233,0.35)',
+          borderRight: '2px solid rgba(14,165,233,0.35)',
+          transform: 'rotate(225deg)',
+        }} />
       </div>
     ),
     { ...size }
