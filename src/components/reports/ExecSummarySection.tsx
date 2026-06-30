@@ -215,10 +215,10 @@ export function ExecSummarySection({ vm }: Props) {
 
   return (
     <section className="space-y-6">
-      {/* §4 — Title + metadata */}
-      <div className="text-center lg:text-left">
+      {/* §4 — Title + metadata (desktop only — mobile shows URL/date in sticky nav) */}
+      <div className="hidden lg:block">
         <h2 id="overview-heading" className="text-2xl font-bold">Executive Summary</h2>
-        <p className="text-sm text-muted-foreground mt-0.5 flex flex-wrap items-center justify-center lg:justify-start gap-2">
+        <p className="flex text-sm text-muted-foreground mt-0.5 flex-wrap items-center gap-2">
           <span>{domain}{date ? ` · Analysed ${date}` : ''}</span>
           {overview.auditModeLabel && (
             <span className="text-xs bg-secondary px-1.5 py-0.5 rounded">
@@ -227,6 +227,8 @@ export function ExecSummarySection({ vm }: Props) {
           )}
         </p>
       </div>
+      {/* Mobile: sr-only anchor only (section name shown in sticky header, audit badge hidden) */}
+      <h2 id="overview-heading" className="sr-only lg:hidden">Executive Summary</h2>
 
       {/* §4 — Overall health card */}
       <Card className="bg-card border border-border">
