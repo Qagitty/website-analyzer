@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ShieldCheck, ShieldAlert, ShieldX, ExternalLink, RefreshCw } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, ShieldX, ExternalLink, RefreshCw, History, ChevronDown, ChevronUp } from 'lucide-react';
 import { createBrowserClient } from '@/lib/supabase/client';
 import {
   getComplianceSummary,
@@ -12,7 +12,7 @@ import {
 } from '@/lib/compliance';
 import { ClipboardList } from 'lucide-react';
 import type { AccessibilityIssue } from '@/types/analysis';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -25,6 +25,16 @@ interface SiteCompliance {
   summary: ComplianceSummary | null;
   /** Last 5 compliance snapshots, newest first */
   history: ComplianceLevel[];
+}
+
+interface HistoryRow {
+  analysisId: string;
+  url: string;
+  completedAt: string;
+  level: ComplianceLevel;
+  criticalCount: number;
+  moderateCount: number;
+  totalIssues: number;
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -138,6 +148,151 @@ function SiteCard({ site }: { site: SiteCompliance }) {
   );
 }
 
+/** Full history table — filterable by URL, sortable by date */
+function ComplianceHistoryTable({ rows }: { rows: HistoryRow[] }) {
+  const [filterUrl, setFilterUrl]   = useState<string>('all');
+  const [filterLevel, setFilterLevel] = useState<string>('all');
+  const [expanded, setExpanded]     = useState(true);
+
+  const urls = ['all', ...Array.from(new Set(rows.map(r => {
+    try { return new URL(r.url).hostname; } catch { return r.url; }
+  })))];
+
+  const filtered = rows.filter(r => {
+    const hostname = (() => { try { return new URL(r.url).hostname; } catch { return r.url; } })();
+    if (filterUrl   !== 'all' && hostname    !== filterUrl)    return false;
+    if (filterLevel !== 'all' && r.level     !== filterLevel)  return false;
+    return true;
+  });
+
+  return (
+    <div className="bg-card border border-border rounded-xl overflow-hidden">
+      {/* Header */}
+      <button
+        onClick={() => setExpanded(v => !v)}
+        className="w-full flex items-center justify-between px-5 py-4 hover:bg-accent/50 transition-colors"
+      >
+        <div className="flex items-center gap-2.5">
+          <History className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-semibold text-foreground">Compliance History</span>
+          <span className="text-xs text-muted-foreground bg-secondary rounded-full px-2 py-0.5">
+            {rows.length} audits
+          </span>
+        </div>
+        {expanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+      </button>
+
+      {expanded && (
+        <>
+          {/* Filters */}
+          <div className="flex flex-wrap gap-3 px-5 pb-4 border-t border-border/50 pt-4">
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-muted-foreground whitespace-nowrap">Site</label>
+              <select
+                value={filterUrl}
+                onChange={e => setFilterUrl(e.target.value)}
+                className="text-xs bg-secondary border border-border rounded-md px-2 py-1 text-foreground focus:outline-none focus:ring-1 focus:ring-orange-500"
+              >
+                {urls.map(u => <option key={u} value={u}>{u === 'all' ? 'All sites' : u}</option>)}
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-muted-foreground whitespace-nowrap">Status</label>
+              <select
+                value={filterLevel}
+                onChange={e => setFilterLevel(e.target.value)}
+                className="text-xs bg-secondary border border-border rounded-md px-2 py-1 text-foreground focus:outline-none focus:ring-1 focus:ring-orange-500"
+              >
+                <option value="all">All statuses</option>
+                <option value="compliant">Compliant</option>
+                <option value="partial">Partial</option>
+                <option value="non-compliant">Non-Compliant</option>
+              </select>
+            </div>
+            {(filterUrl !== 'all' || filterLevel !== 'all') && (
+              <button
+                onClick={() => { setFilterUrl('all'); setFilterLevel('all'); }}
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
+
+          {/* Table */}
+          {filtered.length === 0 ? (
+            <div className="px-5 pb-8 text-center text-sm text-muted-foreground">
+              No audits match the selected filters.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-t border-border/50 bg-secondary/30">
+                    <th className="text-left text-xs font-medium text-muted-foreground px-5 py-2.5">Date</th>
+                    <th className="text-left text-xs font-medium text-muted-foreground px-4 py-2.5">Site</th>
+                    <th className="text-left text-xs font-medium text-muted-foreground px-4 py-2.5">Status</th>
+                    <th className="text-right text-xs font-medium text-muted-foreground px-4 py-2.5">Critical</th>
+                    <th className="text-right text-xs font-medium text-muted-foreground px-4 py-2.5">Moderate</th>
+                    <th className="text-right text-xs font-medium text-muted-foreground px-4 py-2.5">Total</th>
+                    <th className="px-5 py-2.5" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/40">
+                  {filtered.map(row => {
+                    const cfg      = COMPLIANCE_CONFIG[row.level];
+                    const hostname = (() => { try { return new URL(row.url).hostname; } catch { return row.url; } })();
+                    return (
+                      <tr key={row.analysisId} className="hover:bg-secondary/20 transition-colors">
+                        <td className="px-5 py-3 text-xs text-muted-foreground whitespace-nowrap">
+                          <div>{format(new Date(row.completedAt), 'MMM d, yyyy')}</div>
+                          <div className="text-muted-foreground/50">{format(new Date(row.completedAt), 'HH:mm')}</div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="text-xs font-medium text-foreground">{hostname}</span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${cfg.badgeClass}`}>
+                            {row.level === 'compliant' && <ShieldCheck className="h-3 w-3" />}
+                            {row.level === 'partial'   && <ShieldAlert  className="h-3 w-3" />}
+                            {row.level === 'non-compliant' && <ShieldX  className="h-3 w-3" />}
+                            {cfg.short}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <span className={`text-xs font-semibold tabular-nums ${row.criticalCount > 0 ? 'text-red-400' : 'text-muted-foreground/50'}`}>
+                            {row.criticalCount > 0 ? row.criticalCount : '—'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <span className={`text-xs font-semibold tabular-nums ${row.moderateCount > 0 ? 'text-amber-400' : 'text-muted-foreground/50'}`}>
+                            {row.moderateCount > 0 ? row.moderateCount : '—'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <span className="text-xs tabular-nums text-muted-foreground">{row.totalIssues}</span>
+                        </td>
+                        <td className="px-5 py-3 text-right">
+                          <Link
+                            href={`/reports/${row.analysisId}`}
+                            className="text-xs text-orange-500 hover:text-orange-400 transition-colors whitespace-nowrap"
+                          >
+                            View report →
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 function StatCard({
   label, value, sub, colorClass,
 }: { label: string; value: number; sub?: string; colorClass: string }) {
@@ -169,9 +324,10 @@ function PageSkeleton() {
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function CompliancePage() {
-  const [sites, setSites]       = useState<SiteCompliance[]>([]);
-  const [loading, setLoading]   = useState(true);
-  const [error, setError]       = useState(false);
+  const [sites, setSites]           = useState<SiteCompliance[]>([]);
+  const [historyRows, setHistoryRows] = useState<HistoryRow[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [error, setError]           = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   async function load(showRefresh = false) {
@@ -217,27 +373,45 @@ export default function CompliancePage() {
         (latestAnalyses ?? []).map((a) => [a.id, a]),
       );
 
-      // 3. Fetch recent history (last 5 per URL) for trend dots
+      // 3. Fetch full history for monitored URLs (up to 200 rows for the table)
       const urls = [...new Set(monitors.map((m) => m.url))];
-      const { data: historyRows } = await supabase
+      const { data: allHistory } = await supabase
         .from('analyses')
-        .select('url, accessibility_issues, completed_at')
+        .select('id, url, accessibility_issues, completed_at')
         .eq('user_id', user.id)
         .in('url', urls)
         .eq('status', 'completed')
         .order('completed_at', { ascending: false })
-        .limit(urls.length * 5);
+        .limit(200);
 
-      // Group history by URL
+      // Group history by URL (first 5 per URL for trend dots)
       const historyByUrl = new Map<string, ComplianceLevel[]>();
-      for (const row of historyRows ?? []) {
+      const tableRows: HistoryRow[] = [];
+
+      for (const row of allHistory ?? []) {
+        const issues  = (row.accessibility_issues as AccessibilityIssue[]) ?? [];
+        const summary = getComplianceSummary(issues);
+
+        // trend dots
         const existing = historyByUrl.get(row.url) ?? [];
         if (existing.length < 5) {
-          const issues = (row.accessibility_issues as AccessibilityIssue[]) ?? [];
-          existing.push(getComplianceSummary(issues).level);
+          existing.push(summary.level);
           historyByUrl.set(row.url, existing);
         }
+
+        // full history table
+        tableRows.push({
+          analysisId:    row.id,
+          url:           row.url,
+          completedAt:   row.completed_at ?? '',
+          level:         summary.level,
+          criticalCount: summary.criticalCount,
+          moderateCount: summary.moderateCount,
+          totalIssues:   summary.totalIssues,
+        });
       }
+
+      setHistoryRows(tableRows);
 
       // 4. Build site compliance objects
       const result: SiteCompliance[] = monitors.map((monitor) => {
@@ -379,6 +553,11 @@ export default function CompliancePage() {
                 <SiteCard key={site.monitorId} site={site} />
               ))}
           </div>
+
+          {/* Full compliance history table */}
+          {historyRows.length > 0 && (
+            <ComplianceHistoryTable rows={historyRows} />
+          )}
         </>
       )}
     </div>
