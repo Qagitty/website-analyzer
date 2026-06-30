@@ -265,7 +265,7 @@ function ScoreStrip({ scores }: { scores: LighthouseScores }) {
     { label: 'SEO', value: scores.seo },
   ];
   return (
-    <div className="flex flex-wrap gap-4 justify-start">
+    <div className="flex flex-wrap gap-4 justify-center sm:justify-start">
       {items.map(({ label, value }) => (
         <ScoreGauge key={label} score={value} label={label} size="md" showLabel />
       ))}
@@ -644,7 +644,7 @@ function TechnicalDetails({
           )}
 
           {/* Raw values table */}
-          <div className="space-y-2">
+          <div className="space-y-2 pt-3">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Raw Values</p>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
               {[

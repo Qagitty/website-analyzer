@@ -570,10 +570,11 @@ function LegacyHeaderCard({ h, crawledPages }: { h: LegacySecurityHeaderResult; 
             )}
             {crawledPages.length > 0 && (
               <button
-                className="mt-2 text-xs text-orange-500 hover:text-orange-500 flex items-center gap-1 transition-colors"
-                onClick={() => setOpen(o => !o)}
+                type="button"
+                className="mt-2 text-xs text-orange-500 hover:text-orange-400 flex items-center gap-1 transition-colors py-1 pr-2"
+                onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}
               >
-                {open ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
                 Pages
               </button>
             )}
