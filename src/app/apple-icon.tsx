@@ -11,29 +11,18 @@ export default function AppleIcon() {
           width: 180,
           height: 180,
           borderRadius: 40,
-          background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+          background: '#0f1e2a',
           display: 'flex',
-          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: 10,
         }}
       >
-        {/* Bar chart */}
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10 }}>
-          <div style={{ width: 22, height: 42, background: 'rgba(255,255,255,0.5)', borderRadius: 4 }} />
-          <div style={{ width: 22, height: 66, background: 'rgba(255,255,255,0.75)', borderRadius: 4 }} />
-          <div style={{ width: 22, height: 90, background: '#ffffff', borderRadius: 4 }} />
-        </div>
-        {/* Underline accent */}
-        <div
-          style={{
-            width: 80,
-            height: 6,
-            background: 'rgba(255,255,255,0.6)',
-            borderRadius: 3,
-          }}
-        />
+        <svg width="120" height="120" viewBox="0 0 22 22" fill="none">
+          <path d="M9 17 A11 11 0 0 1 20 6" stroke="#0ea5e9" strokeWidth="2.2" strokeLinecap="round" opacity="0.35"/>
+          <path d="M9 17 A8 8 0 0 1 17 9" stroke="#0ea5e9" strokeWidth="2.2" strokeLinecap="round" opacity="0.65"/>
+          <path d="M9 17 A5 5 0 0 1 14 12" stroke="#0ea5e9" strokeWidth="2.2" strokeLinecap="round"/>
+          <circle cx="9" cy="17" r="2.5" fill="#0ea5e9"/>
+        </svg>
       </div>
     ),
     { ...size }

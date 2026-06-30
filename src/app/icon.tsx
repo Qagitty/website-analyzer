@@ -10,31 +10,23 @@ export default function Icon() {
         style={{
           width: 32,
           height: 32,
-          borderRadius: 8,
-          background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+          borderRadius: 7,
+          background: '#0f1e2a',
           display: 'flex',
-          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: 2,
         }}
       >
-        {/* Bar chart — 3 bars of increasing height */}
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2 }}>
-          <div style={{ width: 4, height: 7, background: 'rgba(255,255,255,0.55)', borderRadius: 1 }} />
-          <div style={{ width: 4, height: 11, background: 'rgba(255,255,255,0.8)', borderRadius: 1 }} />
-          <div style={{ width: 4, height: 15, background: '#ffffff', borderRadius: 1 }} />
-        </div>
-        {/* Magnifying glass arc (simplified as a small circle ring + handle) */}
-        <div
-          style={{
-            width: 8,
-            height: 2,
-            background: 'rgba(255,255,255,0.7)',
-            borderRadius: 1,
-            marginTop: 1,
-          }}
-        />
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+          {/* outer arc */}
+          <path d="M9 17 A11 11 0 0 1 20 6" stroke="#0ea5e9" strokeWidth="2.2" strokeLinecap="round" opacity="0.35"/>
+          {/* mid arc */}
+          <path d="M9 17 A8 8 0 0 1 17 9" stroke="#0ea5e9" strokeWidth="2.2" strokeLinecap="round" opacity="0.65"/>
+          {/* inner arc */}
+          <path d="M9 17 A5 5 0 0 1 14 12" stroke="#0ea5e9" strokeWidth="2.2" strokeLinecap="round"/>
+          {/* dot */}
+          <circle cx="9" cy="17" r="2.5" fill="#0ea5e9"/>
+        </svg>
       </div>
     ),
     { ...size }
