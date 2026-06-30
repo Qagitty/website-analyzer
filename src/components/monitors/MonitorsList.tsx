@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import {
   Clock, Globe, Trash2, Play, Pause, Plus, Bell, BellOff, ExternalLink, ChevronDown, ChevronRight,
+  RotateCw, CheckCircle2, AlertTriangle, XCircle,
 } from 'lucide-react';
 import { z } from 'zod';
 import type { Monitor } from '@/types/analysis';
@@ -27,13 +28,32 @@ import {
 const urlSchema = z.string().trim().url('Please enter a valid URL including https://');
 
 // ── Create form ──────────────────────────────────────────────────────────────
+// Common IANA timezones for the selector
+const COMMON_TIMEZONES = [
+  'UTC', 'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles',
+  'America/Sao_Paulo', 'Europe/London', 'Europe/Paris', 'Europe/Berlin', 'Europe/Moscow',
+  'Asia/Dubai', 'Asia/Kolkata', 'Asia/Singapore', 'Asia/Tokyo', 'Australia/Sydney',
+];
+
+const SCHEDULE_PRESETS = [
+  { label: 'Every day',     frequency: 'daily'  as const, intervalHours: null },
+  { label: 'Every weekday', frequency: 'daily'  as const, intervalHours: null, days: [1,2,3,4,5] },
+  { label: 'Every week',    frequency: 'weekly' as const, intervalHours: null },
+  { label: 'Every 12h',     frequency: 'daily'  as const, intervalHours: 12 },
+  { label: 'Every 24h',     frequency: 'daily'  as const, intervalHours: 24 },
+];
+
 function CreateMonitorForm({ onCreated }: { onCreated: (m: Monitor) => void }) {
   const [url, setUrl] = useState('');
-  const [frequency, setFrequency] = useState<'daily' | 'weekly'>('weekly');
+  const [presetIdx, setPresetIdx] = useState(2); // Every week default
+  const [scheduleTime, setScheduleTime] = useState('09:00');
+  const [timezone, setTimezone] = useState('UTC');
   const [notify, setNotify] = useState(true);
   const [threshold, setThreshold] = useState(10);
   const [loading, setLoading] = useState(false);
   const [urlError, setUrlError] = useState('');
+
+  const preset = SCHEDULE_PRESETS[presetIdx];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,21 +66,30 @@ function CreateMonitorForm({ onCreated }: { onCreated: (m: Monitor) => void }) {
     setUrlError('');
     setLoading(true);
     try {
+      const body: Record<string, unknown> = {
+        url: trimmed,
+        frequency: preset.frequency,
+        schedule_timezone: timezone,
+        notify_on_score_drop: notify,
+        score_drop_threshold: threshold,
+      };
+      if (preset.intervalHours) {
+        body.schedule_type = 'interval';
+        body.schedule_interval_hours = preset.intervalHours;
+      } else {
+        body.schedule_time = scheduleTime;
+        if ('days' in preset && preset.days) body.schedule_days = preset.days;
+      }
       const res = await fetch('/api/monitors', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          url: trimmed,
-          frequency,
-          notify_on_score_drop: notify,
-          score_drop_threshold: threshold,
-        }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Failed to create monitor');
       onCreated(data);
       setUrl('');
-      toast.success('Monitor created!');
+      toast.success('Monitor created! Initial analysis is running.');
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -88,25 +117,50 @@ function CreateMonitorForm({ onCreated }: { onCreated: (m: Monitor) => void }) {
             {urlError && <p className="text-xs text-red-500 mt-1">{urlError}</p>}
           </div>
 
-          <div className="flex flex-wrap gap-3 items-center">
-            {/* Frequency */}
-            <div className="flex rounded-md border border-border overflow-hidden text-sm">
-              {(['daily', 'weekly'] as const).map((f) => (
-                <button
-                  key={f}
-                  type="button"
-                  onClick={() => setFrequency(f)}
-                  className={`px-3 py-1.5 capitalize transition-colors ${
-                    frequency === f
-                      ? 'bg-orange-600 text-white'
-                      : 'bg-card hover:bg-accent text-muted-foreground'
-                  }`}
-                >
-                  {f}
-                </button>
-              ))}
-            </div>
+          {/* Schedule presets */}
+          <div className="flex flex-wrap gap-2">
+            {SCHEDULE_PRESETS.map((p, i) => (
+              <button
+                key={p.label}
+                type="button"
+                onClick={() => setPresetIdx(i)}
+                className={`px-3 py-1.5 rounded-md border text-sm transition-colors ${
+                  presetIdx === i
+                    ? 'border-orange-500 bg-orange-500/10 text-orange-400'
+                    : 'border-border text-muted-foreground hover:bg-accent'
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
 
+          {/* Time + Timezone (only relevant for non-interval schedules) */}
+          {!preset.intervalHours && (
+            <div className="flex flex-wrap gap-3 items-center">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Clock className="h-3.5 w-3.5" />
+                <span>at</span>
+                <Input
+                  type="time"
+                  value={scheduleTime}
+                  onChange={(e) => setScheduleTime(e.target.value)}
+                  className="w-28 h-8"
+                />
+              </div>
+              <select
+                value={timezone}
+                onChange={(e) => setTimezone(e.target.value)}
+                className="h-8 rounded-md border border-border bg-background px-2 text-sm text-foreground"
+              >
+                {COMMON_TIMEZONES.map((tz) => (
+                  <option key={tz} value={tz}>{tz.replace('_', ' ')}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-3 items-center">
             {/* Notify toggle */}
             <button
               type="button"
@@ -136,7 +190,7 @@ function CreateMonitorForm({ onCreated }: { onCreated: (m: Monitor) => void }) {
             )}
           </div>
 
-          <Button type="submit" disabled={loading} size="sm" className="bg-orange-600 text-white hover:from-orange-400 hover:to-orange-400 border-0">
+          <Button type="submit" disabled={loading} size="sm" className="bg-orange-600 text-white border-0">
             {loading ? 'Creating…' : 'Create monitor'}
           </Button>
         </form>
@@ -245,18 +299,41 @@ function MonitorCard({
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
+  // Compute health from last scores
+  const healthBadge = (() => {
+    const s = monitor.last_scores as any;
+    if (!s) return null;
+    const vals = ['performance', 'accessibility', 'seo'].map((k) => s[k]).filter((v): v is number => typeof v === 'number');
+    if (!vals.length) return null;
+    const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+    if (avg >= 80) return { icon: <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />, label: 'Healthy', color: 'text-emerald-400' };
+    if (avg >= 50) return { icon: <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />, label: 'Warning', color: 'text-amber-400' };
+    return { icon: <XCircle className="h-3.5 w-3.5 text-red-400" />, label: 'Critical', color: 'text-red-400' };
+  })();
+
   const toggle = async () => {
     setBusy(true);
+    const action = monitor.is_active ? 'pause' : 'resume';
     try {
-      const res = await fetch(`/api/monitors/${monitor.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_active: !monitor.is_active }),
-      });
+      const res = await fetch(`/api/monitors/${monitor.id}/${action}`, { method: 'POST' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       onUpdate(data);
-      toast.success(data.is_active ? 'Monitor resumed' : 'Monitor paused');
+      toast.success(action === 'pause' ? 'Monitor paused' : 'Monitor resumed');
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const runNow = async () => {
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/monitors/${monitor.id}/run-now`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success('Analysis started — check reports when it completes.');
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -299,6 +376,12 @@ function MonitorCard({
             </a>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            {healthBadge && (
+              <div className={`flex items-center gap-1 text-xs ${healthBadge.color}`}>
+                {healthBadge.icon}
+                <span>{healthBadge.label}</span>
+              </div>
+            )}
             <div className="flex items-center gap-1.5">
               <span className={`h-2 w-2 rounded-full ${monitor.is_active ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
               <span className="text-xs text-muted-foreground">{monitor.is_active ? 'Active' : 'Paused'}</span>
@@ -365,6 +448,20 @@ function MonitorCard({
               ? <><Pause className="h-3 w-3" /> Pause</>
               : <><Play className="h-3 w-3" /> Resume</>}
           </button>
+          <button
+            type="button"
+            onClick={runNow}
+            disabled={busy}
+            className="text-muted-foreground/60 hover:text-orange-400 text-xs flex items-center gap-1"
+          >
+            <RotateCw className="h-3 w-3" /> Run now
+          </button>
+          <a
+            href={`/monitors/${monitor.id}`}
+            className="text-muted-foreground/60 hover:text-foreground text-xs flex items-center gap-1 ml-auto"
+          >
+            Details <ChevronRight className="h-3 w-3" />
+          </a>
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <button

@@ -152,8 +152,9 @@ export async function POST(req: NextRequest) {
   const workerError  = rawBody2.error;
   const crawledPages = rawBody2.crawledPages as unknown[] | null | undefined;
   const crawlCoverage= rawBody2.crawlCoverage as Record<string, unknown> | null | undefined;
-  const monitorId    = rawBody2.monitorId;
-  const monitorUserId= rawBody2.monitorUserId;
+  const monitorId      = rawBody2.monitorId;
+  const monitorRunId   = (rawBody2 as any).monitorRunId as string | undefined;
+  const monitorUserId  = rawBody2.monitorUserId;
   const monitorLastScores = rawBody2.monitorLastScores as Record<string, number | null> | null | undefined;
   const monitorNotify     = rawBody2.monitorNotify;
   const monitorThreshold  = rawBody2.monitorThreshold;
@@ -173,6 +174,16 @@ export async function POST(req: NextRequest) {
       .eq('id', analysisId)
       .select('user_id')
       .single();
+
+    // Mark monitor_run as failed if this was a monitor run
+    if (monitorId && monitorRunId) {
+      const nowIso = new Date().toISOString();
+      await supabase.from('monitor_runs')
+        .update({ status: 'failed', completed_at: nowIso, failure_origin: 'target-site',
+          errors: [{ code: 'WORKER_ERROR', message: workerError, origin: 'target-site', occurredAt: nowIso, retryable: false }] })
+        .eq('id', monitorRunId).eq('monitor_id', monitorId);
+      try { await supabase.rpc('release_monitor_lease', { p_monitor_id: monitorId, p_run_id: monitorRunId }); } catch { /* non-fatal */ }
+    }
 
     // Refund the credit — the worker failed before producing a usable result
     if (failedRecord?.user_id) {
@@ -346,6 +357,22 @@ export async function POST(req: NextRequest) {
     // ────────────────────────────────────────────────────────────────────
 
     // ── Monitor post-processing ──────────────────────────────────────────
+    if (monitorId) {
+      const nowIso = new Date().toISOString();
+
+      // Mark the monitor_run as completed so run history is accurate
+      if (monitorRunId) {
+        await supabase.from('monitor_runs')
+          .update({ status: 'completed', completed_at: nowIso })
+          .eq('id', monitorRunId)
+          .eq('monitor_id', monitorId);
+        // Release the execution lease so next cron cycle can run immediately
+        try {
+          await supabase.rpc('release_monitor_lease', { p_monitor_id: monitorId, p_run_id: monitorRunId });
+        } catch { /* non-fatal */ }
+      }
+    }
+
     if (monitorId && results.lighthouseScores) {
       const newScores = results.lighthouseScores as Record<string, number | null | undefined>;
 

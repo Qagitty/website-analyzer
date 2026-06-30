@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { hasFeature, getLimits, featureGateError } from '@/lib/billing/limits';
 import { validateAnalysisUrl } from '@/lib/security/url-validator';
+import { calculateNextRun, scheduleFromLegacyFrequency } from '@/lib/monitoring/schedule';
+import type { MonitorSchedule } from '@/lib/monitoring/types';
 import { z } from 'zod';
-import { addDays } from 'date-fns';
 
 const schema = z.object({
   url: z
@@ -12,6 +13,12 @@ const schema = z.object({
     .url('Invalid URL')
     .refine((u) => u.startsWith('http://') || u.startsWith('https://')),
   frequency: z.enum(['daily', 'weekly']).default('weekly'),
+  // v2 schedule fields (optional — fall back to frequency if absent)
+  schedule_type: z.enum(['interval', 'cron']).optional(),
+  schedule_interval_hours: z.number().int().min(6).max(168).optional(),
+  schedule_time: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  schedule_days: z.array(z.number().int().min(0).max(6)).optional(),
+  schedule_timezone: z.string().default('UTC'),
   notify_on_score_drop: z.boolean().default(true),
   score_drop_threshold: z.number().int().min(1).max(50).default(10),
 });
@@ -45,7 +52,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
   }
 
-  const { url, frequency, notify_on_score_drop, score_drop_threshold } = parsed.data;
+  const { url, frequency, schedule_type, schedule_interval_hours, schedule_time, schedule_days, schedule_timezone, notify_on_score_drop, score_drop_threshold } = parsed.data;
 
   // SSRF protection: reject private IPs, metadata endpoints, blocked ports
   const urlValidation = validateAnalysisUrl(url);
@@ -91,16 +98,40 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Build v2 schedule JSONB
+  let schedule: MonitorSchedule;
+  if (schedule_type === 'interval' && schedule_interval_hours) {
+    // Map interval to custom type with a cron-equivalent expression
+    const h = schedule_interval_hours;
+    schedule = { type: 'custom', cronExpression: `0 */${h} * * *`, timezone: schedule_timezone };
+  } else {
+    // Derive from legacy frequency field with optional time/day overrides
+    const base = scheduleFromLegacyFrequency(frequency, schedule_timezone);
+    if (schedule_time) {
+      const [hr, mn] = schedule_time.split(':').map(Number);
+      if (frequency === 'daily' && schedule_days && schedule_days.length > 0 && schedule_days.length < 7) {
+        // Specific weekdays — use custom cron
+        const days = schedule_days.join(',');
+        schedule = { type: 'custom', cronExpression: `${mn} ${hr} * * ${days}`, timezone: schedule_timezone };
+      } else if (frequency === 'daily') {
+        schedule = { ...base, type: 'daily', hour: hr, minute: mn };
+      } else {
+        schedule = { ...base, type: 'weekly', hour: hr, minute: mn };
+      }
+    } else {
+      schedule = base;
+    }
+  }
+
   // next_run_at is the SECOND scheduled run (first is immediate below)
-  const nextRunAt = frequency === 'daily'
-    ? addDays(new Date(), 1)
-    : addDays(new Date(), 7);
+  const nextRunAt = calculateNextRun(schedule, new Date());
 
   const { data: monitor, error: insertError } = await supabase.from('monitors')
     .insert({
       user_id: user.id,
       url,
       frequency,
+      schedule,
       notify_on_score_drop,
       score_drop_threshold,
       next_run_at: nextRunAt.toISOString(),
@@ -126,10 +157,24 @@ export async function POST(req: NextRequest) {
   }
 
   const now = new Date().toISOString();
+  const runId = crypto.randomUUID();
+
+  // Create initial monitor_run record
+  await supabase.from('monitor_runs').insert({
+    id: runId,
+    monitor_id: monitor.id,
+    analysis_id: analysis.id,
+    scheduled_for: now,
+    started_at: now,
+    status: 'queued',
+    trigger: 'manual',
+    attempt: 1,
+    errors: [],
+  });
 
   // Update monitor to record initial run
   const { data: updatedMonitor } = await supabase.from('monitors')
-    .update({ last_run_at: now, last_analysis_id: analysis.id })
+    .update({ last_run_at: now, last_analysis_id: analysis.id, last_run_id: runId })
     .eq('id', monitor.id)
     .select()
     .single();
@@ -148,6 +193,7 @@ export async function POST(req: NextRequest) {
       callbackUrl,
       // F5 — authToken removed; Worker reads WORKER_CALLBACK_SECRET from its own env.
       monitorId: monitor.id,
+      monitorRunId: runId,
       monitorUserId: user.id,
     }),
   }).catch((err) => console.error('[monitors/create] worker dispatch failed:', err));
