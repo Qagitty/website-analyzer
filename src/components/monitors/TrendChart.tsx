@@ -106,7 +106,14 @@ export function TrendChart({ url }: TrendChartProps) {
             name,
           ]}
         />
-        <Legend wrapperStyle={{ color: '#94A3B8', fontSize: '12px' }} />
+        <Legend
+          wrapperStyle={{ color: '#94A3B8', fontSize: '11px', paddingTop: '4px' }}
+          formatter={(value: string) =>
+            value === 'bestPractices' ? 'Best Practices' :
+            value === 'accessibility' ? 'A11y' :
+            value === 'performance' ? 'Perf' : value.toUpperCase()
+          }
+        />
         <Line
           type="monotone"
           dataKey="performance"

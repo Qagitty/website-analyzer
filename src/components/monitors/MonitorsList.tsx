@@ -375,14 +375,14 @@ function MonitorCard({
               <ExternalLink className="h-3 w-3" />
             </a>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex flex-wrap items-center gap-1.5 shrink-0">
             {healthBadge && (
               <div className={`flex items-center gap-1 text-xs ${healthBadge.color}`}>
                 {healthBadge.icon}
                 <span>{healthBadge.label}</span>
               </div>
             )}
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1">
               <span className={`h-2 w-2 rounded-full ${monitor.is_active ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
               <span className="text-xs text-muted-foreground">{monitor.is_active ? 'Active' : 'Paused'}</span>
             </div>

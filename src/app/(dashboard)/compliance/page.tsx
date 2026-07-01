@@ -457,20 +457,21 @@ export default function CompliancePage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-wrap items-start gap-3">
+        <div className="flex-1 min-w-0">
           <h1 className="text-3xl font-bold text-gradient">Compliance</h1>
           <p className="text-sm text-muted-foreground mt-1">
             EAA / WCAG 2.1 AA status across all monitored sites
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <Link
             href="/compliance/remediation"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-orange-300 dark:border-orange-900/50 text-sm text-orange-500 hover:bg-orange-50 dark:bg-orange-950/30 transition-colors"
           >
             <ClipboardList className="h-3.5 w-3.5" />
-            Remediation Tracker
+            <span className="hidden sm:inline">Remediation Tracker</span>
+            <span className="sm:hidden">Remediation</span>
           </Link>
           <button
             onClick={() => load(true)}
