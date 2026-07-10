@@ -18,6 +18,55 @@ export interface DiscoveredPage {
   url: string;
   source: 'sitemap' | 'crawl' | 'manual';
   depth: number;
+  importanceScore?: number;
+}
+
+/**
+ * Deterministic importance scoring for discovered pages.
+ *
+ * Score bands (higher = more important):
+ *  800 — navigation links (href appears in <nav>, <header>, or has data-nav attribute)
+ *  700 — sitemap priority > 0.7
+ *  600 — business-critical path segments (/pricing, /about, /contact, /features, /demo, /signup, /login)
+ *  +depth bonus: subtract 50 per depth level (shallower pages rank higher)
+ *  +link count weighting: pages discovered multiple times get +10 per additional reference (capped at +100)
+ */
+export function scorePageImportance(
+  url: string,
+  depth: number,
+  navUrls: Set<string>,
+  sitemapPriority?: number,
+  linkCount = 1,
+): number {
+  let score = 0;
+
+  if (navUrls.has(url)) score += 800;
+
+  if (sitemapPriority !== undefined && sitemapPriority > 0.7) score += 700;
+
+  const BUSINESS_CRITICAL = ['/pricing', '/about', '/contact', '/features', '/demo', '/signup', '/login', '/plans', '/get-started', '/register'];
+  try {
+    const path = new URL(url).pathname.toLowerCase();
+    if (BUSINESS_CRITICAL.some((seg) => path === seg || path.startsWith(`${seg}/`))) {
+      score += 600;
+    }
+  } catch { /* ignore */ }
+
+  // Depth penalty (shallower = better)
+  score -= depth * 50;
+
+  // Link count bonus (seeing a URL in multiple places signals importance)
+  score += Math.min((linkCount - 1) * 10, 100);
+
+  return score;
+}
+
+/** Sort pages by importance score descending, then by URL for determinism. */
+export function rankByImportance(pages: DiscoveredPage[]): DiscoveredPage[] {
+  return [...pages].sort((a, b) => {
+    const scoreDiff = (b.importanceScore ?? 0) - (a.importanceScore ?? 0);
+    return scoreDiff !== 0 ? scoreDiff : a.url.localeCompare(b.url);
+  });
 }
 
 export interface DiscoveryResult {

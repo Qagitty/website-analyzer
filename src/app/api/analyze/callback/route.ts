@@ -381,6 +381,20 @@ export async function POST(req: NextRequest) {
         .update({ last_scores: newScores, last_analysis_id: analysisId })
         .eq('id', monitorId);
 
+      // Update the per-page last_scores so the pages tab shows current scores
+      const analysedUrl = (results as any).url ?? (analysisRecord as any)?.url;
+      if (analysedUrl) {
+        await supabase.from('monitor_pages')
+          .update({
+            last_scores: newScores,
+            last_analysis_id: analysisId,
+            last_run_id: monitorRunId ?? null,
+            last_checked_at: new Date().toISOString(),
+          })
+          .eq('monitor_id', monitorId)
+          .eq('url', analysedUrl);
+      }
+
       // Check for score drops and send alert.
       // Resolve email from DB here — it is intentionally not passed through
       // the Worker body to avoid sending PII over Cloudflare infrastructure.

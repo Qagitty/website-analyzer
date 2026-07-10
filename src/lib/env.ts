@@ -104,6 +104,32 @@ const SPECS: VarSpec[] = [
     severity: 'required',
     validate: isUrl,
   },
+  // Monitor tuning — optional; defaults are used if absent
+  {
+    env: 'MONITOR_GLOBAL_CONCURRENCY',
+    severity: 'optional',
+    validate: isPositiveInt,
+  },
+  {
+    env: 'MONITOR_ORIGIN_DELAY_MS',
+    severity: 'optional',
+    validate: isNonNegativeInt,
+  },
+  {
+    env: 'MONITOR_JOB_MAX_ATTEMPTS',
+    severity: 'optional',
+    validate: isPositiveInt,
+  },
+  {
+    env: 'MONITOR_JOB_LEASE_SECONDS',
+    severity: 'optional',
+    validate: isPositiveInt,
+  },
+  {
+    env: 'MONITOR_DISCOVERY_TIMEOUT_MS',
+    severity: 'optional',
+    validate: isPositiveInt,
+  },
 ];
 
 // ─── Validators ───────────────────────────────────────────────────────────────
@@ -123,6 +149,16 @@ function isUrl(value: string): string | null {
 function minLength(n: number) {
   return (value: string): string | null =>
     value.length < n ? `Must be at least ${n} characters` : null;
+}
+
+function isPositiveInt(value: string): string | null {
+  const n = parseInt(value, 10);
+  return Number.isInteger(n) && n > 0 ? null : 'Must be a positive integer';
+}
+
+function isNonNegativeInt(value: string): string | null {
+  const n = parseInt(value, 10);
+  return Number.isInteger(n) && n >= 0 ? null : 'Must be a non-negative integer';
 }
 
 // ─── Main export ─────────────────────────────────────────────────────────────

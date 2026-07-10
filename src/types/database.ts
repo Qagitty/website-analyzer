@@ -211,7 +211,7 @@ type MonitorRow = {
   baseline_policy: string | null;
   last_run_id: string | null;
   // migration 025
-  page_mode: 'homepage' | 'pinned' | 'sitemap' | 'custom' | null;
+  page_mode: 'homepage' | 'important' | 'all' | 'custom' | null;
   max_pages: number | null;
   pages_last_discovered_at: string | null;
 };
@@ -241,7 +241,7 @@ type MonitorInsert = {
   status?: MonitorStatus | null;
   baseline_policy?: string | null;
   last_run_id?: string | null;
-  page_mode?: 'homepage' | 'pinned' | 'sitemap' | 'custom' | null;
+  page_mode?: 'homepage' | 'important' | 'all' | 'custom' | null;
   max_pages?: number | null;
   pages_last_discovered_at?: string | null;
 };
@@ -268,7 +268,7 @@ type MonitorUpdate = {
   status?: MonitorStatus | null;
   baseline_policy?: string | null;
   last_run_id?: string | null;
-  page_mode?: 'homepage' | 'pinned' | 'sitemap' | 'custom' | null;
+  page_mode?: 'homepage' | 'important' | 'all' | 'custom' | null;
   max_pages?: number | null;
   pages_last_discovered_at?: string | null;
 };
@@ -283,6 +283,7 @@ type MonitorPageRow = {
   is_active: boolean;
   discovery_source: 'manual' | 'sitemap' | 'crawl' | 'initial' | null;
   depth: number;
+  importance_score: number;
   last_scores: unknown | null;
   last_analysis_id: string | null;
   last_run_id: string | null;
@@ -300,6 +301,7 @@ type MonitorPageInsert = {
   is_active?: boolean;
   discovery_source?: 'manual' | 'sitemap' | 'crawl' | 'initial' | null;
   depth?: number;
+  importance_score?: number;
   last_scores?: unknown | null;
   last_analysis_id?: string | null;
   last_run_id?: string | null;
@@ -314,6 +316,7 @@ type MonitorPageUpdate = {
   is_active?: boolean;
   discovery_source?: 'manual' | 'sitemap' | 'crawl' | 'initial' | null;
   depth?: number;
+  importance_score?: number;
   last_scores?: unknown | null;
   last_analysis_id?: string | null;
   last_run_id?: string | null;
@@ -345,6 +348,11 @@ type MonitorRunRow = {
   failure_origin: string | null;
   errors: unknown;
   usage: unknown | null;
+  // migration 026 — multi-page aggregate counters
+  total_pages: number | null;
+  queued_pages: number | null;
+  completed_pages: number | null;
+  failed_pages: number | null;
   created_at: string;
   updated_at: string;
 };

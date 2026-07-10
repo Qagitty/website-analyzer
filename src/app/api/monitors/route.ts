@@ -22,7 +22,7 @@ const schema = z.object({
   notify_on_score_drop: z.boolean().default(true),
   score_drop_threshold: z.number().int().min(1).max(50).default(10),
   // Multi-page monitoring
-  page_mode: z.enum(['homepage', 'pinned', 'sitemap', 'custom']).default('homepage'),
+  page_mode: z.enum(['homepage', 'important', 'all', 'custom']).default('homepage'),
   max_pages: z.number().int().min(1).max(100).default(1),
 });
 
@@ -197,7 +197,7 @@ export async function POST(req: NextRequest) {
     sort_order: 0,
   }, { onConflict: 'monitor_id,url' }).then(() => {
     // If sitemap mode, trigger async discovery and save discovered pages
-    if (page_mode === 'sitemap') {
+    if (page_mode === 'all' || page_mode === 'important') {
       fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/monitors/${monitor.id}/discover`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Cookie: `/* internal */` },

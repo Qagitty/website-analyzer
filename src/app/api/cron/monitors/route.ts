@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { calculateNextRun, addJitter, scheduleFromLegacyFrequency } from '@/lib/monitoring/schedule';
 import type { MonitorSchedule } from '@/lib/monitoring/types';
+import { enqueueMonitorJobs } from '@/lib/monitoring/queue';
 
-// Per-origin dispatch throttle: 30s between pages on the same origin
-const ORIGIN_THROTTLE_MS = 30_000;
+// Per-origin dispatch throttle — configurable via env, default 30s
+const ORIGIN_THROTTLE_MS = parseInt(process.env.MONITOR_ORIGIN_DELAY_MS ?? '30000', 10);
 
 /**
  * GET /api/cron/monitors
@@ -71,7 +72,6 @@ export async function GET(req: NextRequest) {
   }
 
   const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/analyze/callback`;
-  const workerUrl = `${process.env.CLOUDFLARE_WORKER_URL}/analyze`;
 
   const results: {
     monitorId: string;
@@ -251,27 +251,19 @@ export async function GET(req: NextRequest) {
         }
       }
 
-      // IMPORTANT: authToken is set via Authorization header — NOT in body (§7).
-      pagesToDispatch.forEach(({ url, analysisId: pageAnalysisId }, idx) => {
-        const delay = idx * ORIGIN_THROTTLE_MS;
-        setTimeout(() => {
-          fetch(workerUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${process.env.CLOUDFLARE_WORKER_AUTH_TOKEN}`,
-            },
-            body: JSON.stringify({
-              analysisId: pageAnalysisId,
-              url,
-              callbackUrl,
-              monitorId: monitor.id,
-              monitorRunId: runId,
-              monitorUserId: monitor.user_id,
-            }),
-          }).catch((err) => console.error('[cron/monitors] worker dispatch failed:', err));
-        }, delay);
-      });
+      // Enqueue into Redis sorted set — the dispatcher cron fires them on schedule.
+      // This replaces unreliable setTimeout in a serverless environment.
+      await enqueueMonitorJobs(
+        pagesToDispatch.map(({ url, analysisId: pageAnalysisId }) => ({
+          analysisId: pageAnalysisId,
+          url,
+          monitorId: monitor.id,
+          monitorRunId: runId,
+          monitorUserId: monitor.user_id,
+          callbackUrl,
+        })),
+        ORIGIN_THROTTLE_MS,
+      );
 
       results.push({
         monitorId: monitor.id,

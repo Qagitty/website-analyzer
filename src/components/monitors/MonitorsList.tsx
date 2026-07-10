@@ -44,10 +44,16 @@ const PAGE_MODES = [
     maxPages: 1,
   },
   {
-    value: 'sitemap',
-    label: 'From sitemap',
-    description: 'Auto-discover pages via sitemap.xml.',
+    value: 'important',
+    label: 'Important pages',
+    description: 'Auto-discover and rank by importance (nav links, business paths).',
     maxPages: 10,
+  },
+  {
+    value: 'all',
+    label: 'All pages',
+    description: 'Discover all pages via sitemap + crawl.',
+    maxPages: 50,
   },
   {
     value: 'custom',
@@ -72,7 +78,7 @@ function CreateMonitorForm({ onCreated }: { onCreated: (m: Monitor) => void }) {
   const [timezone, setTimezone] = useState('UTC');
   const [notify, setNotify] = useState(true);
   const [threshold, setThreshold] = useState(10);
-  const [pageMode, setPageMode] = useState<'homepage' | 'sitemap' | 'custom'>('homepage');
+  const [pageMode, setPageMode] = useState<'homepage' | 'important' | 'all' | 'custom'>('homepage');
   const [maxPages, setMaxPages] = useState(10);
   const [loading, setLoading] = useState(false);
   const [urlError, setUrlError] = useState('');
