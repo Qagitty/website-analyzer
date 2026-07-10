@@ -210,6 +210,10 @@ type MonitorRow = {
   status: MonitorStatus | null;
   baseline_policy: string | null;
   last_run_id: string | null;
+  // migration 025
+  page_mode: 'homepage' | 'pinned' | 'sitemap' | 'custom' | null;
+  max_pages: number | null;
+  pages_last_discovered_at: string | null;
 };
 
 type MonitorInsert = {
@@ -237,6 +241,9 @@ type MonitorInsert = {
   status?: MonitorStatus | null;
   baseline_policy?: string | null;
   last_run_id?: string | null;
+  page_mode?: 'homepage' | 'pinned' | 'sitemap' | 'custom' | null;
+  max_pages?: number | null;
+  pages_last_discovered_at?: string | null;
 };
 
 type MonitorUpdate = {
@@ -261,6 +268,58 @@ type MonitorUpdate = {
   status?: MonitorStatus | null;
   baseline_policy?: string | null;
   last_run_id?: string | null;
+  page_mode?: 'homepage' | 'pinned' | 'sitemap' | 'custom' | null;
+  max_pages?: number | null;
+  pages_last_discovered_at?: string | null;
+};
+
+// ── MonitorPage (migration 025) ───────────────────────────────────────────────
+
+type MonitorPageRow = {
+  id: string;
+  monitor_id: string;
+  url: string;
+  page_type: 'root' | 'pinned' | 'discovered';
+  is_active: boolean;
+  discovery_source: 'manual' | 'sitemap' | 'crawl' | 'initial' | null;
+  depth: number;
+  last_scores: unknown | null;
+  last_analysis_id: string | null;
+  last_run_id: string | null;
+  last_checked_at: string | null;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
+type MonitorPageInsert = {
+  id?: string;
+  monitor_id: string;
+  url: string;
+  page_type?: 'root' | 'pinned' | 'discovered';
+  is_active?: boolean;
+  discovery_source?: 'manual' | 'sitemap' | 'crawl' | 'initial' | null;
+  depth?: number;
+  last_scores?: unknown | null;
+  last_analysis_id?: string | null;
+  last_run_id?: string | null;
+  last_checked_at?: string | null;
+  sort_order?: number;
+  created_at?: string;
+  updated_at?: string;
+};
+
+type MonitorPageUpdate = {
+  page_type?: 'root' | 'pinned' | 'discovered';
+  is_active?: boolean;
+  discovery_source?: 'manual' | 'sitemap' | 'crawl' | 'initial' | null;
+  depth?: number;
+  last_scores?: unknown | null;
+  last_analysis_id?: string | null;
+  last_run_id?: string | null;
+  last_checked_at?: string | null;
+  sort_order?: number;
+  updated_at?: string;
 };
 
 // ── MonitorRun (migration 023) ────────────────────────────────────────────────
@@ -564,6 +623,12 @@ export interface Database {
         Row: MonitorIncidentRow;
         Insert: MonitorIncidentInsert;
         Update: MonitorIncidentUpdate;
+        Relationships: [];
+      };
+      monitor_pages: {
+        Row: MonitorPageRow;
+        Insert: MonitorPageInsert;
+        Update: MonitorPageUpdate;
         Relationships: [];
       };
     };

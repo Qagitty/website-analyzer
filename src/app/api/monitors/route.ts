@@ -21,6 +21,9 @@ const schema = z.object({
   schedule_timezone: z.string().default('UTC'),
   notify_on_score_drop: z.boolean().default(true),
   score_drop_threshold: z.number().int().min(1).max(50).default(10),
+  // Multi-page monitoring
+  page_mode: z.enum(['homepage', 'pinned', 'sitemap', 'custom']).default('homepage'),
+  max_pages: z.number().int().min(1).max(100).default(1),
 });
 
 // GET /api/monitors — list all monitors for the current user
@@ -52,7 +55,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
   }
 
-  const { url, frequency, schedule_type, schedule_interval_hours, schedule_time, schedule_days, schedule_timezone, notify_on_score_drop, score_drop_threshold } = parsed.data;
+  const { url, frequency, schedule_type, schedule_interval_hours, schedule_time, schedule_days, schedule_timezone, notify_on_score_drop, score_drop_threshold, page_mode, max_pages } = parsed.data;
 
   // SSRF protection: reject private IPs, metadata endpoints, blocked ports
   const urlValidation = validateAnalysisUrl(url);
@@ -126,6 +129,9 @@ export async function POST(req: NextRequest) {
   // next_run_at is the SECOND scheduled run (first is immediate below)
   const nextRunAt = calculateNextRun(schedule, new Date());
 
+  // Cap max_pages to plan limit
+  const effectiveMaxPages = Math.min(max_pages, getLimits(plan).crawlPages);
+
   const { data: monitor, error: insertError } = await supabase.from('monitors')
     .insert({
       user_id: user.id,
@@ -135,6 +141,8 @@ export async function POST(req: NextRequest) {
       notify_on_score_drop,
       score_drop_threshold,
       next_run_at: nextRunAt.toISOString(),
+      page_mode,
+      max_pages: effectiveMaxPages,
     })
     .select()
     .single();
@@ -178,6 +186,25 @@ export async function POST(req: NextRequest) {
     .eq('id', monitor.id)
     .select()
     .single();
+
+  // Seed root page in monitor_pages (background, non-blocking)
+  supabase.from('monitor_pages').upsert({
+    monitor_id: monitor.id,
+    url,
+    page_type: 'root',
+    discovery_source: 'initial',
+    is_active: true,
+    sort_order: 0,
+  }, { onConflict: 'monitor_id,url' }).then(() => {
+    // If sitemap mode, trigger async discovery and save discovered pages
+    if (page_mode === 'sitemap') {
+      fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/monitors/${monitor.id}/discover`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: `/* internal */` },
+        body: JSON.stringify({ strategy: 'both', save: true }),
+      }).catch(() => { /* non-critical — user can re-trigger manually */ });
+    }
+  });
 
   // Dispatch to Cloudflare Worker (fire-and-forget)
   const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/analyze/callback`;

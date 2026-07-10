@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import {
   Clock, Globe, Trash2, Play, Pause, Plus, Bell, BellOff, ExternalLink, ChevronDown, ChevronRight,
-  RotateCw, CheckCircle2, AlertTriangle, XCircle,
+  RotateCw, CheckCircle2, AlertTriangle, XCircle, FileText, Search,
 } from 'lucide-react';
 import { z } from 'zod';
 import type { Monitor } from '@/types/analysis';
@@ -35,6 +35,28 @@ const COMMON_TIMEZONES = [
   'Asia/Dubai', 'Asia/Kolkata', 'Asia/Singapore', 'Asia/Tokyo', 'Australia/Sydney',
 ];
 
+// ── Page mode ────────────────────────────────────────────────────────────────
+const PAGE_MODES = [
+  {
+    value: 'homepage',
+    label: 'Homepage only',
+    description: 'Monitor just the root URL.',
+    maxPages: 1,
+  },
+  {
+    value: 'sitemap',
+    label: 'From sitemap',
+    description: 'Auto-discover pages via sitemap.xml.',
+    maxPages: 10,
+  },
+  {
+    value: 'custom',
+    label: 'Custom list',
+    description: 'You choose which pages to monitor.',
+    maxPages: 10,
+  },
+] as const;
+
 const SCHEDULE_PRESETS = [
   { label: 'Every day',     frequency: 'daily'  as const, intervalHours: null },
   { label: 'Every weekday', frequency: 'daily'  as const, intervalHours: null, days: [1,2,3,4,5] },
@@ -50,6 +72,8 @@ function CreateMonitorForm({ onCreated }: { onCreated: (m: Monitor) => void }) {
   const [timezone, setTimezone] = useState('UTC');
   const [notify, setNotify] = useState(true);
   const [threshold, setThreshold] = useState(10);
+  const [pageMode, setPageMode] = useState<'homepage' | 'sitemap' | 'custom'>('homepage');
+  const [maxPages, setMaxPages] = useState(10);
   const [loading, setLoading] = useState(false);
   const [urlError, setUrlError] = useState('');
 
@@ -72,6 +96,8 @@ function CreateMonitorForm({ onCreated }: { onCreated: (m: Monitor) => void }) {
         schedule_timezone: timezone,
         notify_on_score_drop: notify,
         score_drop_threshold: threshold,
+        page_mode: pageMode,
+        max_pages: pageMode === 'homepage' ? 1 : maxPages,
       };
       if (preset.intervalHours) {
         body.schedule_type = 'interval';
@@ -117,22 +143,62 @@ function CreateMonitorForm({ onCreated }: { onCreated: (m: Monitor) => void }) {
             {urlError && <p className="text-xs text-red-500 mt-1">{urlError}</p>}
           </div>
 
+          {/* Pages to monitor */}
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Pages to monitor</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {PAGE_MODES.map((m) => (
+                <button
+                  key={m.value}
+                  type="button"
+                  onClick={() => { setPageMode(m.value); if (m.value === 'homepage') setMaxPages(1); }}
+                  className={`text-left px-3 py-2.5 rounded-md border text-sm transition-colors ${
+                    pageMode === m.value
+                      ? 'border-orange-500 bg-orange-500/10 text-orange-400'
+                      : 'border-border text-muted-foreground hover:bg-accent'
+                  }`}
+                >
+                  <div className="font-medium">{m.label}</div>
+                  <div className="text-xs opacity-70 mt-0.5">{m.description}</div>
+                </button>
+              ))}
+            </div>
+            {pageMode !== 'homepage' && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <FileText className="h-3.5 w-3.5" />
+                <span>Max pages</span>
+                <Input
+                  type="number"
+                  min={2}
+                  max={50}
+                  value={maxPages}
+                  onChange={(e) => setMaxPages(Math.max(2, Number(e.target.value)))}
+                  className="w-16 h-8 text-center"
+                />
+                <span className="text-xs opacity-60">(per plan limits apply)</span>
+              </div>
+            )}
+          </div>
+
           {/* Schedule presets */}
-          <div className="flex flex-wrap gap-2">
-            {SCHEDULE_PRESETS.map((p, i) => (
-              <button
-                key={p.label}
-                type="button"
-                onClick={() => setPresetIdx(i)}
-                className={`px-3 py-1.5 rounded-md border text-sm transition-colors ${
-                  presetIdx === i
-                    ? 'border-orange-500 bg-orange-500/10 text-orange-400'
-                    : 'border-border text-muted-foreground hover:bg-accent'
-                }`}
-              >
-                {p.label}
-              </button>
-            ))}
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Schedule</p>
+            <div className="flex flex-wrap gap-2">
+              {SCHEDULE_PRESETS.map((p, i) => (
+                <button
+                  key={p.label}
+                  type="button"
+                  onClick={() => setPresetIdx(i)}
+                  className={`px-3 py-1.5 rounded-md border text-sm transition-colors ${
+                    presetIdx === i
+                      ? 'border-orange-500 bg-orange-500/10 text-orange-400'
+                      : 'border-border text-muted-foreground hover:bg-accent'
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Time + Timezone (only relevant for non-interval schedules) */}

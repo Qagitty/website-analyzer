@@ -3,6 +3,9 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 import { calculateNextRun, addJitter, scheduleFromLegacyFrequency } from '@/lib/monitoring/schedule';
 import type { MonitorSchedule } from '@/lib/monitoring/types';
 
+// Per-origin dispatch throttle: 30s between pages on the same origin
+const ORIGIN_THROTTLE_MS = 30_000;
+
 /**
  * GET /api/cron/monitors
  * Triggered by Vercel Cron (see vercel.json — 0 9 * * *).
@@ -36,7 +39,7 @@ export async function GET(req: NextRequest) {
   // Select due monitors — both legacy (is_active) and v2 (status='active')
   const { data: dueMonitors, error: fetchErr } = await supabase
     .from('monitors')
-    .select('id, user_id, url, frequency, notify_on_score_drop, score_drop_threshold, last_scores, is_active, status, schedule, next_run_at')
+    .select('id, user_id, url, frequency, notify_on_score_drop, score_drop_threshold, last_scores, is_active, status, schedule, next_run_at, page_mode')
     .or('is_active.eq.true,status.eq.active')
     .lte('next_run_at', nowIso)
     .is('status', null) // include legacy rows where status is null
@@ -45,7 +48,7 @@ export async function GET(req: NextRequest) {
       // Also fetch v2 monitors with explicit status='active'
       const { data: v2 } = await supabase
         .from('monitors')
-        .select('id, user_id, url, frequency, notify_on_score_drop, score_drop_threshold, last_scores, is_active, status, schedule, next_run_at')
+        .select('id, user_id, url, frequency, notify_on_score_drop, score_drop_threshold, last_scores, is_active, status, schedule, next_run_at, page_mode')
         .eq('status', 'active')
         .lte('next_run_at', nowIso)
         .limit(50);
@@ -213,24 +216,62 @@ export async function GET(req: NextRequest) {
         })
         .eq('id', monitor.id);
 
-      // ── Step 8: Dispatch to Cloudflare Worker (fire-and-forget) ───────────
+      // ── Step 8: Dispatch to Cloudflare Worker ─────────────────────────────
+      // For multi-page monitors fetch the active page list; for homepage-mode
+      // use the root URL only. Pages are staggered 30s apart to avoid
+      // hammering the same origin in rapid succession.
+      const pageMode = (monitor as { page_mode?: string }).page_mode ?? 'homepage';
+      let pagesToDispatch: Array<{ url: string; analysisId: string }> = [
+        { url: monitor.url, analysisId: analysis.id },
+      ];
+
+      if (pageMode !== 'homepage') {
+        const { data: pages } = await supabase
+          .from('monitor_pages')
+          .select('url')
+          .eq('monitor_id', monitor.id)
+          .eq('is_active', true)
+          .order('sort_order', { ascending: true });
+
+        if (pages && pages.length > 1) {
+          // Create analysis records for each extra page (root already created above)
+          const extraPages = pages.filter((p: { url: string }) => p.url !== monitor.url);
+          const extraAnalyses = await Promise.all(
+            extraPages.map((p: { url: string }) =>
+              supabase
+                .from('analyses')
+                .insert({ user_id: monitor.user_id, url: p.url, status: 'pending' })
+                .select('id')
+                .single()
+                .then(({ data }) => data ? { url: p.url, analysisId: data.id } : null),
+            ),
+          );
+          const validExtras = extraAnalyses.filter(Boolean) as Array<{ url: string; analysisId: string }>;
+          pagesToDispatch = [{ url: monitor.url, analysisId: analysis.id }, ...validExtras];
+        }
+      }
+
       // IMPORTANT: authToken is set via Authorization header — NOT in body (§7).
-      fetch(workerUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${process.env.CLOUDFLARE_WORKER_AUTH_TOKEN}`,
-        },
-        body: JSON.stringify({
-          analysisId: analysis.id,
-          url: monitor.url,
-          callbackUrl,
-          // Monitor context for the callback — no PII, no authToken
-          monitorId: monitor.id,
-          monitorRunId: runId,
-          monitorUserId: monitor.user_id,
-        }),
-      }).catch((err) => console.error('[cron/monitors] worker dispatch failed:', err));
+      pagesToDispatch.forEach(({ url, analysisId: pageAnalysisId }, idx) => {
+        const delay = idx * ORIGIN_THROTTLE_MS;
+        setTimeout(() => {
+          fetch(workerUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${process.env.CLOUDFLARE_WORKER_AUTH_TOKEN}`,
+            },
+            body: JSON.stringify({
+              analysisId: pageAnalysisId,
+              url,
+              callbackUrl,
+              monitorId: monitor.id,
+              monitorRunId: runId,
+              monitorUserId: monitor.user_id,
+            }),
+          }).catch((err) => console.error('[cron/monitors] worker dispatch failed:', err));
+        }, delay);
+      });
 
       results.push({
         monitorId: monitor.id,

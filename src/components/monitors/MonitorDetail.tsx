@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import type { Monitor } from '@/types/analysis';
 import { TrendChart } from './TrendChart';
+import { MonitorPages } from './MonitorPages';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -83,7 +84,7 @@ export function MonitorDetail({ monitor: initialMonitor }: { monitor: Monitor })
   const [monitor, setMonitor] = useState(initialMonitor);
   const [runs, setRuns] = useState<MonitorRun[] | null>(null);
   const [incidents, setIncidents] = useState<Incident[] | null>(null);
-  const [tab, setTab] = useState<'runs' | 'incidents' | 'chart'>('runs');
+  const [tab, setTab] = useState<'runs' | 'incidents' | 'chart' | 'pages'>('runs');
   const [busy, setBusy] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -215,7 +216,7 @@ export function MonitorDetail({ monitor: initialMonitor }: { monitor: Monitor })
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-border">
-        {(['runs', 'chart', 'incidents'] as const).map((t) => (
+        {(['runs', 'pages', 'chart', 'incidents'] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -225,7 +226,7 @@ export function MonitorDetail({ monitor: initialMonitor }: { monitor: Monitor })
                 : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
           >
-            {t === 'runs' ? 'Run History' : t === 'chart' ? 'Score Trend' : 'Incidents'}
+            {t === 'runs' ? 'Run History' : t === 'chart' ? 'Score Trend' : t === 'pages' ? 'Pages' : 'Incidents'}
           </button>
         ))}
       </div>
@@ -289,6 +290,15 @@ export function MonitorDetail({ monitor: initialMonitor }: { monitor: Monitor })
             )}
           </CardContent>
         </Card>
+      )}
+
+      {/* Pages tab */}
+      {tab === 'pages' && (
+        <MonitorPages
+          monitorId={monitor.id}
+          pageMode={(monitor as any).page_mode ?? 'homepage'}
+          rootUrl={monitor.url}
+        />
       )}
 
       {/* Score trend chart */}
