@@ -43,33 +43,47 @@ CREATE INDEX IF NOT EXISTS idx_monitor_alert_rules_monitor_id
 CREATE INDEX IF NOT EXISTS idx_monitor_alert_rules_enabled
   ON monitor_alert_rules(monitor_id, enabled);
 
-CREATE TRIGGER monitor_alert_rules_updated_at
-  BEFORE UPDATE ON monitor_alert_rules
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgname = 'monitor_alert_rules_updated_at'
+      AND tgrelid = 'monitor_alert_rules'::regclass
+  ) THEN
+    CREATE TRIGGER monitor_alert_rules_updated_at
+      BEFORE UPDATE ON monitor_alert_rules
+      FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+  END IF;
+END $$;
 
 -- ─── RLS ──────────────────────────────────────────────────────────────────────
 
 ALTER TABLE monitor_alert_rules ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "monitor_alert_rules_select_own" ON monitor_alert_rules
-  FOR SELECT USING (
-    monitor_id IN (SELECT id FROM monitors WHERE user_id = auth.uid())
-  );
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'monitor_alert_rules_select_own' AND tablename = 'monitor_alert_rules') THEN
+    CREATE POLICY "monitor_alert_rules_select_own" ON monitor_alert_rules
+      FOR SELECT USING (monitor_id IN (SELECT id FROM monitors WHERE user_id = auth.uid()));
+  END IF;
 
-CREATE POLICY "monitor_alert_rules_insert_own" ON monitor_alert_rules
-  FOR INSERT WITH CHECK (
-    monitor_id IN (SELECT id FROM monitors WHERE user_id = auth.uid())
-  );
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'monitor_alert_rules_insert_own' AND tablename = 'monitor_alert_rules') THEN
+    CREATE POLICY "monitor_alert_rules_insert_own" ON monitor_alert_rules
+      FOR INSERT WITH CHECK (monitor_id IN (SELECT id FROM monitors WHERE user_id = auth.uid()));
+  END IF;
 
-CREATE POLICY "monitor_alert_rules_update_own" ON monitor_alert_rules
-  FOR UPDATE USING (
-    monitor_id IN (SELECT id FROM monitors WHERE user_id = auth.uid())
-  );
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'monitor_alert_rules_update_own' AND tablename = 'monitor_alert_rules') THEN
+    CREATE POLICY "monitor_alert_rules_update_own" ON monitor_alert_rules
+      FOR UPDATE USING (monitor_id IN (SELECT id FROM monitors WHERE user_id = auth.uid()));
+  END IF;
 
-CREATE POLICY "monitor_alert_rules_delete_own" ON monitor_alert_rules
-  FOR DELETE USING (
-    monitor_id IN (SELECT id FROM monitors WHERE user_id = auth.uid())
-  );
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'monitor_alert_rules_delete_own' AND tablename = 'monitor_alert_rules') THEN
+    CREATE POLICY "monitor_alert_rules_delete_own" ON monitor_alert_rules
+      FOR DELETE USING (monitor_id IN (SELECT id FROM monitors WHERE user_id = auth.uid()));
+  END IF;
 
-CREATE POLICY "monitor_alert_rules_service_role" ON monitor_alert_rules
-  FOR ALL USING (auth.role() = 'service_role');
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'monitor_alert_rules_service_role' AND tablename = 'monitor_alert_rules') THEN
+    CREATE POLICY "monitor_alert_rules_service_role" ON monitor_alert_rules
+      FOR ALL USING (auth.role() = 'service_role');
+  END IF;
+END $$;
