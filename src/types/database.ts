@@ -562,6 +562,203 @@ type RemediationItemUpdate = {
   updated_at?: string;
 };
 
+// ── ConnectedSite (migration 028) ────────────────────────────────────────────
+
+type VerificationStatus = 'unverified' | 'pending' | 'verified' | 'failed' | 'expired' | 'revoked';
+type SiteKeyStatus      = 'active' | 'rotated' | 'revoked';
+type ScriptLoadStatus   = 'loaded' | 'config_error' | 'origin_rejected' | 'csp_blocked' | 'unknown';
+type SiteEnvironment    = 'production' | 'staging' | 'development';
+
+type ConnectedSiteRow = {
+  id: string;
+  user_id: string;
+  team_id: string | null;
+  monitor_id: string | null;
+  name: string;
+  root_url: string;
+  normalized_origin: string;
+  canonical_host: string;
+  verification_status: VerificationStatus;
+  verification_method: string | null;
+  verified_at: string | null;
+  last_verified_at: string | null;
+  last_heartbeat_at: string | null;
+  last_script_version: string | null;
+  is_enabled: boolean;
+  telemetry_enabled: boolean;
+  indexing_diagnostics_enabled: boolean;
+  crawler_visibility_enabled: boolean;
+  environment: SiteEnvironment;
+  created_at: string;
+  updated_at: string;
+};
+
+type ConnectedSiteInsert = {
+  id?: string;
+  user_id: string;
+  team_id?: string | null;
+  monitor_id?: string | null;
+  name: string;
+  root_url: string;
+  normalized_origin: string;
+  canonical_host: string;
+  verification_status?: VerificationStatus;
+  verification_method?: string | null;
+  verified_at?: string | null;
+  last_verified_at?: string | null;
+  last_heartbeat_at?: string | null;
+  last_script_version?: string | null;
+  is_enabled?: boolean;
+  telemetry_enabled?: boolean;
+  indexing_diagnostics_enabled?: boolean;
+  crawler_visibility_enabled?: boolean;
+  environment?: SiteEnvironment;
+  created_at?: string;
+  updated_at?: string;
+};
+
+type ConnectedSiteUpdate = {
+  name?: string;
+  monitor_id?: string | null;
+  is_enabled?: boolean;
+  telemetry_enabled?: boolean;
+  indexing_diagnostics_enabled?: boolean;
+  crawler_visibility_enabled?: boolean;
+  environment?: SiteEnvironment;
+  verification_status?: VerificationStatus;
+  verification_method?: string | null;
+  verified_at?: string | null;
+  last_verified_at?: string | null;
+  last_heartbeat_at?: string | null;
+  last_script_version?: string | null;
+  updated_at?: string;
+};
+
+type ConnectedSiteKeyRow = {
+  id: string;
+  connected_site_id: string;
+  user_id: string;
+  key_prefix: string;
+  key_hash: string;
+  key_encrypted: string;
+  status: SiteKeyStatus;
+  rotated_at: string | null;
+  revoked_at: string | null;
+  last_used_at: string | null;
+  created_at: string;
+};
+
+type ConnectedSiteKeyInsert = {
+  id?: string;
+  connected_site_id: string;
+  user_id: string;
+  key_prefix: string;
+  key_hash: string;
+  key_encrypted: string;
+  status?: SiteKeyStatus;
+  rotated_at?: string | null;
+  revoked_at?: string | null;
+  last_used_at?: string | null;
+  created_at?: string;
+};
+
+type ConnectedSiteKeyUpdate = {
+  status?: SiteKeyStatus;
+  rotated_at?: string | null;
+  revoked_at?: string | null;
+  last_used_at?: string | null;
+};
+
+type SiteVerificationChallengeRow = {
+  id: string;
+  connected_site_id: string;
+  method: string;
+  token_hash: string;
+  token_encrypted: string;
+  expected_value: string;
+  expires_at: string;
+  consumed_at: string | null;
+  attempt_count: number;
+  last_attempt_at: string | null;
+  created_at: string;
+};
+
+type SiteVerificationChallengeInsert = {
+  id?: string;
+  connected_site_id: string;
+  method: string;
+  token_hash: string;
+  token_encrypted: string;
+  expected_value: string;
+  expires_at: string;
+  consumed_at?: string | null;
+  attempt_count?: number;
+  last_attempt_at?: string | null;
+  created_at?: string;
+};
+
+type SiteVerificationChallengeUpdate = {
+  consumed_at?: string | null;
+  attempt_count?: number;
+  last_attempt_at?: string | null;
+};
+
+type SiteConnectionStatusRow = {
+  connected_site_id: string;
+  last_seen_at: string;
+  sdk_version: string | null;
+  page_url: string | null;
+  environment: SiteEnvironment | null;
+  script_load_status: ScriptLoadStatus | null;
+  config_version: string | null;
+  latest_safe_metadata: unknown;
+  updated_at: string;
+};
+
+type SiteConnectionStatusInsert = {
+  connected_site_id: string;
+  last_seen_at?: string;
+  sdk_version?: string | null;
+  page_url?: string | null;
+  environment?: SiteEnvironment | null;
+  script_load_status?: ScriptLoadStatus | null;
+  config_version?: string | null;
+  latest_safe_metadata?: unknown;
+  updated_at?: string;
+};
+
+type SiteConnectionStatusUpdate = Partial<Omit<SiteConnectionStatusInsert, 'connected_site_id'>>;
+
+type SiteTelemetryEventRow = {
+  id: string;
+  connected_site_id: string;
+  event_type: string;
+  page_url_sanitized: string | null;
+  route: string | null;
+  timestamp: string;
+  received_at: string;
+  metrics: unknown;
+  sdk_version: string;
+  schema_version: number;
+  created_at: string;
+};
+
+type SiteTelemetryEventInsert = {
+  id?: string;
+  connected_site_id: string;
+  event_type: string;
+  page_url_sanitized?: string | null;
+  route?: string | null;
+  timestamp: string;
+  received_at?: string;
+  metrics?: unknown;
+  sdk_version?: string;
+  schema_version?: number;
+  created_at?: string;
+};
+
+type SiteTelemetryEventUpdate = never;
+
 // ── Main Database type ───────────────────────────────────────────────────────
 
 export interface Database {
@@ -639,6 +836,36 @@ export interface Database {
         Update: MonitorPageUpdate;
         Relationships: [];
       };
+      connected_sites: {
+        Row: ConnectedSiteRow;
+        Insert: ConnectedSiteInsert;
+        Update: ConnectedSiteUpdate;
+        Relationships: [];
+      };
+      connected_site_keys: {
+        Row: ConnectedSiteKeyRow;
+        Insert: ConnectedSiteKeyInsert;
+        Update: ConnectedSiteKeyUpdate;
+        Relationships: [];
+      };
+      site_verification_challenges: {
+        Row: SiteVerificationChallengeRow;
+        Insert: SiteVerificationChallengeInsert;
+        Update: SiteVerificationChallengeUpdate;
+        Relationships: [];
+      };
+      site_connection_status: {
+        Row: SiteConnectionStatusRow;
+        Insert: SiteConnectionStatusInsert;
+        Update: SiteConnectionStatusUpdate;
+        Relationships: [];
+      };
+      site_telemetry_events: {
+        Row: SiteTelemetryEventRow;
+        Insert: SiteTelemetryEventInsert;
+        Update: SiteTelemetryEventUpdate;
+        Relationships: [];
+      };
     };
     Views: { [_ in never]: never };
     Functions: {
@@ -656,6 +883,17 @@ export interface Database {
       cleanup_expired_monitor_leases: {
         Args: Record<never, never>;
         Returns: number;
+      };
+      resolve_site_key: {
+        Args: { p_key_hash: string };
+        Returns: Array<{
+          connected_site_id: string;
+          user_id: string;
+          normalized_origin: string;
+          is_enabled: boolean;
+          telemetry_enabled: boolean;
+          indexing_diagnostics_enabled: boolean;
+        }>;
       };
       upsert_monitor_incident: {
         Args: {

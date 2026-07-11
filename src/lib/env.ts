@@ -104,6 +104,58 @@ const SPECS: VarSpec[] = [
     severity: 'required',
     validate: isUrl,
   },
+  // Unified Queue — optional; safe defaults in service.ts
+  {
+    env: 'QUEUE_GLOBAL_CONCURRENCY',
+    severity: 'optional',
+    validate: isPositiveInt,
+  },
+  {
+    env: 'QUEUE_DEFAULT_LEASE_SECONDS',
+    severity: 'optional',
+    validate: isPositiveInt,
+  },
+  {
+    env: 'QUEUE_DEFAULT_MAX_ATTEMPTS',
+    severity: 'optional',
+    validate: isPositiveInt,
+  },
+  {
+    env: 'QUEUE_DEDUPE_TTL_SECONDS',
+    severity: 'optional',
+    validate: isPositiveInt,
+  },
+  {
+    env: 'QUEUE_SCHEDULER_BATCH_SIZE',
+    severity: 'optional',
+    validate: isPositiveInt,
+  },
+  {
+    env: 'QUEUE_CONSUMER_BATCH_SIZE',
+    severity: 'optional',
+    validate: isPositiveInt,
+  },
+  {
+    env: 'QUEUE_ORIGIN_HEAVY_DELAY_MS',
+    severity: 'optional',
+    validate: isNonNegativeInt,
+  },
+  {
+    env: 'QUEUE_JOB_RETENTION_DAYS',
+    severity: 'optional',
+    validate: isPositiveInt,
+  },
+  {
+    env: 'QUEUE_DLQ_RETENTION_DAYS',
+    severity: 'optional',
+    validate: isPositiveInt,
+  },
+  // Admin API — optional (no access if not set)
+  {
+    env: 'ADMIN_API_SECRET',
+    severity: 'optional',
+    validate: minLength(32),
+  },
   // Monitor tuning — optional; defaults are used if absent
   {
     env: 'MONITOR_GLOBAL_CONCURRENCY',

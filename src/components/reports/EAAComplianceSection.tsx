@@ -6,47 +6,47 @@ interface Props {
   accessibilityIssues: AccessibilityIssue[] | undefined;
 }
 
-type ComplianceLevel = 'compliant' | 'partial' | 'non-compliant';
+type TechnicalStatus = 'no_blockers' | 'gaps' | 'blockers';
 
-function determineLevel(issues: AccessibilityIssue[]): ComplianceLevel {
+function determineLevel(issues: AccessibilityIssue[]): TechnicalStatus {
   const critical = issues.filter((i) => i.impact === 'critical' || i.impact === 'serious').length;
-  if (critical === 0 && issues.length === 0) return 'compliant';
-  if (critical === 0) return 'partial';
-  return 'non-compliant';
+  if (critical === 0 && issues.length === 0) return 'no_blockers';
+  if (critical === 0) return 'gaps';
+  return 'blockers';
 }
 
 const LEVEL_CONFIG = {
-  compliant: {
+  no_blockers: {
     borderClass: 'border-l-emerald-500',
     bgClass: 'bg-emerald-500/5',
     badgeClass: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
-    badgeLabel: 'Compliant',
+    badgeLabel: 'No automated blockers detected',
     Icon: ShieldCheck,
     iconClass: 'text-emerald-400',
-    statusMessage: '✓ Your site meets WCAG 2.1 AA requirements and passes accessibility checks.',
+    statusMessage: '✓ No automated accessibility blockers detected. Manual testing is still required — automated tools cannot verify all accessibility criteria.',
     statusClass: 'text-emerald-400 bg-emerald-500/5 border border-emerald-500/20',
   },
-  partial: {
+  gaps: {
     borderClass: 'border-l-amber-500',
     bgClass: 'bg-amber-500/5',
     badgeClass: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
-    badgeLabel: 'Partially Compliant',
+    badgeLabel: 'Potential accessibility gaps',
     Icon: ShieldAlert,
     iconClass: 'text-amber-400',
-    statusMessage: '⚠ Your site has minor accessibility issues. Review and fix them for full certification.',
+    statusMessage: '⚠ Potential accessibility gaps detected. Review and address the issues listed below, then conduct manual testing with assistive technologies.',
     statusClass: 'text-amber-400 bg-amber-500/5 border border-amber-500/20',
   },
-  'non-compliant': {
+  blockers: {
     borderClass: 'border-l-red-500',
     bgClass: 'bg-red-500/5',
     badgeClass: 'bg-red-500/10 text-red-400 border border-red-500/20',
-    badgeLabel: 'Non-Compliant',
+    badgeLabel: 'Accessibility blockers found',
     Icon: ShieldX,
     iconClass: 'text-red-400',
-    statusMessage: '✗ Your site has significant accessibility barriers. Immediate action required.',
+    statusMessage: '✗ Significant accessibility barriers detected. These issues may prevent people with disabilities from using your site and should be prioritized for remediation.',
     statusClass: 'text-red-400 bg-red-500/5 border border-red-500/20',
   },
-} satisfies Record<ComplianceLevel, {
+} satisfies Record<TechnicalStatus, {
   borderClass: string;
   bgClass: string;
   badgeClass: string;
@@ -106,10 +106,11 @@ export function EAAComplianceSection({ accessibilityIssues }: Props) {
             </span>
           </div>
 
-          {/* Deadline callout */}
-          <p className="bg-red-500/5 border border-red-500/10 rounded-lg p-3 text-xs text-red-400/80 mt-3 leading-relaxed">
-            Accessibility law took effect June 2025. Businesses selling to EU customers
-            face fines up to €100,000 or 4% of annual revenue.
+          {/* EAA context note */}
+          <p className="bg-amber-500/5 border border-amber-500/10 rounded-lg p-3 text-xs text-amber-400/80 mt-3 leading-relaxed">
+            The EU Accessibility Act applies to certain digital products and services sold to EU customers.
+            Whether it applies to your organization depends on your specific business circumstances.
+            Consult a qualified legal professional to determine your obligations.
           </p>
         </div>
 

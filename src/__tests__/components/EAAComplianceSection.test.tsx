@@ -25,17 +25,17 @@ describe('EAAComplianceSection', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('shows "Compliant" when no issues', () => {
+  it('shows "No automated blockers detected" when no issues', () => {
     render(<EAAComplianceSection accessibilityIssues={[]} />);
-    expect(screen.getByText(/Compliant/i)).toBeInTheDocument();
+    expect(screen.getByText(/No automated blockers detected/i)).toBeInTheDocument();
   });
 
-  it('shows "Non-Compliant" when critical issues present', () => {
+  it('shows "Accessibility blockers found" when critical issues present', () => {
     render(<EAAComplianceSection accessibilityIssues={mockIssues} />);
-    expect(screen.getByText(/Non-Compliant/i)).toBeInTheDocument();
+    expect(screen.getByText(/Accessibility blockers found/i)).toBeInTheDocument();
   });
 
-  it('shows "Partially Compliant" when only non-critical issues', () => {
+  it('shows "Potential accessibility gaps" when only non-critical issues', () => {
     const minorIssues = [
       {
         id: 'label',
@@ -46,7 +46,7 @@ describe('EAAComplianceSection', () => {
       },
     ];
     render(<EAAComplianceSection accessibilityIssues={minorIssues} />);
-    expect(screen.getByText(/Partially Compliant/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Potential accessibility gaps/i).length).toBeGreaterThan(0);
   });
 
   it('renders three compliance categories', () => {

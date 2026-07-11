@@ -5,7 +5,25 @@
 
 import type { AccessibilityIssue } from '@/types/analysis';
 
-export type ComplianceLevel = 'compliant' | 'partial' | 'non-compliant';
+/**
+ * Technical assessment status — not a legal compliance determination.
+ *
+ * - 'no_blockers': zero automated violations detected; manual testing still required
+ * - 'gaps':        no critical/serious automated violations, but other issues present
+ * - 'blockers':    critical or serious automated violations detected
+ *
+ * None of these values represent legal certification or guarantee conformance.
+ */
+export type ComplianceLevel = 'no_blockers' | 'gaps' | 'blockers';
+
+/** @deprecated Use ComplianceLevel. Retained for DB values during migration. */
+export type LegacyComplianceLevel = 'compliant' | 'partial' | 'non-compliant';
+
+export function normalizeLegacyLevel(level: string): ComplianceLevel {
+  if (level === 'compliant') return 'no_blockers';
+  if (level === 'partial')   return 'gaps';
+  return 'blockers';
+}
 
 export interface ComplianceSummary {
   level: ComplianceLevel;
@@ -16,14 +34,14 @@ export interface ComplianceSummary {
   operableCount: number;
 }
 
-/** Derive EAA/WCAG compliance level from a list of axe-core violations. */
+/** Derive automated technical status from a list of axe-core violations. */
 export function getComplianceLevel(issues: AccessibilityIssue[]): ComplianceLevel {
   const critical = issues.filter(
     (i) => i.impact === 'critical' || i.impact === 'serious',
   ).length;
-  if (issues.length === 0) return 'compliant';
-  if (critical === 0) return 'partial';
-  return 'non-compliant';
+  if (issues.length === 0) return 'no_blockers';
+  if (critical === 0) return 'gaps';
+  return 'blockers';
 }
 
 /** Full compliance summary including category breakdowns. */
@@ -42,29 +60,29 @@ export function getComplianceSummary(issues: AccessibilityIssue[]): ComplianceSu
   };
 }
 
-/** Display metadata per compliance level. */
+/** Display metadata per technical assessment status. */
 export const COMPLIANCE_CONFIG = {
-  compliant: {
-    label:       'Compliant',
-    short:       'Compliant',
+  no_blockers: {
+    label:       'No automated blockers detected',
+    short:       'No Blockers',
     badgeClass:  'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
     textClass:   'text-emerald-400',
     borderClass: 'border-l-emerald-500',
     bgClass:     'bg-emerald-500/5',
     dot:         'bg-emerald-400',
   },
-  partial: {
-    label:       'Partially Compliant',
-    short:       'Partial',
+  gaps: {
+    label:       'Potential accessibility gaps',
+    short:       'Gaps Detected',
     badgeClass:  'bg-amber-500/10 text-amber-400 border-amber-500/20',
     textClass:   'text-amber-400',
     borderClass: 'border-l-amber-500',
     bgClass:     'bg-amber-500/5',
     dot:         'bg-amber-400',
   },
-  'non-compliant': {
-    label:       'Non-Compliant',
-    short:       'Non-Compliant',
+  blockers: {
+    label:       'Accessibility blockers found',
+    short:       'Blockers Found',
     badgeClass:  'bg-red-500/10 text-red-400 border-red-500/20',
     textClass:   'text-red-400',
     borderClass: 'border-l-red-500',

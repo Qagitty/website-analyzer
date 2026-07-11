@@ -3,7 +3,7 @@ import { createServerClient } from '@supabase/ssr';
 import { detectSqlInjectionInRequest, getClientIp } from '@/lib/rate-limit/web';
 import { checkCsrfOrigin } from '@/lib/csrf';
 
-const PROTECTED_ROUTES = ['/dashboard', '/analyze', '/reports', '/settings', '/monitors', '/compliance', '/remediation', '/leads', '/compare'];
+const PROTECTED_ROUTES = ['/dashboard', '/analyze', '/reports', '/settings', '/monitors', '/compliance', '/remediation', '/leads', '/compare', '/sites'];
 const AUTH_ROUTES = ['/login', '/signup'];
 
 // ── Supabase host for CSP connect-src ────────────────────────────────────────
@@ -104,8 +104,8 @@ export async function middleware(request: NextRequest) {
     // SE5 — centralised here so every current and future mutation route is covered.
     // Server-to-server callers (Worker callback, Stripe, Cron) never send an Origin
     // header and pass through automatically.
-    // Excluded: /api/widget/ (CORS-open embed) and /api/v1/ (API-key auth, cross-origin allowed).
-    const CSRF_EXCLUDED = ['/api/widget/', '/api/v1/'];
+    // Excluded: /api/widget/ (CORS-open embed), /api/v1/ (API-key auth), /api/site-connect/ (script ingestion).
+    const CSRF_EXCLUDED = ['/api/widget/', '/api/v1/', '/api/site-connect/'];
     if (
       ['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method) &&
       !CSRF_EXCLUDED.some(p => pathname.startsWith(p))

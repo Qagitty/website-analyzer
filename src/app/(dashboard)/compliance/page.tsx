@@ -40,9 +40,9 @@ interface HistoryRow {
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function LevelIcon({ level, className }: { level: ComplianceLevel; className?: string }) {
-  if (level === 'compliant')     return <ShieldCheck  className={className} />;
-  if (level === 'partial')       return <ShieldAlert  className={className} />;
-  return                                <ShieldX      className={className} />;
+  if (level === 'no_blockers') return <ShieldCheck className={className} />;
+  if (level === 'gaps')        return <ShieldAlert  className={className} />;
+  return                              <ShieldX      className={className} />;
 }
 
 function ComplianceBadge({ level }: { level: ComplianceLevel }) {
@@ -73,7 +73,7 @@ function HistoryDots({ history }: { history: ComplianceLevel[] }) {
 
 function SiteCard({ site }: { site: SiteCompliance }) {
   const { summary, history } = site;
-  const level = summary?.level ?? 'compliant';
+  const level = summary?.level ?? 'no_blockers';
   const cfg   = COMPLIANCE_CONFIG[level];
 
   const hostname = (() => {
@@ -204,9 +204,9 @@ function ComplianceHistoryTable({ rows }: { rows: HistoryRow[] }) {
                 className="text-xs bg-secondary border border-border rounded-md px-2 py-1 text-foreground focus:outline-none focus:ring-1 focus:ring-orange-500"
               >
                 <option value="all">All statuses</option>
-                <option value="compliant">Compliant</option>
-                <option value="partial">Partial</option>
-                <option value="non-compliant">Non-Compliant</option>
+                <option value="no_blockers">No Blockers</option>
+                <option value="gaps">Gaps Detected</option>
+                <option value="blockers">Blockers Found</option>
               </select>
             </div>
             {(filterUrl !== 'all' || filterLevel !== 'all') && (
@@ -253,9 +253,9 @@ function ComplianceHistoryTable({ rows }: { rows: HistoryRow[] }) {
                         </td>
                         <td className="px-4 py-3">
                           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${cfg.badgeClass}`}>
-                            {row.level === 'compliant' && <ShieldCheck className="h-3 w-3" />}
-                            {row.level === 'partial'   && <ShieldAlert  className="h-3 w-3" />}
-                            {row.level === 'non-compliant' && <ShieldX  className="h-3 w-3" />}
+                            {row.level === 'no_blockers' && <ShieldCheck className="h-3 w-3" />}
+                            {row.level === 'gaps'        && <ShieldAlert  className="h-3 w-3" />}
+                            {row.level === 'blockers'    && <ShieldX      className="h-3 w-3" />}
                             {cfg.short}
                           </span>
                         </td>
@@ -449,9 +449,9 @@ export default function CompliancePage() {
 
   // Summary counts
   const withData   = sites.filter((s) => s.summary !== null);
-  const compliant  = withData.filter((s) => s.summary!.level === 'compliant').length;
-  const partial    = withData.filter((s) => s.summary!.level === 'partial').length;
-  const nonComp    = withData.filter((s) => s.summary!.level === 'non-compliant').length;
+  const compliant  = withData.filter((s) => s.summary!.level === 'no_blockers').length;
+  const partial    = withData.filter((s) => s.summary!.level === 'gaps').length;
+  const nonComp    = withData.filter((s) => s.summary!.level === 'blockers').length;
   const totalCrit  = withData.reduce((n, s) => n + (s.summary!.criticalCount), 0);
 
   return (
@@ -537,18 +537,19 @@ export default function CompliancePage() {
             />
           </div>
 
-          {/* EAA notice */}
-          <div className="rounded-lg border border-red-500/20 bg-red-500/5 px-4 py-3 text-xs text-red-400/80 leading-relaxed">
-            <strong>EU Accessibility Act</strong> — businesses selling to EU customers must meet WCAG 2.1 AA.
-            Non-compliance can result in fines up to €100,000 or 4% of annual revenue.
+          {/* EAA context note */}
+          <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-xs text-amber-400/80 leading-relaxed">
+            <strong>EU Accessibility Act</strong> — may apply to certain digital products and services sold to EU customers.
+            Whether it applies to your organization depends on your specific business circumstances.
+            Consult a qualified legal professional to determine your obligations.
           </div>
 
           {/* Per-site cards — non-compliant first */}
           <div className="space-y-3">
             {[...sites]
               .sort((a, b) => {
-                const order: Record<string, number> = { 'non-compliant': 0, partial: 1, compliant: 2 };
-                return (order[a.summary?.level ?? 'compliant'] ?? 2) - (order[b.summary?.level ?? 'compliant'] ?? 2);
+                const order: Record<string, number> = { blockers: 0, gaps: 1, no_blockers: 2 };
+                return (order[a.summary?.level ?? 'no_blockers'] ?? 2) - (order[b.summary?.level ?? 'no_blockers'] ?? 2);
               })
               .map((site) => (
                 <SiteCard key={site.monitorId} site={site} />

@@ -9,6 +9,14 @@
       "schedule": "* * * * *"
     },
     {
+      "path": "/api/cron/queue-scheduler",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/queue-consumer",
+      "schedule": "* * * * *"
+    },
+    {
       "path": "/api/cron/reset-credits",
       "schedule": "0 0 1 * *"
     }

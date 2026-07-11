@@ -432,9 +432,9 @@ function impactConfig(impact: string): { bg: string; color: string; label: strin
 
 function levelConfig(level: ComplianceLevel): { bg: string; color: string; label: string; border: string } {
   switch (level) {
-    case 'compliant':      return { bg: C.emeraldBg, color: C.emerald, border: C.emerald,   label: 'NO CRITICAL ISSUES DETECTED' };
-    case 'partial':        return { bg: C.amberBg,   color: C.amber,   border: C.amber,     label: 'ISSUES REQUIRE ATTENTION' };
-    case 'non-compliant':  return { bg: C.redBg,     color: C.red,     border: C.red,       label: 'CRITICAL ISSUES FOUND' };
+    case 'no_blockers': return { bg: C.emeraldBg, color: C.emerald, border: C.emerald, label: 'NO AUTOMATED BLOCKERS DETECTED' };
+    case 'gaps':        return { bg: C.amberBg,   color: C.amber,   border: C.amber,   label: 'POTENTIAL GAPS DETECTED' };
+    case 'blockers':    return { bg: C.redBg,     color: C.red,     border: C.red,     label: 'ACCESSIBILITY BLOCKERS FOUND' };
   }
 }
 
@@ -537,7 +537,7 @@ function ComplianceDocument({ analysis, agencyName }: Props) {
           <View style={S.coverDivider} />
           <Text style={S.coverFooter}>
             This report is based on automated WCAG 2.1 AA scanning and does not constitute legal compliance certification.{'\n'}
-            Automated testing detects ~30–40% of accessibility issues. Manual review by an accessibility specialist is recommended for full verification.
+            Automated testing covers a subset of accessibility success criteria. Manual review by an accessibility specialist is required for comprehensive evaluation.
           </Text>
         </View>
       </Page>
@@ -556,11 +556,11 @@ function ComplianceDocument({ analysis, agencyName }: Props) {
               {lCfg.label} — {hostname}
             </Text>
             <Text style={[S.statusBoxText, { color: lCfg.color }]}>
-              {level === 'compliant'
-                ? 'No critical or serious accessibility barriers were detected in this automated scan. Manual review is still recommended for full verification.'
-                : level === 'partial'
-                ? 'Minor accessibility issues were detected. No critical barriers found. Remediation is recommended before claiming WCAG 2.1 AA readiness.'
-                : `${summary.criticalCount} critical accessibility barrier${summary.criticalCount !== 1 ? 's' : ''} detected. Immediate remediation is required. This site is not ready for WCAG 2.1 AA compliance claims.`}
+              {level === 'no_blockers'
+                ? 'No automated accessibility blockers detected in this scan. Manual testing with assistive technologies is still required — automated tools cover only a subset of WCAG success criteria.'
+                : level === 'gaps'
+                ? 'Potential accessibility gaps detected. No critical automated blockers found. Review the issues listed in this report and conduct manual testing before making any accessibility conformance claims.'
+                : `${summary.criticalCount} critical accessibility barrier${summary.criticalCount !== 1 ? 's' : ''} detected. These issues may prevent people with disabilities from using this site and should be prioritized for remediation.`}
             </Text>
           </View>
 
@@ -670,7 +670,7 @@ function ComplianceDocument({ analysis, agencyName }: Props) {
             <View style={[S.methodBox, { marginTop: 10 }]}>
               <Text style={S.methodTitle}>Limitations</Text>
               <Text style={S.methodItem}>
-                Automated tools detect approximately 30–40% of WCAG issues. This report should be supplemented with manual testing by an accessibility specialist and user testing with people with disabilities for comprehensive compliance verification.
+                Automated tools cover a subset of WCAG success criteria. This report should be supplemented with manual testing by an accessibility specialist and user testing with people with disabilities for comprehensive accessibility evaluation.
               </Text>
             </View>
           </View>

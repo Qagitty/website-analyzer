@@ -593,3 +593,18 @@ export async function sendTeamInvite({
     html,
   });
 }
+
+/**
+ * Send a fix request notification email.
+ * SECURITY: `to` is consumed here and never logged; html/text are pre-built by message-generator.
+ */
+export async function sendFixRequestEmail(
+  to: string,
+  subject: string,
+  html: string,
+  text: string,
+): Promise<{ id?: string }> {
+  if (!resend) return {};
+  const result = await resend.emails.send({ from: FROM, to, subject, html, text });
+  return { id: result.data?.id };
+}

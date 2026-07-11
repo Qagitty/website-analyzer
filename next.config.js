@@ -16,6 +16,16 @@ const nextConfig = {
       },
     ],
   },
+  async rewrites() {
+    return [
+      {
+        // Public script URL: customers add this to their HTML
+        // /site-connect/v1/webscore-connect.min.js → /api/site-connect/v1/script
+        source: '/site-connect/v1/webscore-connect.min.js',
+        destination: '/api/site-connect/v1/script',
+      },
+    ];
+  },
   async headers() {
     return [
       {
