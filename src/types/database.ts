@@ -85,9 +85,13 @@ type UserSettingsRow = {
   credits_used: number;
   notifications: unknown;
   preferences: unknown;
-  agency_name: string | null;    // migration 007
-  brand_color: string | null;    // migration 007
-  show_powered_by: boolean;      // migration 007
+  agency_name: string | null;
+  brand_color: string | null;
+  show_powered_by: boolean;
+  logo_url: string | null;
+  plan: string | null;
+  widget_key: string | null;
+  widget_settings: unknown;
   created_at: string;
   updated_at: string;
 };
@@ -102,6 +106,10 @@ type UserSettingsInsert = {
   agency_name?: string | null;
   brand_color?: string | null;
   show_powered_by?: boolean;
+  logo_url?: string | null;
+  plan?: string | null;
+  widget_key?: string | null;
+  widget_settings?: unknown;
   created_at?: string;
   updated_at?: string;
 };
@@ -114,6 +122,10 @@ type UserSettingsUpdate = {
   agency_name?: string | null;
   brand_color?: string | null;
   show_powered_by?: boolean;
+  logo_url?: string | null;
+  plan?: string | null;
+  widget_key?: string | null;
+  widget_settings?: unknown;
   updated_at?: string;
 };
 
@@ -759,6 +771,270 @@ type SiteTelemetryEventInsert = {
 
 type SiteTelemetryEventUpdate = never;
 
+// ── Fix Request types (migration 030) ────────────────────────────────────────
+
+type FixRequestStatus =
+  | 'draft' | 'ready' | 'sending' | 'sent' | 'delivered' | 'delivery_failed'
+  | 'acknowledged' | 'in_review' | 'accepted' | 'declined' | 'in_progress'
+  | 'waiting_for_information' | 'fix_submitted' | 'verification_required'
+  | 'verified' | 'closed' | 'cancelled';
+
+type FixRequestRow = {
+  id: string;
+  user_id: string;
+  team_id: string | null;
+  request_type: string;
+  status: FixRequestStatus;
+  severity: string;
+  title: string;
+  summary: string | null;
+  technical_description: string | null;
+  category: string | null;
+  source_type: string;
+  source_id: string | null;
+  analysis_id: string | null;
+  monitor_id: string | null;
+  site_id: string | null;
+  affected_urls: string[];
+  reproduction_steps: string[];
+  verification_steps: string[];
+  recommended_fix: string | null;
+  code_example: string | null;
+  evidence: unknown;
+  attachments: unknown;
+  requested_due_date: string | null;
+  requested_priority: string | null;
+  recipient_config: unknown;
+  delivery_channels: string[];
+  cover_message: string | null;
+  audit_response: unknown;
+  estimate: unknown;
+  verification_result: string | null;
+  verification_evidence: unknown;
+  internal_notes: string | null;
+  is_archived: boolean;
+  archived_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type FixRequestInsert = {
+  id?: string;
+  user_id: string;
+  team_id?: string | null;
+  request_type: string;
+  status?: FixRequestStatus;
+  severity?: string;
+  title: string;
+  summary?: string | null;
+  technical_description?: string | null;
+  category?: string | null;
+  source_type: string;
+  source_id?: string | null;
+  analysis_id?: string | null;
+  monitor_id?: string | null;
+  site_id?: string | null;
+  affected_urls?: string[];
+  reproduction_steps?: string[];
+  verification_steps?: string[];
+  recommended_fix?: string | null;
+  code_example?: string | null;
+  evidence?: unknown;
+  attachments?: unknown;
+  requested_due_date?: string | null;
+  requested_priority?: string | null;
+  recipient_config?: unknown;
+  delivery_channels?: string[];
+  cover_message?: string | null;
+  audit_response?: unknown;
+  estimate?: unknown;
+  verification_result?: string | null;
+  verification_evidence?: unknown;
+  internal_notes?: string | null;
+  is_archived?: boolean;
+  archived_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+};
+
+type FixRequestUpdate = Partial<Omit<FixRequestInsert, 'user_id'>>;
+
+type FixRequestRecipientRow = {
+  id: string;
+  fix_request_id: string;
+  user_id: string;
+  recipient_type: string;
+  recipient_user_id: string | null;
+  team_member_id: string | null;
+  display_name: string | null;
+  recipient_email: string | null;
+  webhook_id: string | null;
+  phone_e164: string | null;
+  telegram_username: string | null;
+  status: string;
+  delivery_channel: string | null;
+  last_delivery_attempt: string | null;
+  last_delivery_status: string | null;
+  delivery_error_summary: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type FixRequestRecipientInsert = {
+  id?: string;
+  fix_request_id: string;
+  user_id: string;
+  recipient_type: string;
+  recipient_user_id?: string | null;
+  team_member_id?: string | null;
+  display_name?: string | null;
+  recipient_email?: string | null;
+  webhook_id?: string | null;
+  phone_e164?: string | null;
+  telegram_username?: string | null;
+  status?: string;
+  delivery_channel?: string | null;
+  last_delivery_attempt?: string | null;
+  last_delivery_status?: string | null;
+  delivery_error_summary?: string | null;
+  created_at?: string;
+  updated_at?: string;
+};
+
+type FixRequestRecipientUpdate = Partial<Omit<FixRequestRecipientInsert, 'fix_request_id' | 'user_id'>>;
+
+type FixRequestDeliveryRow = {
+  id: string;
+  fix_request_id: string;
+  recipient_id: string | null;
+  user_id: string;
+  channel: string;
+  attempt_number: number;
+  status: string;
+  provider_ref: string | null;
+  evidence_level: string | null;
+  error_summary: string | null;
+  http_status: number | null;
+  attempted_at: string;
+};
+
+type FixRequestDeliveryInsert = {
+  id?: string;
+  fix_request_id: string;
+  recipient_id?: string | null;
+  user_id: string;
+  channel: string;
+  attempt_number?: number;
+  status: string;
+  provider_ref?: string | null;
+  evidence_level?: string | null;
+  error_summary?: string | null;
+  http_status?: number | null;
+  attempted_at?: string;
+};
+
+type FixRequestDeliveryUpdate = Partial<Omit<FixRequestDeliveryInsert, 'fix_request_id' | 'user_id'>>;
+
+type FixRequestMessageRow = {
+  id: string;
+  fix_request_id: string;
+  user_id: string;
+  visibility: 'internal' | 'recipient_visible';
+  format: 'text' | 'markdown';
+  content: string;
+  attachment_storage_key: string | null;
+  attachment_filename: string | null;
+  sender_display_name: string | null;
+  sender_is_external: boolean;
+  edited_at: string | null;
+  created_at: string;
+};
+
+type FixRequestMessageInsert = {
+  id?: string;
+  fix_request_id: string;
+  user_id: string;
+  visibility?: 'internal' | 'recipient_visible';
+  format?: 'text' | 'markdown';
+  content: string;
+  attachment_storage_key?: string | null;
+  attachment_filename?: string | null;
+  sender_display_name?: string | null;
+  sender_is_external?: boolean;
+  edited_at?: string | null;
+  created_at?: string;
+};
+
+type FixRequestMessageUpdate = Partial<Omit<FixRequestMessageInsert, 'fix_request_id' | 'user_id'>>;
+
+type FixRequestActivityRow = {
+  id: string;
+  fix_request_id: string;
+  user_id: string;
+  event_type: string;
+  previous_status: string | null;
+  new_status: string | null;
+  metadata: unknown;
+  actor_is_external: boolean;
+  actor_display_name: string | null;
+  created_at: string;
+};
+
+type FixRequestActivityInsert = {
+  id?: string;
+  fix_request_id: string;
+  user_id: string;
+  event_type: string;
+  previous_status?: string | null;
+  new_status?: string | null;
+  metadata?: unknown;
+  actor_is_external?: boolean;
+  actor_display_name?: string | null;
+  created_at?: string;
+};
+
+type FixRequestActivityUpdate = never;
+
+type FixRequestPublicLinkRow = {
+  id: string;
+  fix_request_id: string;
+  user_id: string;
+  token: string;
+  access_scope: 'standard' | 'full_technical';
+  can_view_messages: boolean;
+  can_post_messages: boolean;
+  can_acknowledge: boolean;
+  can_submit_response: boolean;
+  expires_at: string;
+  is_revoked: boolean;
+  revoked_at: string | null;
+  view_count: number;
+  first_viewed_at: string | null;
+  last_viewed_at: string | null;
+  created_at: string;
+};
+
+type FixRequestPublicLinkInsert = {
+  id?: string;
+  fix_request_id: string;
+  user_id: string;
+  token: string;
+  access_scope?: 'standard' | 'full_technical';
+  can_view_messages?: boolean;
+  can_post_messages?: boolean;
+  can_acknowledge?: boolean;
+  can_submit_response?: boolean;
+  expires_at: string;
+  is_revoked?: boolean;
+  revoked_at?: string | null;
+  view_count?: number;
+  first_viewed_at?: string | null;
+  last_viewed_at?: string | null;
+  created_at?: string;
+};
+
+type FixRequestPublicLinkUpdate = Partial<Omit<FixRequestPublicLinkInsert, 'fix_request_id' | 'user_id' | 'token'>>;
+
 // ── Main Database type ───────────────────────────────────────────────────────
 
 export interface Database {
@@ -866,6 +1142,42 @@ export interface Database {
         Update: SiteTelemetryEventUpdate;
         Relationships: [];
       };
+      fix_requests: {
+        Row: FixRequestRow;
+        Insert: FixRequestInsert;
+        Update: FixRequestUpdate;
+        Relationships: [];
+      };
+      fix_request_recipients: {
+        Row: FixRequestRecipientRow;
+        Insert: FixRequestRecipientInsert;
+        Update: FixRequestRecipientUpdate;
+        Relationships: [];
+      };
+      fix_request_deliveries: {
+        Row: FixRequestDeliveryRow;
+        Insert: FixRequestDeliveryInsert;
+        Update: FixRequestDeliveryUpdate;
+        Relationships: [];
+      };
+      fix_request_messages: {
+        Row: FixRequestMessageRow;
+        Insert: FixRequestMessageInsert;
+        Update: FixRequestMessageUpdate;
+        Relationships: [];
+      };
+      fix_request_activities: {
+        Row: FixRequestActivityRow;
+        Insert: FixRequestActivityInsert;
+        Update: FixRequestActivityUpdate;
+        Relationships: [];
+      };
+      fix_request_public_links: {
+        Row: FixRequestPublicLinkRow;
+        Insert: FixRequestPublicLinkInsert;
+        Update: FixRequestPublicLinkUpdate;
+        Relationships: [];
+      };
     };
     Views: { [_ in never]: never };
     Functions: {
@@ -906,6 +1218,10 @@ export interface Database {
           p_event_entry?: unknown;
         };
         Returns: string;
+      };
+      fix_request_link_record_view: {
+        Args: { p_link_id: string };
+        Returns: undefined;
       };
     };
     Enums: { [_ in never]: never };

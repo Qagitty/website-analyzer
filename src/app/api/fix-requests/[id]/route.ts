@@ -111,7 +111,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   const { data: updated, error: updateErr } = await supabase
     .from('fix_requests')
-    .update(update)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .update(update as any)
     .eq('id', params.id)
     .eq('user_id', user.id)
     .select('id, status, severity, updated_at')

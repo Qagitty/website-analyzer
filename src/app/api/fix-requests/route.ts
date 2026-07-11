@@ -68,7 +68,7 @@ export async function GET(req: NextRequest) {
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
 
-  if (status)     query = query.eq('status', status);
+  if (status)     query = query.eq('status', status as import('@/types/fix-request').FixRequestStatus);
   if (severity)   query = query.eq('severity', severity);
   if (sourceType) query = query.eq('source_type', sourceType);
 

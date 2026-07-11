@@ -434,7 +434,7 @@ describe('privacy invariants', () => {
       analysisId: 'a2',
     });
     // cover message is not set by adapters — only by user after creating draft
-    expect(draft.coverMessage).toBeUndefined();
+    expect(draft.message).toBeUndefined();
   });
 
   it('webhook payload does not include internal_notes field', () => {

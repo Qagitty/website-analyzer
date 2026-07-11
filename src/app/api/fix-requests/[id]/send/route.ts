@@ -123,7 +123,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     requestType:  fr.request_type,
     title:        fr.title,
     summary:      fr.summary ?? '',
-    severity:     fr.severity,
+    severity:     fr.severity as import('@/types/fix-request').FixRequestSeverity,
     category:     fr.category ?? '',
     affectedUrls: fr.affected_urls ?? [],
     coverMessage: fr.cover_message ?? undefined,
