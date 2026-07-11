@@ -12,6 +12,15 @@
  *  - MonitorFailureOrigin distinguishes site failure from analyzer failure (§47)
  */
 
+// ─── Monitor page mode (§8) ──────────────────────────────────────────────────
+
+/** Which pages to include in each monitor run. */
+export type MonitorPageMode =
+  | 'homepage'    // root URL only (default)
+  | 'important'   // root + auto-discovered high-importance pages (plan-gated)
+  | 'all'         // all discovered pages up to plan limit
+  | 'custom';     // user-curated list from monitor_pages table
+
 // ─── Monitor lifecycle (§2) ───────────────────────────────────────────────────
 
 export type MonitorStatus =
