@@ -1,7 +1,7 @@
 # Comprehensive Product Audit Report
-**Date:** 2026-07-11  
+**Date:** 2026-07-11 (updated 2026-07-12 to reflect Sprints 13–16)  
 **Commit at audit:** `64795b5`  
-**Verification:** typecheck PASS · 2071/2071 tests PASS · 0 HIGH/CRITICAL vulnerabilities
+**Verification:** typecheck PASS · 2,323/2,323 tests PASS · 0 HIGH/CRITICAL vulnerabilities
 
 ---
 
@@ -253,7 +253,7 @@ No new migrations. All cleanup operations use existing tables with bounded `DELE
 
 ## 11. Test Coverage
 
-**Current:** 2,071 tests / 79 files — all passing.
+**Current:** 2,323 tests / 90 files — all passing (as of 2026-07-12 after Sprints 13–16).
 
 **Coverage gaps:**
 - No UI/integration tests (no Playwright)
@@ -292,8 +292,8 @@ CLAUDE.md contradictions to resolve at next documentation update:
 | Product Area | Status | Summary |
 |---|---|---|
 | **A — Multi-page Scheduled Monitoring** | PARTIAL | Core scheduling, page inventory, discovery, and basic alerts work. Full alert policy not wired into production path. No UI for page management or incidents. |
-| **B — Runtime Error Monitoring** | DEFERRED | Entirely absent. Only a source-type stub in Fix Requests. Requires a full separate sprint. |
+| **B — Runtime Error Monitoring** | **COMPLETE** | Implemented in Sprint 16: error_projects table, ingestion endpoint, browser SDK, deterministic issue grouping, regression detection, full dashboard (/errors), Fix Request integration. |
 | **C — Queue + Monitoring Bot Infrastructure** | PARTIAL | Architecture is solid and production-ready. Per-origin enforcement during job consumption is best-effort only. Lease renewal defined but unused. No tenant fairness (round-robin). |
-| **D — Connected Site Script + Telemetry** | PARTIAL | All APIs and the browser SDK are production-ready with strong security. No UI dashboard. Telemetry retention fixed. HTML-file and DNS verification methods not implemented. |
+| **D — Connected Site Script + Telemetry** | **COMPLETE** | APIs, browser SDK, and full UI dashboard implemented (/sites, /sites/new, /sites/[id] with 6 tabs). Telemetry retention fixed. HTML-file verification still not implemented (DNS TXT + meta tag are available). |
 | **E — Regional Accessibility Risk Assessment** | PARTIAL | Domain logic (standards, jurisdictions, risk model, applicability) is complete and legally sound. No profile setup UI, no manual check tracking, no accessibility statement generator, no continuous monitoring. |
-| **F — Audit and Fix Request Workflow** | PARTIAL | Domain logic, state machine, all delivery channels, and full API surface are complete. No UI dashboard — users cannot create or view fix requests from the browser. Attachments not uploadable. |
+| **F — Audit and Fix Request Workflow** | **COMPLETE** | Domain logic, state machine, all delivery channels, full API surface, and complete UI dashboard implemented in Sprint 15 (/fix-requests, /fix-requests/new, /fix-requests/[id], public /fix-request/[token]). Attachments still not uploadable (post-MVP). |

@@ -3,7 +3,7 @@
 import { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { ArrowLeft, Copy, Check } from 'lucide-react';
+import { ArrowLeft, Copy, Check, FileDown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -377,18 +377,99 @@ export default function DocsPage() {
           </div>
         </section>
 
+        {/* Error Monitoring API */}
+        <section className="space-y-4">
+          <h2 className="text-2xl font-semibold text-foreground">Error Monitoring API</h2>
+          <p className="text-muted-foreground text-sm">
+            Ingest real browser errors from your customer websites. Install the SDK snippet or send events directly.
+          </p>
+          <Card className="border-border bg-card">
+            <CardHeader>
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <CardTitle className="text-base text-foreground">Install the SDK</CardTitle>
+                <Badge variant="secondary">POST /api/error-monitoring/envelope</Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Add this snippet to your website. The SDK captures uncaught exceptions, unhandled rejections, and navigation breadcrumbs.
+                Sensitive query parameters (token, password, auth, jwt, etc.) are scrubbed before any data leaves the browser.
+              </p>
+              <div className="space-y-2">
+                <CodeBlock
+                  id="sdk-install"
+                  code={`<script
+  src="${BASE_URL.replace('/api/v1', '')}/api/error-monitoring/sdk"
+  data-project-key="ws_err_YOUR_KEY"
+  data-environment="production"
+  defer crossorigin="anonymous">
+</script>`}
+                />
+              </div>
+              <div className="rounded-lg border border-border overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th className="text-left px-4 py-3 font-medium text-foreground">Plan</th>
+                      <th className="text-left px-4 py-3 font-medium text-foreground">Projects</th>
+                      <th className="text-left px-4 py-3 font-medium text-foreground">Events / period</th>
+                      <th className="text-left px-4 py-3 font-medium text-foreground">Retention</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border text-muted-foreground">
+                    <tr>
+                      <td className="px-4 py-3">Free</td>
+                      <td className="px-4 py-3">—</td>
+                      <td className="px-4 py-3">—</td>
+                      <td className="px-4 py-3">—</td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3">Pro</td>
+                      <td className="px-4 py-3">1</td>
+                      <td className="px-4 py-3">5,000</td>
+                      <td className="px-4 py-3">7 days</td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3">Agency</td>
+                      <td className="px-4 py-3">5</td>
+                      <td className="px-4 py-3">50,000</td>
+                      <td className="px-4 py-3">30 days</td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3">Compliance</td>
+                      <td className="px-4 py-3">20</td>
+                      <td className="px-4 py-3">500,000</td>
+                      <td className="px-4 py-3">90 days</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
         {/* CTA */}
         <div className="rounded-xl border border-orange-200 dark:border-orange-900/40 bg-orange-600/5 p-8 text-center space-y-4">
           <h3 className="text-xl font-semibold text-foreground">Ready to get started?</h3>
           <p className="text-muted-foreground">
             Generate your API key in settings and start analyzing websites programmatically.
           </p>
-          <Link
-            href="/settings"
-            className="inline-flex items-center gap-2 rounded-lg bg-orange-600 px-5 py-2.5 text-sm font-medium text-white hover:from-orange-400 hover:to-orange-400 transition-all"
-          >
-            Get your API key in Settings &rarr;
-          </Link>
+          <div className="flex items-center justify-center gap-3 flex-wrap">
+            <Link
+              href="/settings"
+              className="inline-flex items-center gap-2 rounded-lg bg-orange-600 px-5 py-2.5 text-sm font-medium text-white hover:from-orange-400 hover:to-orange-400 transition-all"
+            >
+              Get your API key in Settings &rarr;
+            </Link>
+            <a
+              href="/api/docs/product-guide-pdf"
+              download="webscore-product-guide.pdf"
+              className="inline-flex items-center gap-2 rounded-lg border border-border px-5 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-all"
+            >
+              <FileDown className="h-4 w-4" />
+              Download Product Guide (PDF)
+            </a>
+          </div>
         </div>
       </div>
     </div>

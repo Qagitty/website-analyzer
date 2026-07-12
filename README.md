@@ -1,12 +1,12 @@
-# Website Analyzer
+# WebScore
 
-Automated website quality analysis with AI-powered recommendations — performance, accessibility, SEO, console errors, design fidelity, and scheduled monitoring.
+Automated website quality analysis with AI-powered recommendations — performance, accessibility, SEO, console errors, connected sites, fix requests, and runtime error monitoring.
 
 ## Features
 
 | Feature | Description |
 |---------|-------------|
-| **Performance Analysis** | Lighthouse scores, Core Web Vitals (LCP, FID, CLS, TTFB), radar chart |
+| **Performance Analysis** | Lighthouse scores, Core Web Vitals (LCP, INP, CLS, TTFB), radar chart |
 | **Accessibility Audit** | WCAG violations with impact levels, node selectors, EAA compliance mapping, remediation tracking |
 | **SEO Audit** | 40+ checks across 10 weighted categories, structured data, hreflang, robots.txt, sitemap |
 | **LLM Readiness** | Evidence-based scoring across 9 weighted categories (crawlability, structured data, llms.txt, etc.) |
@@ -16,9 +16,13 @@ Automated website quality analysis with AI-powered recommendations — performan
 | **Design Comparison** | Upload Figma/design screenshots — Claude compares fidelity score and mismatches |
 | **Competitor Comparison** | Analyze up to 5 URLs side-by-side with Score Breakdown table |
 | **Shareable Reports** | One-click public `/share/{id}` URL, no login required |
-| **Scheduled Monitoring** | Daily/weekly automated re-analysis with Vercel Cron, email alerts on score drops |
+| **Scheduled Monitoring** | Daily/weekly automated re-analysis with Vercel Cron, email alerts on score drops, bulk page actions, run detail view |
 | **Multi-format Export** | PDF, DOCX, XLSX, JSON, Markdown — plus compliance-framed PDF (Pro+) |
 | **Remediation Tracking** | Track individual issues through open → in_progress → resolved → verified lifecycle (Pro+) |
+| **Regional Accessibility Risk** | Versioned jurisdiction profiles (WCAG 2.1/2.2, EN 301 549, Section 508), 7-dimension risk model, conservative applicability assessment |
+| **Connected Sites** | Link verified websites via JS snippet (`ws_site_` keys), continuous telemetry: web vitals, route discovery, indexing checks |
+| **Fix Requests** | Structured workflow to send findings to developers — 6 request types, 17-status state machine, 6 delivery channels, external scoped-token links |
+| **Runtime Error Monitoring** | Capture real browser errors via JS SDK (`ws_err_` keys), deterministic issue grouping, regression detection, Fix Request integration |
 | **Stripe Subscriptions** | Free (3 credits), Pro ($29/mo, 100 credits), Agency ($99/mo, unlimited), Compliance ($249/mo) |
 | **Public API (v1)** | REST API with `wa_live_` key auth, per-plan rate limiting, HMAC webhook signatures |
 | **Agency Lead Widget** | Embeddable JS widget + hosted page captures leads; `/leads` dashboard for Agency+ users |
@@ -33,23 +37,44 @@ Security audit completed 2026-06-29. 0 open findings.
 |---------|---------------|
 | **API key encryption** | AES-256-GCM + PBKDF2-SHA256 (600K iterations, `v2:` prefix) |
 | **Worker callback auth** | HMAC-SHA256 + startup guard (500 if secrets not bound) |
-| **CSRF** | Centralized in middleware; excludes `/api/widget/` and `/api/v1/` |
+| **CSRF** | Centralized in middleware; excludes `/api/widget/`, `/api/v1/`, `/api/error-monitoring/` |
 | **SSRF prevention** | `validateAnalysisUrl()` + `fetchSameOriginOnly()` blocks private IPs and redirect-chain hops |
 | **Rate limiting** | Fail-closed — Redis outage → 503, not bypass |
 | **Supply chain** | npm `overrides` for `form-data` + `ws` CVEs; CI runs `npm audit --audit-level=high` |
+| **Key namespaces** | `wa_live_` (API), `ws_site_` (Connected Sites), `ws_err_` (Error Monitoring), `wk_live_` (Widget) |
 
 ## Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | Next.js 14, React 18, Tailwind CSS, shadcn/ui, Recharts |
-| Backend | Next.js API Routes + Cloudflare Workers (Playwright + axe-core) |
-| Database | Supabase (PostgreSQL + Auth + Storage) |
-| Queue | Upstash Redis |
-| AI | Claude API (Anthropic) — `claude-sonnet-4-6` |
-| Email | Resend (optional — score-drop alerts) |
+| Frontend | Next.js 15, React 18, Tailwind CSS, shadcn/ui, Recharts |
+| Backend | Next.js API Routes + Cloudflare Workers (fetch-only, HTML analysis + Claude Vision) |
+| Database | Supabase (PostgreSQL + Auth + Storage) — 32 migrations |
+| Queue | Upstash Redis (18 job types) |
+| AI | Claude API (Anthropic) — `claude-sonnet-4-6` (vision + text) |
+| Email | Resend |
 | Payments | Stripe |
 | Deployment | Vercel + Cloudflare Workers |
+
+## Sprint History
+
+| Sprint | Feature | Status |
+|--------|---------|--------|
+| Sprint 1 | Core analysis engine (Worker, HTML analysis, scoring) | Complete |
+| Sprint 2 | Authentication, URL input, analysis status polling | Complete |
+| Sprint 3 | AI analysis with Claude Vision, detailed reports, PDF export | Complete |
+| Sprint 4 | Dashboard, Stripe billing, error boundaries | Complete |
+| Sprint 5 | API keys, Agency Lead Widget | Complete |
+| Sprint 6 | Webhook delivery, Pricing page, Changelog | Complete |
+| Sprint 7 | LLM Readiness scoring | Complete |
+| Sprint 8 | Onboarding banner, multi-page crawl | Complete |
+| Security Audit | Trail of Bits 4-phase audit (21 findings, all resolved) | Complete |
+| Sprint 9 | Regional Accessibility Risk Assessment | Complete |
+| Sprint 10 | Unified Fix Request Workflow (domain logic + API) | Complete |
+| Sprint 13 | Multi-page Monitor bulk actions + run detail UI | Complete |
+| Sprint 14 | Connected Sites UI (6-tab dashboard) | Complete |
+| Sprint 15 | Fix Requests UI (create, send, track, close) | Complete |
+| Sprint 16 | Runtime Error Monitoring (SDK, ingestion, issue grouping, dashboard) | Complete |
 
 ## Quick Start
 
@@ -99,16 +124,12 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_...
 STRIPE_PRO_PRICE_ID=price_...
 STRIPE_AGENCY_PRICE_ID=price_...
 
-# Email alerts for Scheduled Monitoring (optional)
+# Email alerts (optional)
 RESEND_API_KEY=re_...                   # If unset, emails are silently skipped
 EMAIL_FROM=noreply@yourdomain.com
 
 # Vercel Cron security
-CRON_SECRET=your-random-secret          # Used to authenticate /api/cron/monitors
-
-# Widget (Agency Lead Widget)
-# Widget keys are stored in plaintext in user_settings (unlike API keys which are hashed)
-# No extra env vars needed — keys use the same Supabase DB
+CRON_SECRET=your-random-secret
 
 # App
 NEXT_PUBLIC_APP_URL=https://yourapp.com  # No trailing slash
@@ -137,35 +158,22 @@ NEXT_PUBLIC_APP_URL=https://yourapp.com  # No trailing slash
 ### Cloudflare Worker (required for browser automation)
 ```bash
 cd src/workers/analyzer
-
-# Deploy the worker
 wrangler deploy
-
-# Set secrets (never in wrangler.toml)
 wrangler secret put WORKER_AUTH_TOKEN
 wrangler secret put WORKER_CALLBACK_SECRET
 ```
 
-Then set `CLOUDFLARE_WORKER_URL` in your app's env to the deployed worker URL.
-
 ### Stripe (required for payments)
 1. Get keys at [dashboard.stripe.com](https://dashboard.stripe.com/apikeys)
-2. Create two products: **Pro** ($29/mo) and **Agency** ($99/mo)
-3. Copy their price IDs → `STRIPE_PRO_PRICE_ID`, `STRIPE_AGENCY_PRICE_ID`
+2. Create products: **Pro** ($29/mo), **Agency** ($99/mo), **Compliance** ($249/mo)
+3. Copy price IDs → `STRIPE_PRO_PRICE_ID`, `STRIPE_AGENCY_PRICE_ID`
 4. Create webhook at `https://your-domain.com/api/stripe/webhook`
-   - Events: `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_succeeded`, `invoice.payment_failed`
 5. Copy webhook signing secret → `STRIPE_WEBHOOK_SECRET`
 
-Local webhook forwarding:
-```bash
-stripe listen --forward-to localhost:3000/api/stripe/webhook
-```
-
-### Resend (optional — monitoring email alerts)
+### Resend (optional — email alerts)
 1. Create account at [resend.com](https://resend.com)
 2. Copy API key → `RESEND_API_KEY`
 3. Set `EMAIL_FROM` to a verified sender address
-4. If `RESEND_API_KEY` is not set, score-drop emails are silently skipped — all other features work normally
 
 ## Database Migrations
 
@@ -173,47 +181,15 @@ stripe listen --forward-to localhost:3000/api/stripe/webhook
 # Apply all migrations to remote Supabase project
 npx supabase db push
 
-# Migrations included:
-# 001_initial_schema.sql  — analyses, user_settings, subscriptions tables
-# 002_rls_policies.sql    — Row Level Security policies
-# 003_functions.sql       — triggers, use_credit(), handle_new_user()
-# 004_design_comparison.sql — design_screenshot_url column on analyses
-# 005_public_reports.sql  — is_public column + public read RLS policy
-# 006_monitors.sql        — monitors table for scheduled monitoring
+# 32 migrations total:
+# 001–018  Core schema (analyses, auth, monitors, API keys, webhooks, team, widget)
+# 019–028  Connected Sites, queue system, multi-page monitoring
+# 029      Accessibility profiles (10 tables)
+# 030      Fix Requests (6 tables, RLS-gated)
+# 031      fix_request_read_states
+# 032      Error Monitoring (6 tables: error_projects, error_events, error_issues,
+#          error_issue_activities, error_alert_policies, error_project_quotas)
 ```
-
-## API Routes
-
-| Route | Method | Description |
-|-------|--------|-------------|
-| `/api/analyze` | POST | Create analysis, consume credit, dispatch to Worker |
-| `/api/analyze/callback` | POST | Receive Worker results, run AI analysis, save to DB |
-| `/api/reports/[id]` | GET | Fetch completed report (auth required) |
-| `/api/reports/[id]/pdf` | GET | Download report as PDF |
-| `/api/reports/[id]/share` | POST | Toggle `is_public` on a report |
-| `/api/ai/analyze` | POST | Direct AI screenshot analysis endpoint |
-| `/api/monitors` | GET/POST | List / create scheduled monitors |
-| `/api/monitors/[id]` | PATCH/DELETE | Update (pause/resume) / delete a monitor |
-| `/api/cron/monitors` | GET | Vercel Cron endpoint — process due monitors (requires `CRON_SECRET`) |
-| `/api/cron/reset-credits` | GET | Vercel Cron endpoint — reset free-user credits monthly (requires `CRON_SECRET`) |
-| `/api/reports/[id]/compliance-pdf` | GET | Generate compliance-framed PDF (Pro+ plan required) |
-| `/api/remediation` | GET, POST | List / create remediation tracking items (POST requires Pro+) |
-| `/api/remediation/[id]` | PATCH, DELETE | Update status/notes or remove a tracked issue |
-| `/api/widget/analyze` | POST | Public widget analysis — authenticates by `widget_key`, rate-limited |
-| `/api/widget/key` | PATCH | Update widget settings (buttonText, buttonColor, position, showEmail) |
-| `/api/leads` | GET | List captured leads for the authenticated Agency+ user |
-| `/api/stripe/checkout` | POST | Create Stripe checkout session |
-| `/api/stripe/webhook` | POST | Handle Stripe subscription events |
-| `/api/user/credits` | GET | Get current user's credit balance |
-
-## Public Routes
-
-| Route | Description |
-|-------|-------------|
-| `/share/[id]` | Public report page — no auth required, only serves `is_public=true` analyses |
-| `/widget/[key]` | Hosted public widget page — embeddable lead capture form keyed by `wk_live_…` widget key |
-| `/pricing` | Standalone pricing page — monthly/annual toggle, comparison table, FAQ, Schema.org JSON-LD |
-| `/changelog` | Public changelog — timeline driven by `src/data/changelog.ts` |
 
 ## Pages
 
@@ -230,26 +206,41 @@ npx supabase db push
 | Report Detail | `/reports/[id]` | Required |
 | Reports History | `/reports` | Required |
 | Monitors | `/monitors` | Required |
+| Monitor Run Detail | `/monitors/[id]/runs/[runId]` | Required |
+| Connected Sites | `/sites` | Required |
+| Site Detail | `/sites/[id]` | Required |
+| Fix Requests | `/fix-requests` | Required (Pro+) |
+| Fix Request Detail | `/fix-requests/[id]` | Required (Pro+) |
+| Error Projects | `/errors` | Required (Pro+) |
+| Error Issue Detail | `/errors/[id]/issues/[issueId]` | Required (Pro+) |
+| Compliance | `/compliance` | Required |
+| Remediation | `/compliance/remediation` | Required |
 | Leads | `/leads` | Required (Agency+) |
+| Developer Docs | `/docs` | Required |
 | Settings | `/settings` | Required |
 | Public Report | `/share/[id]` | None |
+| Public Fix Request | `/fix-request/[token]` | None (token-gated) |
 | Widget Embed | `/widget/[key]` | None |
 
-## Feature Details
+## Testing
 
-### Design Comparison
-Upload a Figma/mockup screenshot when submitting a URL. Claude Vision receives both the design and the live screenshot, returns a **fidelity score** (0–100), a list of **mismatches** (area, severity, what design expects vs what live site shows, CSS fix suggestion), and a list of **matching areas**. Results appear in a dedicated section at the bottom of the report.
+```bash
+npm run test          # Run all unit tests
+npm run test:watch    # Watch mode
+npm run verify        # typecheck + lint + tests + npm audit
+```
 
-### Shareable Reports
-Click **Share** on any completed report. The API sets `is_public=true` and returns a `/share/{id}` URL which is immediately copied to the clipboard. The public page is fully server-rendered — no auth token is needed. Un-sharing sets `is_public=false`; the `/share/{id}` route then returns 404.
+**2,323 tests passing** across 90 files (Vitest 4.x, jsdom, @testing-library/react 16.x, all passing as of 2026-07-12)
 
-### AI Code Fix Suggestions
-Each AI insight card may include a `codeExample` field. Click **Show code fix** to expand a dark-themed code block. Click **Copy** to copy the snippet to the clipboard. The toggle is hidden when no code example is available.
-
-### Scheduled Monitoring
-Navigate to `/monitors` to create monitors. Choose **daily** or **weekly** frequency. Optionally enable score-drop email alerts and set a threshold (1–50 points). Vercel Cron fires `/api/cron/monitors` every hour; the cron handler finds monitors whose `next_run_at` has passed, submits a new analysis for each, and updates `last_run_at` / `next_run_at`. When a run completes, if any Lighthouse score dropped ≥ threshold since the last run, a score-drop alert email is sent via Resend.
-
-Free plan: up to 3 monitors. Pro/Agency: unlimited.
+| Category | Files | Key coverage |
+|----------|-------|-------------|
+| **API** (10) | analyze-validation, api-routes, compare-api, monitors-validation, reset-credits, share-report, team-invite, v1-api, widget-analyze, site-connect-events | Route validation, auth, credits, rate limiting |
+| **Components** (12+) | AIInsightsSection, CompetitorComparisonSection, CrawledPagesSection, DesignComparisonSection, EAAComplianceSection, LLMReadinessSection, OnboardingBanner, PricingPage, fix-request badges, connected-site badges, error-monitoring badges | UI rendering, interactions, edge states |
+| **Contracts** (5) | callback-auth, callback-idempotency, legacy-adapters, public-serializer, schemas | Worker payload auth and schema versioning |
+| **Hooks** (3) | useAnalysis, useCredits, usePolling | React hook behaviour |
+| **Library** (35+) | ai-* (5), accessibility-registry (41 tests), fix-request (48 tests), error-monitoring (fingerprinting, scrubbing, ingestion), api-keys, queue-service, queue-backoff, indexing-checks, site-key-generate, plans, rate-limit, url-validator, webhook-delivery, + more | Security, AI pipeline, billing, reporting |
+| **Security** (2) | regression, site-connect-security | 7 regression guards for audit findings |
+| **Worker** (14) | accessibility-engine, best-practices-engine, crawl-page-regression, crawled-pages, llm-readiness-engine, llm-readiness, opportunities, perf-score, score-analysis, score-classification, scoring-reproducibility, security-headers-engine, seo-engine, url-validation | All scoring engines |
 
 ## Commands
 
@@ -268,101 +259,13 @@ npm run db:push         # Apply Supabase migrations
 npm run db:types        # Regenerate TypeScript types from DB schema
 ```
 
-## Project Structure
-
-```
-src/
-├── app/
-│   ├── (auth)/               # Login, Signup pages
-│   ├── (dashboard)/
-│   │   ├── analyze/          # URL input form + analysis status
-│   │   ├── reports/          # Report detail + history list (paginated, PAGE_SIZE=20)
-│   │   ├── monitors/         # Scheduled monitoring page
-│   │   ├── dashboard/        # Stats + recent analyses
-│   │   └── settings/         # Profile + billing
-│   ├── share/[id]/           # Public report (no auth)
-│   ├── opengraph-image.tsx   # OG social preview image (Next.js ImageResponse)
-│   └── api/
-│       ├── analyze/           # POST create + POST callback (credit refund in both failure paths)
-│       ├── reports/[id]/      # GET report (stale-job via updated_at) + GET pdf + POST share
-│       ├── monitors/          # GET list + POST create (CSRF-protected) + PATCH/DELETE [id]
-│       ├── team/              # POST invite (sets invite_expires_at) + GET accept (expiry check)
-│       ├── cron/
-│       │   ├── monitors/      # GET Vercel Cron handler (hourly)
-│       │   └── reset-credits/ # GET monthly free-user credit reset (1st of month)
-│       ├── ai/analyze/        # POST direct AI analysis
-│       ├── stripe/            # POST checkout + POST webhook
-│       └── user/credits/      # GET credit balance
-├── components/
-│   ├── ui/                   # shadcn/ui base components
-│   ├── auth/                 # LoginForm, SignupForm, OAuthButtons
-│   ├── analyze/              # URLInput (with design upload), AnalysisProgress, QueuePosition
-│   ├── reports/
-│   │   ├── ReportHeader.tsx          # Share toggle, copy link, public banner
-│   │   ├── ShareReportHeader.tsx     # Read-only header for /share/[id]
-│   │   ├── PerformanceSection.tsx    # Lighthouse scores + radar chart (FID/CLS: N/A)
-│   │   ├── AccessibilitySection.tsx  # WCAG violations
-│   │   ├── ConsoleErrorsSection.tsx  # Console errors
-│   │   ├── AIInsightsSection.tsx     # AI insights + code fix toggles
-│   │   ├── DesignComparisonSection.tsx # Fidelity score + mismatch cards
-│   │   └── ScreenshotViewer.tsx
-│   ├── monitors/             # MonitorsList, MonitorCard, CreateMonitorForm
-│   └── shared/               # Navbar, Sidebar, ErrorBoundary, LoadingSpinner
-├── lib/
-│   ├── supabase/             # Browser + server + service-role clients
-│   ├── ai/
-│   │   ├── claude.ts         # analyzeWithAI(), compareWithDesign()
-│   │   └── prompts.ts        # All AI prompts (6 functions)
-│   ├── csrf.ts               # checkCsrfOrigin() — Origin header CSRF guard
-│   ├── url-validation-patterns.ts  # Shared HTTP_ERROR_STATUSES + PAGE_ERROR_PATTERNS
-│   ├── email/resend.ts       # sendScoreDropAlert(), sendMonitorSummary()
-│   ├── queue/redis.ts        # Upstash Redis client
-│   └── stripe/               # Stripe client + plan definitions
-├── workers/analyzer/         # Cloudflare Worker — split into focused modules
-│   ├── index.ts              # Entry point + runAnalysis() + sendCallback()
-│   ├── types.ts              # All shared interfaces (Env, Scores, LLMReadiness, …)
-│   ├── log.ts                # workerLog() structured logging
-│   ├── validate.ts           # validateWebsiteUrl()
-│   ├── score.ts              # analyzeHTML(), clamp()
-│   ├── accessibility.ts      # checkAccessibility() — 19 WCAG checks
-│   ├── errors.ts             # checkCommonErrors()
-│   ├── llm-readiness.ts      # checkLLMReadiness()
-│   ├── crawl.ts              # crawlInternalLinks(), crawlPage()
-│   └── resources.ts          # analyzeResources(), analyzeSecurityHeaders()
-├── types/
-│   ├── analysis.ts           # All shared TypeScript types
-│   └── database.ts           # Supabase Database interface (all 8 tables)
-├── hooks/
-│   ├── useCredits.ts         # Credits with stale-guard (no interval polling)
-│   ├── useAnalysis.ts
-│   └── usePolling.ts
-└── middleware.ts             # Auth protection (/dashboard /analyze /reports /settings /monitors /compliance /remediation /leads /compare) + IP blocklist + SQL-injection scan
-supabase/migrations/
-├── 001_initial_schema.sql    — analyses, user_settings, subscriptions
-├── 002_rls_policies.sql      — Row Level Security
-├── 003_functions.sql         — triggers, use_credit(), refund_credit(), handle_new_user()
-├── 004_design_comparison.sql — design_screenshot_url + design_comparison on analyses
-├── 005_public_reports.sql    — is_public column + public read policy
-├── 006_monitors.sql          — monitors table
-├── 007_team_members.sql      — team_members + invite tokens
-├── 008_webhooks.sql          — webhooks table
-├── 009_api_keys.sql          — api_keys table (SHA-256 hash)
-├── 010_crawl_pages.sql       — crawl_pages column on analyses
-├── 011_is_public.sql         — (consolidated into 005)
-├── 013_api_key_encrypted.sql — key_encrypted column (AES-256-GCM)
-├── 016_team_invite_expiry.sql — invite_expires_at column + backfill
-├── 017_remediation_items.sql — remediation_items table (open→in_progress→resolved→verified lifecycle)
-└── 018_widget_key.sql        — widget_key TEXT + widget_settings JSONB columns on user_settings
-vercel.json                   # Crons: monitors (hourly) + reset-credits (monthly)
-```
-
 ## Deployment
 
 ### Vercel
 ```bash
 vercel --prod
 
-# Set all environment variables:
+# Key environment variables to set:
 vercel env add NEXT_PUBLIC_SUPABASE_URL production
 vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY production
 vercel env add SUPABASE_SERVICE_ROLE_KEY production
@@ -391,29 +294,8 @@ wrangler secret put WORKER_AUTH_TOKEN
 wrangler secret put WORKER_CALLBACK_SECRET
 ```
 
-### Vercel Cron (Scheduled Monitoring)
-Cron is configured in `vercel.json` and runs automatically on Vercel. Locally, trigger it manually:
+### Vercel Cron
+Cron is configured in `vercel.json` — runs automatically on Vercel. Locally:
 ```bash
 curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/monitors
 ```
-
-## Testing
-
-```bash
-npm run test          # Run all unit tests
-npm run test:watch    # Watch mode
-npm run verify        # typecheck + lint + tests + npm audit
-```
-
-**1,819 tests passing** across 65 files (Vitest 4.x, jsdom, @testing-library/react 16.x, all passing as of 2026-06-29)
-
-| Category | Files | Key coverage |
-|----------|-------|-------------|
-| **API** (9) | `analyze-validation`, `api-routes`, `compare-api`, `monitors-validation`, `reset-credits`, `share-report`, `team-invite`, `v1-api`, `widget-analyze` | Route validation, auth, credits, rate limiting |
-| **Components** (8) | `AIInsightsSection`, `CompetitorComparisonSection`, `CrawledPagesSection`, `DesignComparisonSection`, `EAAComplianceSection`, `LLMReadinessSection`, `OnboardingBanner`, `PricingPage` | UI rendering, interactions, edge states |
-| **Contracts** (5) | `callback-auth`, `callback-idempotency`, `legacy-adapters`, `public-serializer`, `schemas` | Worker payload auth and schema versioning |
-| **Hooks** (3) | `useAnalysis`, `useCredits`, `usePolling` | React hook behaviour |
-| **Library** (24) | `ai-*` (5), `analysis-types`, `api-keys`, `branding`, `cookie-consent`, `env`, `logger`, `monitor-scheduling`, `monitoring-domain`, `pdf-view-model`, `plans`, `prompts`, `rate-limit`, `report-view-model`, `sanitize-url`, `score-adapters`, `url-validator`, `utils`, `webhook-delivery`, `widget-key` | Security, AI pipeline, billing, reporting |
-| **Pages** (1) | `changelog` | RELEASES data invariants |
-| **Security** (1) | `regression` | 7 regression guards for audit findings |
-| **Worker** (14) | `accessibility-engine`, `best-practices-engine`, `crawl-page-regression`, `crawled-pages`, `llm-readiness-engine`, `llm-readiness`, `opportunities`, `perf-score`, `score-analysis`, `score-classification`, `scoring-reproducibility`, `security-headers-engine`, `seo-engine`, `url-validation` | All scoring engines |

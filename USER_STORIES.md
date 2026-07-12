@@ -1222,4 +1222,148 @@ Detailed feature specifications from the perspective of each user type.
 
 ---
 
-*Last updated: 2026-06-09 | Covers Sprints 1–8 + compliance platform Sprints 2–4 + Lead Widget Sprint 5 + Content/SEO Sprint 6 (552 tests passing)*
+---
+
+## 29. Connected Sites
+
+### US-SITES-01: Link a website for continuous monitoring
+**As a** developer using Connected Sites,  
+**I want to** link my website so WebScore can monitor it continuously,  
+**so that** I get ongoing telemetry from real users without running manual audits.
+
+**Acceptance Criteria:**
+- Create form at `/sites/new` accepts an origin URL and optional display name
+- On creation, the `ws_site_…` ingestion key is shown exactly once (copy button provided)
+- Site appears in the list at `/sites` with verification status and last heartbeat timestamp
+- Verification can be completed via DNS TXT record or meta tag
+
+### US-SITES-02: View real web vitals from actual users
+**As a** developer using Connected Sites,  
+**I want to** see real web vitals (LCP, CLS, INP) from my actual users,  
+**so that** I can understand real-world performance beyond lab scores.
+
+**Acceptance Criteria:**
+- Web Vitals tab at `/sites/[id]` shows p50, p75, p90 aggregates for LCP, CLS, INP, FCP, TTFB
+- Each metric shows colour-coded status: good (green), needs improvement (amber), poor (red)
+- Thresholds match Core Web Vitals specification (LCP good: <2.5s, CLS good: <0.1, INP good: <200ms)
+
+### US-SITES-03: Discover which routes are crawled and indexed
+**As a** developer using Connected Sites,  
+**I want to** see which routes are being crawled and indexed,  
+**so that** I can identify pages with noindex issues, canonical mismatches, or missing metadata.
+
+**Acceptance Criteria:**
+- Routes tab shows deduplicated observed URL paths with search and pagination
+- Indexing tab shows per-route indexability assessment with specific warnings
+- Warnings include: noindex detected, canonical mismatch, missing meta description, missing title
+
+---
+
+## 30. Fix Requests
+
+### US-FIXREQ-01: Send a structured fix request from a finding
+**As a** developer using Fix Requests,  
+**I want to** send a structured fix request to my client from any WebScore finding,  
+**so that** the client receives clear, actionable information rather than a raw score.
+
+**Acceptance Criteria:**
+- "Create Fix Request" button available from any report finding, accessibility issue, or error issue
+- Create form at `/fix-requests/new` with: request type, title, description, severity, due date, source reference
+- Six request types available: audit, fix, estimate, review, verification, consultation
+
+### US-FIXREQ-02: Deliver via professional email
+**As a** developer using Fix Requests,  
+**I want to** my client to receive a professional email with the issue details and severity,  
+**so that** the communication looks polished and the client knows what action is needed.
+
+**Acceptance Criteria:**
+- Email channel available in the Send dialog
+- Email contains: issue title, severity badge, description, recommended action, expiry date
+- HTML email is XSS-escaped (no injected markup from user content)
+- Pro+ plan required — Free users see upgrade banner on `/fix-requests`
+
+### US-FIXREQ-03: Track whether the fix was implemented and verified
+**As a** developer using Fix Requests,  
+**I want to** track whether the fix was implemented and verified,  
+**so that** I have a clear audit trail of what was fixed and when.
+
+**Acceptance Criteria:**
+- Fix Request detail at `/fix-requests/[id]` shows current status with state-machine-driven action buttons
+- Activity tab shows full timeline of all status changes and events
+- Status transitions validated server-side against `FIX_REQUEST_TRANSITIONS` map
+- Verification flow: `verification_requested` → `verifying` → `verified` or back to `in_progress`
+
+### US-FIXREQ-04: Share a secure external link for recipients without accounts
+**As a** developer using Fix Requests,  
+**I want to** share a secure external link so the developer can see the issue without creating an account,  
+**so that** there's no friction for the recipient and no unnecessary access to my account.
+
+**Acceptance Criteria:**
+- "Generate link" button in the Delivery tab creates a scoped external token
+- Public page at `/fix-request/[token]` renders the issue without requiring auth
+- Link has an expiry date and can be revoked (Revoke button removes access immediately)
+- `isPrivate: true` evidence items are not exposed on the public page
+- Expired or revoked token returns HTTP 410
+
+---
+
+## 31. Runtime Error Monitoring
+
+### US-ERRORS-01: Install a lightweight JS snippet that captures real browser errors
+**As a** developer using Runtime Error Monitoring,  
+**I want to** install a lightweight JS snippet that captures real browser errors from my site,  
+**so that** I can see what JavaScript errors real users are encountering.
+
+**Acceptance Criteria:**
+- Error Project created at `/errors/new` with name, origin, and environment fields
+- Ingestion key (`ws_err_…`) shown exactly once on creation with copy button
+- SDK snippet (`<script>` tag with `data-project-key`) available on the Installation tab
+- SDK is served from `GET /api/error-monitoring/sdk` as a self-contained IIFE (no external dependencies)
+- SDK file size is suitable for production use (no bundling of large frameworks)
+
+### US-ERRORS-02: See errors grouped into actionable issues
+**As a** developer using Runtime Error Monitoring,  
+**I want to** errors grouped into actionable issues, not individual events,  
+**so that** I can focus on fixing the root cause rather than sifting through thousands of raw events.
+
+**Acceptance Criteria:**
+- Issue list at `/errors/[id]` shows grouped issues with event count, first seen, last seen, status badge
+- Issues are grouped by deterministic fingerprint (exception type + normalized message + top stack frame)
+- Issue detail at `/errors/[id]/issues/[issueId]` shows stack frames, breadcrumbs, affected routes, level badge
+- Status actions available: resolve, ignore, assign (assign requires Agency+ plan)
+
+### US-ERRORS-03: Be notified when a resolved issue regresses
+**As a** developer using Runtime Error Monitoring,  
+**I want to** be notified when a resolved issue regresses,  
+**so that** fixes that broke again don't go unnoticed.
+
+**Acceptance Criteria:**
+- When a resolved issue receives a new event, the issue status changes to a "regression" state
+- Issue detail shows "regression" badge and the date of regression
+- Alert policy can send email notification on regression (configurable per project)
+
+### US-ERRORS-04: Confident that sensitive data is never captured
+**As a** developer using Runtime Error Monitoring,  
+**I want to** have confidence that sensitive data (passwords, tokens, form values) are never captured,  
+**so that** I can install the SDK on production without violating user privacy.
+
+**Acceptance Criteria:**
+- SDK does not capture: form field values, input keystrokes, DOM text, request/response bodies
+- URL scrubbing removes sensitive query parameters before capture: `token`, `password`, `auth`, `jwt`, `key`, `secret`, `session`, `credentials`, `api_key`, and equivalents
+- Privacy behaviour is documented in the Installation tab
+- No sensitive parameters appear in captured event URLs in the issue detail view
+
+### US-ERRORS-05: Create a fix request directly from an error issue
+**As a** developer using Runtime Error Monitoring,  
+**I want to** create a fix request directly from an error issue,  
+**so that** I can send the issue to the responsible developer without duplicating information.
+
+**Acceptance Criteria:**
+- "Create Fix Request" button on the issue detail page
+- Fix Request draft pre-populated with: error title, severity, stack trace excerpt, affected routes, environment
+- Delivered via any available Fix Request channel (email, external link, etc.)
+- Fix Request appears in `/fix-requests` list linked back to the error issue
+
+---
+
+*Last updated: 2026-07-12 | Covers Sprints 1–16 (2,323 tests passing)*

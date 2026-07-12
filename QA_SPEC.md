@@ -1,10 +1,10 @@
 # Website Analyzer — QA Specification
 
-**Version:** 6.0  
-**Last updated:** 2026-06-29  
-**Coverage:** Sprints 1–8 + compliance platform (Sprints 2–4) + Agency Lead Widget (Sprint 5) + Content/SEO pages (Sprint 6) + Trail of Bits 4-phase security audit cycle (2026-06-29)  
+**Version:** 7.0  
+**Last updated:** 2026-07-12  
+**Coverage:** Sprints 1–16 + Trail of Bits security audit cycle  
 **Test runner:** Vitest v4 + @testing-library/react 16.x + jsdom  
-**Total automated tests: 1,819 across 65 files (all passing)**
+**Total automated tests: 2,323 across 90 files (all passing)**
 
 ---
 
@@ -1189,14 +1189,204 @@ These are manual or Playwright-based full-flow tests run before each release.
 
 ---
 
+---
+
+## 40. Sprint 13: Multi-page Monitor UI
+
+**Test files:** `src/__tests__/api/monitors-pages-batch.test.ts`, `src/__tests__/components/MonitorPages.test.tsx`, `src/__tests__/components/MonitorDetail.test.tsx`
+
+### TC-MONITOR13-001 — Bulk page operations
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Select multiple pages via checkbox | Bulk action toolbar appears |
+| 2 | Click "Enable" in bulk toolbar | Selected pages set to enabled; `POST /api/monitors/[id]/pages/batch` called with `action: enable` |
+| 3 | Click "Disable" in bulk toolbar | Selected pages set to disabled |
+| 4 | Click "Remove" on non-root pages | Pages removed; root page checkbox disabled and cannot be removed |
+| 5 | Click "Remove" when only root page selected | Remove button disabled |
+
+### TC-MONITOR13-002 — Per-row toggle
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Click eye icon on enabled page | Page disabled; icon changes state |
+| 2 | Click eye icon on disabled page | Page enabled |
+
+### TC-MONITOR13-003 — Monitor Settings tab
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Navigate to Settings tab on monitor detail | Frequency, alert threshold, notification fields visible |
+| 2 | Change frequency to "daily" and save | `PATCH /api/monitors/[id]` called with new schedule |
+| 3 | Set threshold to 10 and save | Threshold stored; alerts fire when score drops ≥10 |
+
+### TC-MONITOR13-004 — Run detail page
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Click "Details" link on a run row | Navigates to `/monitors/[id]/runs/[runId]` |
+| 2 | Run detail page loaded | Timing cards, pages analyzed table, score changes visible |
+| 3 | Score decreased for a page | Delta shown in red; score increased shown in green |
+
+---
+
+## 41. Sprint 14: Connected Sites UI
+
+**Test files:** `src/__tests__/components/connected-sites/*.test.tsx`
+
+### TC-SITES-001 — Create site
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Submit create form with valid origin URL | Site created; `ws_site_…` key shown once with copy button |
+| 2 | Navigate away and return to site | Key is NOT shown again (one-time reveal) |
+| 3 | Submit create form with invalid URL | Validation error shown; no site created |
+| 4 | Exceed plan site limit | Plan limit banner shown; create button disabled |
+
+### TC-SITES-002 — Site list
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Visit `/sites` | List shows all connected sites with verification status badge and last heartbeat |
+| 2 | Unverified site | "Unverified" badge shown in amber |
+| 3 | Verified site | "Verified" badge shown in green |
+| 4 | Site with recent heartbeat | Heartbeat timestamp shown as relative time |
+
+### TC-SITES-003 — Detail tabs
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Click Web Vitals tab | p50/p75/p90 aggregates shown for LCP, CLS, INP, FCP, TTFB |
+| 2 | LCP p75 = 3.2s | Shows "needs improvement" (amber) — threshold: good <2.5s |
+| 3 | Click Routes tab | Paginated route list with search box |
+| 4 | Search for "/blog" | Results filtered to routes containing "/blog" |
+| 5 | Click Indexing tab | Per-route indexability table with specific warning icons |
+
+### TC-SITES-004 — Key management
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Click "Rotate key" | Warning dialog shows 24-hour grace period message |
+| 2 | Confirm rotation | New key shown once; old key valid for 24 hours |
+| 3 | Dismiss without confirming | No rotation occurs |
+
+---
+
+## 42. Sprint 15: Fix Requests UI
+
+**Test files:** `src/__tests__/components/fix-requests/*.test.tsx`
+
+### TC-FIXREQ-001 — Create form
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Navigate to `/fix-requests/new` | Form with type selector, title, description, severity, due date |
+| 2 | Select "fix" type | Form label updates to "Fix Request" |
+| 3 | Submit without title | Validation error on title field |
+| 4 | Submit valid form | Fix Request created with `draft` status; redirects to `/fix-requests/[id]` |
+| 5 | Free plan user visits `/fix-requests` | Upgrade banner shown; create button blocked |
+
+### TC-FIXREQ-002 — Status transitions
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Fix Request in `draft` status | "Mark as Ready" action available |
+| 2 | Click "Mark as Ready" | Status changes to `ready`; "Send" button appears |
+| 3 | Fix Request in `sent` status | "Acknowledge" action available to recipient |
+| 4 | Invalid transition attempted | 400 error; status unchanged |
+
+### TC-FIXREQ-003 — Send dialog
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Open Send dialog | Channel selector with email, WhatsApp, Telegram, webhook, external link |
+| 2 | Select email | Recipient email field appears |
+| 3 | Select webhook | Webhook URL field appears (Agency+ only) |
+| 4 | Free/Pro user selects webhook | Upgrade prompt shown |
+| 5 | Send via email | Delivery record created; status moves to `sent` |
+
+### TC-FIXREQ-004 — External public link
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Click "Generate link" in Delivery tab | Scoped token created; full URL shown with copy button |
+| 2 | Visit `/fix-request/[token]` without auth | Public page renders issue details |
+| 3 | `isPrivate: true` evidence items | Not shown on public page |
+| 4 | Click "Revoke" | Token invalidated; public page returns 410 |
+| 5 | Visit expired token URL | 410 Gone response |
+
+### TC-FIXREQ-005 — Conversation tab
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Post message with "Internal" visibility | Message visible to owner only; not on public page |
+| 2 | Post message with "Recipient" visibility | Message visible on public external page |
+| 3 | Message thread ordered chronologically | Newest message at bottom |
+
+---
+
+## 43. Sprint 16: Runtime Error Monitoring
+
+**Test files:** `src/__tests__/lib/error-monitoring/*.test.ts`, `src/__tests__/components/error-monitoring/*.test.tsx`
+
+### TC-ERRORS-001 — Create project
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Submit `/errors/new` form with name, origin, environment | Project created; `ws_err_…` key shown once |
+| 2 | Navigate away and return | Key is NOT shown again |
+| 3 | Free plan user attempts to create | 402 / upgrade banner; no project created |
+| 4 | Pro plan user already has 1 project | Create blocked; plan limit message shown |
+
+### TC-ERRORS-002 — SDK and event ingestion
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Load SDK in a test browser context | No errors thrown on init |
+| 2 | `window.onerror` fires with test error | Event ingested at `POST /api/error-monitoring/envelope` |
+| 3 | Issue appears in `/errors/[id]` list | Issue with fingerprint, event count, first seen timestamp |
+| 4 | Same error fires again | Event count increments; issue not duplicated |
+
+### TC-ERRORS-003 — Issue detail
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Click on an issue | Issue detail at `/errors/[id]/issues/[issueId]` loads |
+| 2 | Stack frames shown | Filename, line, column, function name per frame |
+| 3 | Breadcrumbs shown | Navigation history before the error |
+| 4 | Level badge shown | `fatal` (red), `error` (orange), `warning` (amber) |
+| 5 | Status actions visible | Resolve, Ignore buttons based on current status |
+
+### TC-ERRORS-004 — Regression detection
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Resolve an issue | Status changes to `resolved` |
+| 2 | Same error fires again | Issue status changes to regression state |
+| 3 | Issue list | Regression badge shown on re-opened issue |
+
+### TC-ERRORS-005 — Key rotation
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Click "Rotate key" on project | Warning dialog shown |
+| 2 | Confirm rotation | New key shown once; old key immediately invalid |
+| 3 | Submit event with old key | 401 Unauthorized |
+
+### TC-ERRORS-006 — URL scrubbing
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Error on URL with `?token=abc123` | Captured URL shows `?token=[REDACTED]` |
+| 2 | Error on URL with `?password=secret` | Captured URL shows `?password=[REDACTED]` |
+| 3 | Error on URL with innocuous query params | Params preserved unchanged |
+
+### TC-ERRORS-007 — Plan enforcement
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Pro project at 5,000 events for the period | Next ingestion request returns 429 |
+| 2 | 429 response body | `{ "error": "quota_exceeded", "plan": "pro" }` |
+| 3 | Agency project at 50,001 events | 429 returned |
+
+### TC-ERRORS-008 — Fix Request integration
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Click "Create Fix Request" on issue detail | Fix Request create form pre-populated |
+| 2 | Pre-populated fields | Title from error message, severity from level, source from error issue |
+| 3 | Submit | Fix Request created; linked to error issue |
+
+---
+
 ## Known Limitations (Not Blocking)
 
 | Item | Detail |
 |------|--------|
 | Cloudflare Worker not deployed | Analysis engine returns mock scores in staging |
-| Sentry not configured | Error reporting to Sentry skipped (DSN not set) |
-| ~~`og-image.png` missing~~ | ✅ **Resolved** — `src/app/opengraph-image.tsx` implemented |
-| FID / CLS not measured | Static-fetch worker cannot measure interaction or layout-shift metrics; UI shows "N/A / Not measured" |
-| Nonce-based CSP deferred | `'strict-dynamic'` + nonce CSP blocked Next.js hydration scripts in production (CSP3 browsers ignore `'unsafe-inline'` when nonce present). Reverted to `'unsafe-inline'` without nonce. Full nonce support requires Next.js 15+ first-class integration. |
+| Sentry not configured | Error reporting to Sentry skipped (DSN not set — Sentry monitors WebScore itself; separate from Error Monitoring which monitors customer sites) |
+| ~~`og-image.png` missing~~ | Resolved — `src/app/opengraph-image.tsx` implemented |
+| INP / CLS not measured by Worker | Static-fetch worker cannot measure interaction or layout-shift metrics; UI shows "N/A / Not measured" |
+| Nonce-based CSP deferred | `'strict-dynamic'` + nonce CSP blocked Next.js hydration scripts in production. Reverted to `'unsafe-inline'` without nonce. Full nonce support requires Next.js 15+ first-class integration. |
 | GPT-4o text analysis | Deferred to post-MVP; Claude handles all AI |
 | Webhook retries | Single delivery only; no retry queue |
+| Accessibility Profile UI | Domain logic complete (Sprint 9); profile setup page not yet built |

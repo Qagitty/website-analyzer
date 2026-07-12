@@ -1,8 +1,92 @@
-# Website Analyzer — Fixes & Updates Log
+# WebScore — Fixes & Updates Log
 
 **Document created:** 2026-05-14  
-**Last updated:** 2026-06-29  
-**Covers:** All changes made across Sprints 1–8, compliance platform Sprints 2–4, Agency Lead Widget Sprint 5, Content/SEO Sprint 6, and the full Trail of Bits 4-phase security audit cycle.
+**Last updated:** 2026-07-12  
+**Covers:** All changes made across Sprints 1–16, Trail of Bits security audit cycle, Sprint 9 (Accessibility), Sprint 10 (Fix Requests), Sprint 13 (Monitor UI), Sprint 14 (Connected Sites UI), Sprint 15 (Fix Requests UI), Sprint 16 (Runtime Error Monitoring).
+
+---
+
+## 2026-07-12 — Sprint 16: Runtime Error Monitoring
+
+### New Product: Browser Error Monitoring
+- Added `error_projects` table with `ws_err_` ingestion key namespace (SHA-256 hashed in DB)
+- Added `error_events`, `error_issues`, `error_issue_activities`, `error_alert_policies`, `error_project_quotas` tables (migration 032)
+- DB functions: `resolve_error_project_key`, `increment_error_event_quota`, `upsert_error_issue` with regression detection
+- Public ingestion endpoint: `POST /api/error-monitoring/envelope` — 64KB limit, origin validation, rate limits, monthly quota, scrubbing, idempotent deduplication
+- Browser SDK: self-contained IIFE at `GET /api/error-monitoring/sdk` — uncaught exceptions, unhandled rejections, navigation breadcrumbs, URL scrubbing, sendBeacon transport with backoff
+- Deterministic fingerprinting via `calculateFingerprint()` — normalizes numbers/UUIDs/hex in messages
+- Atomic issue upsert + regression detection via DB function
+- Queue handler for `error_event.process` job type
+- Dashboard: `/errors`, `/errors/new`, `/errors/[id]`, `/errors/[id]/issues/[issueId]`
+- Fix Request integration: `fromErrorIssue` source adapter updated to support error monitoring issues
+- Plan entitlements: Pro (1 project, 5K events/7 days), Agency (5 projects, 50K/30 days), Compliance (20 projects, 500K/90 days)
+- 68 new tests (fingerprinting, scrubbing, ingestion, component badges)
+- **Total: 2,323 tests, 90 files**
+
+## 2026-07-11 — Sprint 15: Fix Requests UI
+
+### New Pages
+- `/fix-requests` — list with status filter tabs (All/Draft/Active/Closed), plan gate for Free
+- `/fix-requests/new` — create form with 6 request types, all fields
+- `/fix-requests/[id]` — 4-tab detail: Overview, Conversation, Delivery, Activity
+- `/fix-request/[token]` — public external page (no auth, scope-aware)
+
+### New Components (`src/components/fix-requests/`)
+- `FixRequestStatusBadge` (17 statuses), `FixRequestSeverityBadge`, `FixRequestTypeBadge`
+- `FixRequestDetail` (client component with tabs + state-machine driven actions)
+- `SendRequestDialog` (channel selector: email, WhatsApp, Telegram, webhook, external link)
+- `GenerateLinkDialog` + `PublicLinkCard` (link management: copy/revoke)
+- `MessageThread` (conversation with internal/recipient-visible visibility toggle)
+- `ActivityTimeline` (status-change history)
+
+### Infrastructure
+- DB migration 031: `fix_request_read_states` table with RLS
+- `POST /api/fix-requests/[id]/read-state` route
+- Fix Requests added to sidebar navigation (Wrench icon)
+- 25 new component tests
+- **Total: 2,255 tests, 85 files**
+
+## 2026-07-11 — Sprint 14: Connected Sites UI
+
+### New Pages
+- `/sites` — list with plan limit banner
+- `/sites/new` — create form with one-time key reveal
+- `/sites/[id]` — 6-tab detail: Overview, Installation, Web Vitals, Routes, Indexing, Settings
+
+### New API Routes
+- `GET /api/connected-sites/[id]/telemetry-summary` — p50/p75/p90 aggregates with CWV thresholds
+- `GET /api/connected-sites/[id]/routes` — deduplicated observed routes with search/pagination
+- `GET /api/connected-sites/[id]/indexing` — latest indexability per route with warnings
+
+### New Components (`src/components/connected-sites/`)
+- `ConnectedSiteCard`, `ConnectedSiteStatusBadge`, `SiteOverview`, `InstallationPanel`
+- `WebVitalsSummary`, `ObservedRoutesTable`, `IndexingOverview`
+- `ConnectedSiteSettingsForm`, `SiteKeyManagement`
+
+### Infrastructure
+- `src/types/connected-sites.ts` — all Connected Sites UI types
+- `src/lib/connected-sites/view-models.ts` — ViewModel mapper
+- Connected Sites added to sidebar navigation
+- 33 new tests
+- **Total: 2,205 tests, 85 files** (before Sprint 15)
+
+## 2026-07-11 — Sprint 13: Multi-page Monitor UI
+
+### New Features
+- Bulk page actions: enable/disable/remove via checkbox selection
+- Batch API: `POST /api/monitors/[id]/pages/batch` (action: enable/disable/remove, pageIds array)
+- Per-row enable/disable eye-icon toggle
+- Monitor Settings tab: frequency, notifications, alert threshold
+- Run detail page: `/monitors/[id]/runs/[runId]`
+
+### Files
+- `src/app/(dashboard)/monitors/[id]/runs/[runId]/page.tsx` — run detail
+- `src/app/api/monitors/[id]/pages/batch/route.ts` — batch endpoint
+- `src/components/monitors/MonitorPages.tsx` — rewritten with bulk selection
+- `src/components/monitors/MonitorDetail.tsx` — Settings tab added
+- Next.js 15 params migration: all dynamic routes updated to `Promise<{ id }>` pattern
+- 29 new tests (12 API + 17 components)
+- **Total: 2,176 tests, 83 files** (before Sprint 14)
 
 ---
 

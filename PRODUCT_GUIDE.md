@@ -1,12 +1,12 @@
-# WebAnalyzer — Product Guide
+# WebScore — Product Guide
 
-> Everything you need to know about what WebAnalyzer does, who it's for, and how to use it.
+> Everything you need to know about what WebScore does, who it's for, and how to use it.
 
 ---
 
-## What is WebAnalyzer?
+## What is WebScore?
 
-WebAnalyzer is a SaaS tool that automatically audits websites and delivers clear, actionable reports. You paste in a URL, and within a minute you get a complete health check covering performance, SEO, accessibility, best practices, and AI readiness — plus a prioritised list of exactly what to fix and how.
+WebScore is a SaaS tool that automatically audits websites and delivers clear, actionable reports. You paste in a URL, and within a minute you get a complete health check covering performance, SEO, accessibility, best practices, and AI readiness — plus a prioritised list of exactly what to fix and how.
 
 Think of it as a mechanic's diagnostic tool for websites. Instead of guessing why a site feels slow or ranks poorly, you run an audit and get the diagnosis in plain language with specific fixes attached.
 
@@ -29,7 +29,7 @@ Think of it as a mechanic's diagnostic tool for websites. Instead of guessing wh
 ### Website Audit
 Run a full health check on any public URL. The audit covers:
 
-- **Performance** — Lighthouse scores (Performance, Best Practices, SEO), plus Core Web Vitals: LCP, FID, CLS, TTFB
+- **Performance** — Lighthouse scores (Performance, Best Practices, SEO), plus Core Web Vitals: LCP, INP, CLS, TTFB
 - **Accessibility** — WCAG 2.1 violations detected automatically, explained in plain English with code examples
 - **SEO** — Title tags, meta descriptions, heading structure, crawlability
 - **Console errors** — JavaScript errors grouped by type, with root cause analysis
@@ -43,10 +43,10 @@ Every report includes a prioritised action plan — not just a list of issues, b
 Compare your site against a competitor side by side. See exactly where you lead, where you lag, and what the gap means in practical terms.
 
 ### Multi-page Crawl
-Instead of auditing only the homepage, WebAnalyzer can crawl up to 50 internal pages (depending on plan) and aggregate the results into one report.
+Instead of auditing only the homepage, WebScore can crawl up to 50 internal pages (depending on plan) and aggregate the results into one report.
 
 ### Scheduled Monitoring
-Set up monitors on sites you care about. WebAnalyzer re-analyses them automatically on your chosen schedule (daily, weekly, or specific days/times in your timezone) and sends alerts if scores drop.
+Set up monitors on sites you care about. WebScore re-analyses them automatically on your chosen schedule (daily, weekly, or specific days/times in your timezone) and sends alerts if scores drop. Manage monitored pages with bulk enable/disable/remove actions. View detailed run history at `/monitors/[id]/runs/[runId]`.
 
 ### Remediation Board
 Track accessibility and compliance issues through a Kanban-style workflow — open → in progress → resolved. Useful for teams who need an audit trail of what was fixed and when.
@@ -73,7 +73,157 @@ Receive a POST request to any URL when an analysis completes or a monitor detect
 Invite team members to your account. Everyone shares the same credits and report history. Up to 10 members on the Agency plan.
 
 ### White-label reports
-On Agency and Compliance plans, PDF reports carry your branding (logo, colours) — not WebAnalyzer's. Suitable for client-facing deliverables.
+On Agency and Compliance plans, PDF reports carry your branding (logo, colours) — not WebScore's. Suitable for client-facing deliverables.
+
+---
+
+## Connected Sites (Sprint 14)
+
+Connected Sites lets you link your verified customer websites to WebScore for ongoing passive monitoring. Unlike scheduled analysis (which re-runs a full audit), Connected Sites collects continuous telemetry from real visitors via a lightweight JS snippet.
+
+### How it works
+1. Create a Connected Site in `/sites` — a unique site key (`ws_site_…`) is generated and shown once
+2. Install the JS snippet on your website:
+   ```html
+   <script
+     src="https://webanalyzer.app/api/site-connect/v1/script"
+     data-site-key="ws_site_..."
+     defer crossorigin="anonymous">
+   </script>
+   ```
+3. Verify ownership via DNS TXT record or `<meta>` tag
+4. WebScore begins collecting telemetry from real user sessions
+
+### What is collected
+- **Web Vitals** — LCP, CLS, INP, FCP, TTFB from real user sessions (p50/p75/p90 aggregates)
+- **Route discovery** — which URL paths are visited and how often
+- **Indexing checks** — noindex tags, canonical mismatches, missing meta descriptions per route
+
+### Dashboard tabs (at `/sites/[id]`)
+| Tab | Content |
+|-----|---------|
+| Overview | Verification status, last heartbeat, site key info |
+| Installation | Framework-specific code snippets, verification instructions |
+| Web Vitals | p50/p75/p90 per metric with good/needs-improvement/poor colour coding |
+| Routes | Deduplicated observed routes with search and pagination |
+| Indexing | Per-route indexability warnings: noindex, canonical issues, missing metadata |
+| Settings | Origin URL, key rotation with 24-hour grace period |
+
+### Verification methods
+- **DNS TXT record** — add `webanalyzer-verify=<token>` to your domain's DNS
+- **Meta tag** — add `<meta name="webanalyzer-verify" content="<token>">` to your `<head>`
+
+---
+
+## Fix Requests (Sprints 10 + 15)
+
+Fix Requests provide a structured workflow to communicate identified issues to developers or clients, track their resolution, and verify fixes.
+
+### What is a Fix Request?
+A Fix Request is a structured task created from any WebScore finding (accessibility issue, performance problem, SEO gap, console error, etc.) that can be sent to a developer or external party through multiple channels, tracked through a 17-status lifecycle, and verified once resolved.
+
+### Request types
+| Type | When to use |
+|------|------------|
+| `audit` | Share an audit report with someone |
+| `fix` | Ask a developer to fix a specific issue |
+| `estimate` | Request a time/cost estimate for a fix |
+| `review` | Request a review of implemented changes |
+| `verification` | Verify that a previously reported issue is fixed |
+| `consultation` | Schedule a discussion about findings |
+
+### Source adapters (10 adapters)
+Fix Requests can be created from any WebScore module: performance finding, accessibility issue, SEO issue, console error, LLM readiness gap, security header issue, best practices issue, monitor regression, design comparison mismatch, error monitoring issue.
+
+### Delivery channels
+| Channel | Description |
+|---------|------------|
+| **Email** | HTML email with issue details, severity badge, and action link |
+| **WhatsApp link** | Pre-filled WhatsApp message link with summary |
+| **Telegram** | Pre-filled Telegram share link |
+| **Internal assignment** | Assign to a team member (Agency+ only) |
+| **Webhook** | HMAC-signed JSON payload to any endpoint (Agency+ only) |
+| **External link** | Scoped, expiring, revocable public link — recipient sees the issue without creating an account |
+
+### State machine
+Fix Requests move through 17 statuses: `draft` → `ready` → `sending` → `sent` → `acknowledged` → `in_progress` → `in_review` → `verification_requested` → `verifying` → `verified` → `closed` (plus branching states for `on_hold`, `blocked`, `rejected`, `cancelled`, `reopened`, `expired`).
+
+### Security design
+- External recipients receive scoped tokens only — no direct Supabase access
+- `isPrivate: true` evidence items are never exposed externally
+- `internal_notes` field is stripped from all non-owner API responses
+- Phone numbers and emails are consumed at delivery time and not logged
+- External link tokens: 64 random hex chars, expiring, revocable, RLS-gated
+
+### Plan entitlements
+| Feature | Free | Pro | Agency | Compliance |
+|---------|------|-----|--------|------------|
+| Fix Requests | — | Yes | Yes | Yes |
+| Email delivery | — | Yes | Yes | Yes |
+| External links | — | Yes | Yes | Yes |
+| Verification workflow | — | Yes | Yes | Yes |
+| Webhook delivery | — | — | Yes | Yes |
+| Team assignment | — | — | Yes | Yes |
+
+---
+
+## Runtime Error Monitoring (Sprint 16)
+
+Runtime Error Monitoring captures real browser errors from your customer websites, groups them into actionable issues, and integrates directly with the Fix Request workflow.
+
+### How it works
+1. Create an Error Project in `/errors` — an ingestion key (`ws_err_…`) is shown once
+2. Install the SDK snippet:
+   ```html
+   <script
+     src="https://webanalyzer.app/api/error-monitoring/sdk"
+     data-project-key="ws_err_..."
+     data-environment="production"
+     defer crossorigin="anonymous">
+   </script>
+   ```
+3. Errors from real user sessions are captured, fingerprinted, and grouped into issues
+4. Manage issues from the `/errors/[id]` dashboard; create Fix Requests from any issue
+
+### What is captured
+- Uncaught JavaScript exceptions (`window.onerror`)
+- Unhandled Promise rejections (`unhandledrejection`)
+- Navigation breadcrumbs (URL history leading up to the error)
+- Custom events via `WebScoreErrors.captureException(error)`
+
+### Privacy — never captured
+- Passwords, form field values, or input keystrokes
+- Authorization headers, cookies, or session tokens
+- Request or response bodies
+- DOM text or element `innerText`
+- Sensitive query parameters — automatically scrubbed: `token`, `password`, `auth`, `jwt`, `key`, `secret`, `session`, `credentials`, `api_key`, and more
+
+### Issue grouping and regression detection
+Events are grouped by a deterministic fingerprint (exception type + normalized message + top stack frame). Numbers, UUIDs, and hex strings in messages are normalized so similar errors group together even with different IDs. When a resolved issue receives a new event it is automatically re-opened and flagged as a regression.
+
+### Plan limits
+
+| | Pro | Agency | Compliance |
+|--|-----|--------|------------|
+| Error projects | 1 | 5 | 20 |
+| Events per period | 5,000 | 50,000 | 500,000 |
+| Retention window | 7 days | 30 days | 90 days |
+
+Free plan users cannot create Error Projects.
+
+### Fix Request integration
+From any error issue detail page, click "Create Fix Request" to open a pre-filled Fix Request draft with the error title, stack trace, affected routes, and environment pre-populated.
+
+---
+
+## Monitor UI updates (Sprint 13)
+
+In addition to the core scheduling features, the Monitor dashboard now supports:
+
+- **Bulk page actions** — select multiple pages via checkbox and enable, disable, or remove them in one action (batch API: `POST /api/monitors/[id]/pages/batch`)
+- **Per-row toggle** — enable/disable individual pages with an eye-icon toggle
+- **Settings tab** — configure monitor frequency, alert threshold, and notification preferences from a dedicated tab on the monitor detail page
+- **Run detail page** — navigate to `/monitors/[id]/runs/[runId]` to see timing cards, the list of pages analyzed in that run, and score changes per page
 
 ---
 
@@ -86,15 +236,21 @@ On Agency and Compliance plans, PDF reports carry your branding (logo, colours) 
 | **Monitored sites** | — | 5 | 50 | 100 |
 | **Multi-page crawl** | — | 10 pages | 50 pages | 50 pages |
 | **Competitor comparisons** | — | 1 | 3 | 3 |
-| **PDF export** | — | ✓ | ✓ | ✓ |
-| **Compliance PDF** | — | — | — | ✓ |
-| **White-label PDF** | — | — | ✓ | ✓ |
+| **PDF export** | — | Yes | Yes | Yes |
+| **Compliance PDF** | — | — | — | Yes |
+| **White-label PDF** | — | — | Yes | Yes |
 | **API access** | — | — | 1,000 req/day | 1,000 req/day |
-| **Webhooks** | — | — | ✓ | ✓ |
+| **Webhooks** | — | — | Yes | Yes |
 | **Team members** | — | — | 10 | 10 |
-| **Remediation board** | — | ✓ | ✓ | ✓ |
-| **Email alerts** | — | ✓ | ✓ | ✓ |
-| **Public sharing** | — | ✓ | ✓ | ✓ |
+| **Remediation board** | — | Yes | Yes | Yes |
+| **Email alerts** | — | Yes | Yes | Yes |
+| **Fix Requests** | — | Yes | Yes | Yes |
+| **Fix Request webhooks** | — | — | Yes | Yes |
+| **Fix Request team assign** | — | — | Yes | Yes |
+| **Error Monitoring projects** | — | 1 | 5 | 20 |
+| **Error events/period** | — | 5K / 7 days | 50K / 30 days | 500K / 90 days |
+| **Connected Sites** | 1 | 5 | 50 | 100 |
+| **Public sharing** | — | Yes | Yes | Yes |
 
 No credit card required for Free. Upgrade or cancel at any time.
 
@@ -136,43 +292,68 @@ The report is divided into sections:
 - Enable alerts — you'll get an email if the score drops by more than your threshold
 - Click **Create monitor** — the first analysis runs immediately
 
-From the monitor's details page you can:
+From the monitor's detail page you can:
 - See the full **run history** (every scheduled and manual run)
 - View the **score trend chart** over time
-- See any **incidents** (detected score regressions)
 - Click **Run now** to trigger an immediate re-analysis
-- Pause or resume the monitor at any time
+- Use **bulk actions** to enable, disable, or remove multiple pages at once
+- Access the **Settings tab** to adjust frequency, alerts, and thresholds
+- Click **Details** on any run to see `/monitors/[id]/runs/[runId]` with per-page score changes
 
-### 6. Track remediation (Pro and above)
+### 6. Link a Connected Site (all plans)
+- Go to **Sites** in the sidebar
+- Click **New Site**, enter your website's origin URL
+- Copy the one-time site key (`ws_site_…`)
+- Add the JS snippet to your website
+- Verify ownership via DNS TXT record or meta tag
+- View real user web vitals, route discovery, and indexing health from the site dashboard
+
+### 7. Set up Error Monitoring (Pro and above)
+- Go to **Errors** in the sidebar
+- Click **New Project**, enter a name, origin, and environment
+- Copy the one-time ingestion key (`ws_err_…`)
+- Install the SDK snippet on your website
+- Issues appear as real users encounter errors
+- Resolve issues, and WebScore will reopen them if they regress
+
+### 8. Send a Fix Request (Pro and above)
+- From any report finding, click **Create Fix Request**
+- Choose the request type (fix, audit, estimate, review, etc.)
+- Fill in the details — severity, description, due date
+- Choose a delivery channel — email, WhatsApp, Telegram, webhook, or external link
+- Track progress in **Fix Requests** in the sidebar
+- Mark as verified once the fix is confirmed
+
+### 9. Track remediation (Pro and above)
 - Go to **Compliance → Remediation**
 - Issues from your audits appear as cards
 - Move them through stages: Open → In Progress → Resolved
 - The history table shows what was fixed and when — useful for compliance audits
 
-### 7. Use the API (Agency and above)
-- Go to **Settings → Developers** and create an API key
+### 10. Use the API (Agency and above)
+- Go to **Settings → Developers** and create an API key (`wa_live_…`)
 - Use it to trigger audits and retrieve reports from your own code:
 
 ```bash
 # Start an audit
-curl -X POST https://website-analyzer-eta.vercel.app/api/v1/analyze \
+curl -X POST https://webanalyzer.app/api/v1/analyze \
   -H "Authorization: Bearer wa_live_YOUR_KEY" \
   -H "Content-Type: application/json" \
   -d '{"url": "https://yoursite.com"}'
 
 # List your analyses
-curl https://website-analyzer-eta.vercel.app/api/v1/analyses \
+curl https://webanalyzer.app/api/v1/analyses \
   -H "Authorization: Bearer wa_live_YOUR_KEY"
 
 # Get a specific report
-curl https://website-analyzer-eta.vercel.app/api/v1/reports/ANALYSIS_ID \
+curl https://webanalyzer.app/api/v1/reports/ANALYSIS_ID \
   -H "Authorization: Bearer wa_live_YOUR_KEY"
 ```
 
-### 8. Set up webhooks (Agency and above)
+### 11. Set up webhooks (Agency and above)
 - Go to **Settings → Developers → Webhooks**
 - Enter any HTTPS URL (paste a Slack webhook URL to get notifications in a channel)
-- WebAnalyzer will POST a signed payload when each analysis completes
+- WebScore will POST a signed payload when each analysis completes
 
 ---
 
@@ -188,6 +369,8 @@ All scores are on a **0–100 scale**:
 
 **AI Readiness** is scored separately and reflects how well the site is structured for AI-powered tools — clear headings, structured data, readable content, consistent navigation.
 
+**Error Monitoring** issues are classified by level: `fatal`, `error`, `warning`.
+
 ---
 
 ## Credits explained
@@ -198,50 +381,4 @@ Each audit costs **1 credit**. Credits reset on the 1st of every month.
 - Pro: 100 credits/month
 - Agency / Compliance: effectively unlimited (99,999/month fair use)
 
-If an audit fails due to a server error (not a problem with your site), the credit is automatically refunded.
-
-Monitors use 1 credit per scheduled run. If you run out of credits mid-month, the monitor pauses automatically and resumes when credits reset.
-
----
-
-## Privacy and security
-
-- **Your data is yours** — reports are private by default and only visible to you and your team
-- **Shared reports** are accessible via an unguessable link — you can revoke sharing at any time
-- **API keys** are encrypted with AES-256-GCM and only shown once at creation
-- **Webhook payloads** are signed with HMAC-SHA256 so you can verify they came from WebAnalyzer
-- **SSRF protection** — the analyser blocks private IP ranges and cloud metadata endpoints so it can only analyse real public websites
-- Reports are stored securely in Supabase with Row-Level Security — no one can access another user's data
-
----
-
-## Frequently asked questions
-
-**Does it work on password-protected or localhost sites?**
-No — the analyser can only reach publicly accessible URLs on the internet.
-
-**How long does an audit take?**
-Typically 30–90 seconds. Complex pages with many resources may take up to 2 minutes.
-
-**Can I analyse multiple pages at once?**
-Yes — on Pro and above you can enable multi-page crawl. The analyser follows internal links and aggregates findings across up to 10 (Pro) or 50 (Agency/Compliance) pages.
-
-**What happens if I run out of credits?**
-You can't start new audits until credits reset on the 1st of the month, or until you upgrade. Active monitors pause automatically and resume when credits are available.
-
-**Is the AI analysis done by a real AI?**
-Yes — AI Insights are generated by Claude (Anthropic's AI). It receives the raw audit data and writes plain-language recommendations and impact estimates.
-
-**Can I white-label reports for clients?**
-Yes — on Agency and Compliance plans. Upload your logo and set your brand colours in Settings → Branding. All exported PDFs will use your branding.
-
-**How do alerts work for monitors?**
-When a scheduled monitor run detects that a score has dropped by more than your threshold (default: 10 points), you receive an email listing which metrics dropped, by how much, and a link to the full report. You can also receive alerts via webhook or Slack.
-
----
-
-## Getting help
-
-- **In-app support** — go to any page and use the support chat
-- **Email** — contact form available at `/support`
-- **API docs** — available at `/docs` inside the app
+Error Monitoring events and Connected Sites telemetry do not consume credits.
