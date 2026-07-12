@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { UserMenu } from '@/components/shared/UserMenu';
-import { Code2, ShieldCheck, BarChart2, Users, Globe } from 'lucide-react';
+import { Code2, ShieldCheck, BarChart2, Users, Globe, Wrench } from 'lucide-react';
 import { WebScoreLogo } from '@/components/shared/WebScoreLogo';
 
 const NAV_ITEMS = [
@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { href: '/reports',         label: 'Reports' },
   { href: '/monitors',        label: 'Monitors' },
   { href: '/sites',           label: 'Sites',      icon: Globe },
+  { href: '/fix-requests',    label: 'Fix Requests', icon: Wrench },
   { href: '/leads',           label: 'Leads',      icon: Users },
   { href: '/compliance',      label: 'Compliance', icon: ShieldCheck },
 ];
