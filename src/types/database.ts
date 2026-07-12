@@ -1178,6 +1178,37 @@ export interface Database {
         Update: FixRequestPublicLinkUpdate;
         Relationships: [];
       };
+      // ── Error Monitoring tables (migration 032) ──────────────────────────
+      error_projects: {
+        Row: ErrorProjectRow;
+        Insert: ErrorProjectInsert;
+        Update: ErrorProjectUpdate;
+        Relationships: [];
+      };
+      error_issues: {
+        Row: ErrorIssueRow;
+        Insert: ErrorIssueInsert;
+        Update: ErrorIssueUpdate;
+        Relationships: [];
+      };
+      error_events: {
+        Row: ErrorEventRow;
+        Insert: ErrorEventInsert;
+        Update: ErrorEventUpdate;
+        Relationships: [];
+      };
+      error_issue_activities: {
+        Row: ErrorIssueActivityRow;
+        Insert: ErrorIssueActivityInsert;
+        Update: ErrorIssueActivityUpdate;
+        Relationships: [];
+      };
+      error_project_quotas: {
+        Row: ErrorProjectQuotaRow;
+        Insert: ErrorProjectQuotaInsert;
+        Update: ErrorProjectQuotaUpdate;
+        Relationships: [];
+      };
     };
     Views: { [_ in never]: never };
     Functions: {
@@ -1223,8 +1254,220 @@ export interface Database {
         Args: { p_link_id: string };
         Returns: undefined;
       };
+      resolve_error_project_key: {
+        Args: { p_key_hash: string };
+        Returns: Array<{
+          project_id:          string;
+          user_id:             string;
+          normalized_origin:   string;
+          allowed_origins:     string[];
+          status:              string;
+          sample_rate:         number;
+          event_quota_monthly: number;
+          max_breadcrumbs:     number;
+        }>;
+      };
+      increment_error_event_quota: {
+        Args: { p_project_id: string; p_user_id: string; p_month: string };
+        Returns: undefined;
+      };
+      upsert_error_issue: {
+        Args: {
+          p_project_id:     string;
+          p_user_id:        string;
+          p_fingerprint:    string;
+          p_title:          string;
+          p_exception_type: string | null;
+          p_level:          string;
+          p_event_id:       string;
+        };
+        Returns: Array<{ issue_id: string; is_regression: boolean }>;
+      };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };
   };
 }
+
+// ── Error Monitoring types (migration 032) ────────────────────────────────────
+
+type ErrorProjectStatus = 'active' | 'disabled' | 'revoked';
+type ErrorIssueStatus   = 'unresolved' | 'investigating' | 'resolved' | 'ignored' | 'archived';
+type ErrorLevel         = 'fatal' | 'error' | 'warning' | 'info';
+
+export type ErrorProjectRow = {
+  id:                    string;
+  user_id:               string;
+  name:                  string;
+  normalized_origin:     string;
+  allowed_origins:       string[];
+  environment:           string;
+  status:                ErrorProjectStatus;
+  ingestion_key_hash:    string;
+  ingestion_key_prefix:  string;
+  ingestion_key_encrypted: string;
+  sample_rate:           number;
+  event_quota_monthly:   number;
+  max_breadcrumbs:       number;
+  retention_days:        number;
+  last_event_at:         string | null;
+  created_at:            string;
+  updated_at:            string;
+};
+export type ErrorProjectInsert = {
+  id?:                      string;
+  user_id:                  string;
+  name:                     string;
+  normalized_origin:        string;
+  allowed_origins?:         string[];
+  environment?:             string;
+  status?:                  ErrorProjectStatus;
+  ingestion_key_hash:       string;
+  ingestion_key_prefix:     string;
+  ingestion_key_encrypted:  string;
+  connected_site_id?:       string | null;
+  sample_rate?:             number;
+  event_quota_monthly?:     number;
+  max_breadcrumbs?:         number;
+  retention_days?:          number;
+  last_event_at?:           string | null;
+  created_at?:              string;
+  updated_at?:              string;
+};
+export type ErrorProjectUpdate = {
+  name?:                         string;
+  normalized_origin?:            string;
+  allowed_origins?:              string[];
+  environment?:                  string;
+  status?:                       ErrorProjectStatus | string;
+  ingestion_key_hash?:           string;
+  ingestion_key_prefix?:         string;
+  ingestion_key_encrypted?:      string;
+  sample_rate?:                  number;
+  event_quota_monthly?:          number;
+  max_breadcrumbs?:              number;
+  retention_days?:               number;
+  last_event_at?:                string | null;
+  updated_at?:                   string;
+  capture_unhandled_errors?:     boolean;
+  capture_unhandled_rejections?: boolean;
+};
+
+export type ErrorIssueRow = {
+  id:                  string;
+  error_project_id:    string;
+  user_id:             string;
+  fingerprint:         string;
+  title:               string;
+  exception_type:      string | null;
+  level:               ErrorLevel;
+  status:              ErrorIssueStatus;
+  event_count:         number;
+  first_seen_at:       string;
+  last_seen_at:        string;
+  resolved_at:         string | null;
+  assigned_to:         string | null;
+  created_at:          string;
+  updated_at:          string;
+};
+export type ErrorIssueInsert = Partial<ErrorIssueRow> & {
+  error_project_id: string;
+  user_id: string;
+  fingerprint: string;
+  title: string;
+  level: ErrorLevel;
+};
+export type ErrorIssueUpdate = {
+  status?:       ErrorIssueStatus | string;
+  level?:        ErrorLevel | string;
+  assigned_to?:  string | null;
+  resolved_at?:  string | null;
+  fingerprint?:  string;
+  title?:        string;
+  event_count?:  number;
+  first_seen_at?: string;
+  last_seen_at?:  string;
+  updated_at?:   string;
+};
+
+export type ErrorEventRow = {
+  id:                    string;
+  event_id:              string;
+  error_project_id:      string;
+  user_id:               string;
+  issue_id:              string | null;
+  source:                string;
+  event_type:            string;
+  level:                 ErrorLevel;
+  message:               string;
+  exception_type:        string | null;
+  stack_frames:          unknown;
+  breadcrumbs:           unknown;
+  context:               unknown;
+  page_url_sanitized:    string | null;
+  browser:               string | null;
+  device_category:       string | null;
+  environment:           string | null;
+  release:               string | null;
+  fingerprint:           string | null;
+  is_test_event:         boolean;
+  occurred_at:           string | null;
+  received_at:           string;
+  processed_at:          string | null;
+};
+export type ErrorEventInsert = Partial<ErrorEventRow> & {
+  event_id: string;
+  error_project_id: string;
+  user_id: string;
+  source: string;
+  event_type: string;
+  level: ErrorLevel;
+  message: string;
+};
+export type ErrorEventUpdate = {
+  issue_id?:      string | null;
+  fingerprint?:   string | null;
+  processed_at?:  string | null;
+  level?:         ErrorLevel | string;
+  status?:        string;
+  updated_at?:    string;
+};
+
+export type ErrorIssueActivityRow = {
+  id:              string;
+  error_issue_id:  string;
+  user_id:         string | null;
+  actor_user_id:   string | null;
+  event_type:      string;
+  previous_value:  string | null;
+  new_value:       string | null;
+  note:            string | null;
+  created_at:      string;
+};
+export type ErrorIssueActivityInsert = {
+  id?:             string;
+  error_issue_id:  string;
+  user_id?:        string | null;
+  actor_user_id?:  string | null;
+  event_type:      string;
+  previous_value?: string | null;
+  new_value?:      string | null;
+  note?:           string | null;
+  created_at?:     string;
+};
+export type ErrorIssueActivityUpdate = Partial<ErrorIssueActivityRow>;
+
+export type ErrorProjectQuotaRow = {
+  id:               string;
+  error_project_id: string;
+  user_id:          string;
+  month:            string;
+  event_count:      number;
+  updated_at:       string;
+};
+export type ErrorProjectQuotaInsert = Partial<ErrorProjectQuotaRow> & {
+  error_project_id: string;
+  user_id: string;
+  month: string;
+};
+export type ErrorProjectQuotaUpdate = Partial<ErrorProjectQuotaRow>;

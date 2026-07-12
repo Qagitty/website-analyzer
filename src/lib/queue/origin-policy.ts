@@ -139,6 +139,23 @@ export const EXECUTION_POLICIES: Record<QueueJobType, QueueJobExecutionPolicy> =
     requiresOriginThrottle: false,
     weight: 'none',
   },
+  // ── Error Monitoring — internal processing, no outbound requests ──────────
+  'error_event.process': {
+    requiresOriginThrottle: false,
+    weight: 'light',
+  },
+  'error_issue.aggregate': {
+    requiresOriginThrottle: false,
+    weight: 'none',
+  },
+  'error_alert.evaluate': {
+    requiresOriginThrottle: false,
+    weight: 'none',
+  },
+  'error_retention.cleanup': {
+    requiresOriginThrottle: false,
+    weight: 'none',
+  },
 };
 
 /**

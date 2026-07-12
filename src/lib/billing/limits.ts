@@ -124,6 +124,25 @@ export interface PlanFeatures {
   fixRequestTeamAssignment: boolean;
   /** Fix request verification workflow */
   fixRequestVerification: boolean;
+  /** Runtime Error Monitoring — project-based browser error ingestion */
+  errorMonitoring: boolean;
+  /** Error monitoring alert policies (new issue, fatal, regression, spike) */
+  errorMonitoringAlerts: boolean;
+  /** Error monitoring team assignment */
+  errorMonitoringTeam: boolean;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Error monitoring per-plan quota limits
+// ─────────────────────────────────────────────────────────────────
+
+export interface ErrorMonitoringLimits {
+  /** Max error monitoring projects */
+  errorMonitoringProjects: number;
+  /** Monthly error events per project */
+  errorMonitoringEvents: number;
+  /** Event retention days */
+  errorMonitoringRetentionDays: number;
 }
 
 export const PLAN_FEATURES: Record<PlanId, PlanFeatures> = {
@@ -152,6 +171,9 @@ export const PLAN_FEATURES: Record<PlanId, PlanFeatures> = {
     fixRequestWebhookDelivery:  false,
     fixRequestTeamAssignment:   false,
     fixRequestVerification:     false,
+    errorMonitoring:            false,
+    errorMonitoringAlerts:      false,
+    errorMonitoringTeam:        false,
   },
   pro: {
     pdfExport:              true,
@@ -178,6 +200,9 @@ export const PLAN_FEATURES: Record<PlanId, PlanFeatures> = {
     fixRequestWebhookDelivery:  false,
     fixRequestTeamAssignment:   false,
     fixRequestVerification:     true,
+    errorMonitoring:            true,
+    errorMonitoringAlerts:      false,
+    errorMonitoringTeam:        false,
   },
   agency: {
     pdfExport:              true,
@@ -204,6 +229,9 @@ export const PLAN_FEATURES: Record<PlanId, PlanFeatures> = {
     fixRequestWebhookDelivery:  true,
     fixRequestTeamAssignment:   true,
     fixRequestVerification:     true,
+    errorMonitoring:            true,
+    errorMonitoringAlerts:      true,
+    errorMonitoringTeam:        true,
   },
   compliance: {
     pdfExport:              true,
@@ -230,8 +258,22 @@ export const PLAN_FEATURES: Record<PlanId, PlanFeatures> = {
     fixRequestWebhookDelivery:  true,
     fixRequestTeamAssignment:   true,
     fixRequestVerification:     true,
+    errorMonitoring:            true,
+    errorMonitoringAlerts:      true,
+    errorMonitoringTeam:        true,
   },
 };
+
+export const ERROR_MONITORING_LIMITS: Record<string, ErrorMonitoringLimits> = {
+  free:       { errorMonitoringProjects: 0,  errorMonitoringEvents: 0,       errorMonitoringRetentionDays: 0  },
+  pro:        { errorMonitoringProjects: 1,  errorMonitoringEvents: 5_000,   errorMonitoringRetentionDays: 7  },
+  agency:     { errorMonitoringProjects: 5,  errorMonitoringEvents: 50_000,  errorMonitoringRetentionDays: 30 },
+  compliance: { errorMonitoringProjects: 20, errorMonitoringEvents: 500_000, errorMonitoringRetentionDays: 90 },
+};
+
+export function getErrorMonitoringLimits(plan: string): ErrorMonitoringLimits {
+  return ERROR_MONITORING_LIMITS[plan] ?? ERROR_MONITORING_LIMITS.free;
+}
 
 // ─────────────────────────────────────────────────────────────────
 // Helper functions
@@ -291,6 +333,9 @@ export function featureGateError(
     fixRequestWebhookDelivery:   'Fix request webhook delivery requires an Agency plan or higher.',
     fixRequestTeamAssignment:    'Fix request team assignment requires an Agency plan or higher.',
     fixRequestVerification:      'Fix request verification workflow requires a Pro plan or higher.',
+    errorMonitoring:             'Runtime Error Monitoring requires a Pro plan or higher.',
+    errorMonitoringAlerts:       'Error monitoring alert policies require an Agency plan or higher.',
+    errorMonitoringTeam:         'Error monitoring team assignment requires an Agency plan or higher.',
   };
   return {
     error: messages[feature],

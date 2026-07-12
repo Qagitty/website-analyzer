@@ -48,13 +48,16 @@ export interface AccessibilityFindingInput {
 }
 
 export interface ErrorIssueInput {
-  id:       string;
-  message:  string;
-  type:     string;
-  source:   string;
-  line?:    number;
-  url?:     string;
-  analysisId: string;
+  id:          string;
+  message:     string;
+  type:        string;
+  source:      string;
+  line?:       number;
+  url?:        string;
+  /** Legacy: analysis-sourced error issues */
+  analysisId?: string;
+  /** Error monitoring project issues */
+  projectId?:  string;
 }
 
 export interface MonitorRegressionInput {

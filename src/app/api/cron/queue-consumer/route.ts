@@ -15,6 +15,7 @@ import { webhookDeliverHandler }     from '@/lib/queue/handlers/webhook';
 import { emailSendHandler }          from '@/lib/queue/handlers/email';
 import { monitorRunHandler, monitorPageCheckHandler, monitorDiscoveryHandler } from '@/lib/queue/handlers/monitor';
 import { retentionCleanupHandler }   from '@/lib/queue/handlers/maintenance';
+import { errorEventProcessHandler }  from '@/lib/queue/handlers/error';
 import { createLogger } from '@/lib/logger';
 import type { QueueJobType } from '@/lib/queue/types';
 
@@ -34,6 +35,7 @@ function registerAll() {
     ['monitor.page_check',    monitorPageCheckHandler as QueueJobHandler],
     ['monitor.discovery',     monitorDiscoveryHandler as QueueJobHandler],
     ['retention.cleanup',     retentionCleanupHandler as QueueJobHandler],
+    ['error_event.process',  errorEventProcessHandler as QueueJobHandler],
   ];
   for (const [jobType, handler] of pairs) {
     if (!already.has(jobType)) {
@@ -64,6 +66,7 @@ export async function GET(req: Request) {
       'webhook.deliver',
       'email.send',
       'retention.cleanup',
+      'error_event.process',
     ] satisfies QueueJobType[],
     maxJobs,
   });

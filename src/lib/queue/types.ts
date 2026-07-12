@@ -27,6 +27,10 @@ export const QueueJobTypes = [
   'site_connect.event_process',
   'site_connect.verify',
   'site_connect.route_candidate',
+  'error_event.process',
+  'error_issue.aggregate',
+  'error_alert.evaluate',
+  'error_retention.cleanup',
 ] as const;
 
 export type QueueJobType = (typeof QueueJobTypes)[number];
