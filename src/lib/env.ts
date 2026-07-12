@@ -136,9 +136,42 @@ const SPECS: VarSpec[] = [
     validate: isPositiveInt,
   },
   {
+    env: 'QUEUE_ORIGIN_HEAVY_CONCURRENCY',
+    severity: 'optional',
+    validate: (v) => {
+      const n = parseInt(v, 10);
+      return Number.isInteger(n) && n >= 1 && n <= 3 ? null : 'Must be an integer 1–3';
+    },
+  },
+  {
     env: 'QUEUE_ORIGIN_HEAVY_DELAY_MS',
     severity: 'optional',
     validate: isNonNegativeInt,
+  },
+  {
+    env: 'QUEUE_ORIGIN_HEAVY_LEASE_SECONDS',
+    severity: 'optional',
+    validate: isPositiveInt,
+  },
+  {
+    env: 'QUEUE_ORIGIN_MEDIUM_DELAY_MS',
+    severity: 'optional',
+    validate: isNonNegativeInt,
+  },
+  {
+    env: 'QUEUE_ORIGIN_MEDIUM_LEASE_SECONDS',
+    severity: 'optional',
+    validate: isPositiveInt,
+  },
+  {
+    env: 'QUEUE_ORIGIN_LIGHT_DELAY_MS',
+    severity: 'optional',
+    validate: isNonNegativeInt,
+  },
+  {
+    env: 'QUEUE_ORIGIN_LIGHT_LEASE_SECONDS',
+    severity: 'optional',
+    validate: isPositiveInt,
   },
   {
     env: 'QUEUE_JOB_RETENTION_DAYS',

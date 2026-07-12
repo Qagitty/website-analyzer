@@ -55,12 +55,30 @@ export const Q = {
   // ── Per-origin throttle ───────────────────────────────────────────────
   /**
    * Unix-ms timestamp: no heavy job for this origin before this time.
-   * originHash must be the 16-char hex SHA-256 prefix from getOriginKey().
+   * originHash must be the 16-char hex SHA-256 prefix from hashOrigin().
+   * Written by the consumer after a successful origin lease acquisition.
+   * NOT the same key as the legacy monitor:origin:{key}:lock (different namespace).
    */
   originNextAt: (originHash: string) => `queue:v1:origin:${originHash}:next_at` as const,
 
-  /** Count of active heavy jobs for this origin. */
-  originActive: (originHash: string) => `queue:v1:origin:${originHash}:active` as const,
+  /**
+   * Atomic origin execution lease.
+   * Value format: "{leaseToken}|{jobId}|{workerId}"
+   * TTL = origin lease duration for the job's weight class.
+   * SET NX is the atomic acquisition primitive.
+   * Release is token-checked: only the lease owner may delete it.
+   *
+   * Note: concurrency > 1 is not supported via this key alone.
+   * For the default (concurrency = 1) this IS the concurrency guard.
+   */
+  originLease: (originHash: string) => `queue:v1:origin:${originHash}:lease` as const,
+
+  /**
+   * Origin cooldown marker (e.g. after 429, repeated 503, WAF challenge).
+   * Value = ISO-8601 cooldown-until timestamp.
+   * TTL derived from Retry-After header, clamped to maxCooldownMs.
+   */
+  originCooldown: (originHash: string) => `queue:v1:origin:${originHash}:cooldown` as const,
 
   /** Origin suspension marker (value = reason, TTL = suspension duration). */
   originSuspended: (originHash: string) => `queue:v1:origin:${originHash}:suspended` as const,

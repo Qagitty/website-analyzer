@@ -14,13 +14,14 @@ import { createServerClient } from '@/lib/supabase/server';
 import { generateSiteKey } from '@/lib/site-keys/generate';
 import { createLogger } from '@/lib/logger';
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 const GRACE_PERIOD_MS = 24 * 3600 * 1000; // 24 hours
 
 const log = createLogger({ category: 'site-connect:rotate-key' });
 
-export async function POST(req: NextRequest, { params }: Params) {
+export async function POST(req: NextRequest, props: Params) {
+  const params = await props.params;
   const supabase = createServerClient();
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
   if (authErr || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

@@ -19,7 +19,7 @@ import { hashVerificationToken } from '@/lib/site-keys/generate';
 import { validateAnalysisUrl } from '@/lib/security/url-validator';
 import { createLogger } from '@/lib/logger';
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 const FETCH_TIMEOUT_MS    = 10_000;
 const MAX_RESPONSE_BYTES  = 1_024 * 1_024; // 1 MB
@@ -27,7 +27,8 @@ const MAX_VERIFY_ATTEMPTS = 10;
 
 const log = createLogger({ category: 'site-connect:verify' });
 
-export async function POST(req: NextRequest, { params }: Params) {
+export async function POST(req: NextRequest, props: Params) {
+  const params = await props.params;
   const supabase = createServerClient();
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
   if (authErr || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

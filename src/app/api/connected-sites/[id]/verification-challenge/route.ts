@@ -13,7 +13,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import { z } from 'zod';
 import { generateVerificationToken } from '@/lib/site-keys/generate';
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 const CHALLENGE_TTL_HOURS = 24;
 const MAX_ACTIVE_CHALLENGES = 3;
@@ -22,7 +22,8 @@ const CreateChallengeSchema = z.object({
   method: z.enum(['script', 'meta_tag']),
 });
 
-export async function POST(req: NextRequest, { params }: Params) {
+export async function POST(req: NextRequest, props: Params) {
+  const params = await props.params;
   const supabase = createServerClient();
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
   if (authErr || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

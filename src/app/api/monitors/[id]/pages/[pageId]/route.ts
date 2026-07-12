@@ -4,8 +4,9 @@ import { createServerClient } from '@/lib/supabase/server';
 // DELETE /api/monitors/[id]/pages/[pageId] — remove a page (non-root only)
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: { id: string; pageId: string } },
+  props: { params: Promise<{ id: string; pageId: string }> },
 ) {
+  const params = await props.params;
   const supabase = createServerClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -47,8 +48,9 @@ export async function DELETE(
 // PATCH /api/monitors/[id]/pages/[pageId] — toggle active state
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string; pageId: string } },
+  props: { params: Promise<{ id: string; pageId: string }> },
 ) {
+  const params = await props.params;
   const supabase = createServerClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

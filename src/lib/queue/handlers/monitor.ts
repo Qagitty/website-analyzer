@@ -3,10 +3,18 @@
  *
  * These replace the direct-dispatch logic in api/cron/monitors/route.ts.
  * The monitor ID/page URL are stored in the payload; secrets are loaded server-side.
+ *
+ * Origin throttling:
+ *   Page-check and discovery jobs set originHash in the envelope so the consumer
+ *   can validate the payload origin matches the server-derived one.
+ *   The consumer's origin-throttle layer enforces the actual delay — setting
+ *   originHash here is defence-in-depth, not the primary guard.
  */
 
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import type { QueueJobHandler, QueueJobResult } from '../types';
+import { deriveNormalizedOrigin, hashOrigin } from '../origin-policy';
+import { setOriginCooldown } from '../origin-throttle';
 
 // ─── monitor.run ──────────────────────────────────────────────────────────────
 
@@ -48,7 +56,9 @@ export const monitorRunHandler: QueueJobHandler<MonitorRunPayload> = async (ctx,
     } satisfies QueueJobResult;
   }
 
-  // Enqueue individual page checks for this monitor run
+  // Enqueue individual page checks for this monitor run.
+  // originHash is derived server-side and embedded in the envelope so the
+  // consumer can validate it matches the payload URL.
   const { enqueueJob } = await import('@/lib/queue/service');
   const { QueuePriority } = await import('@/lib/queue/types');
   const { data: pages } = await supabase
@@ -57,12 +67,17 @@ export const monitorRunHandler: QueueJobHandler<MonitorRunPayload> = async (ctx,
     .eq('monitor_id', payload.monitorId);
 
   if (!pages || pages.length === 0) {
-    // No pages discovered yet — trigger discovery
+    // No pages discovered yet — trigger discovery first.
+    const origin = deriveNormalizedOrigin(monitor.url);
+    const originHash = origin ? await hashOrigin(origin) : undefined;
+
     await enqueueJob({
       jobType:        'monitor.discovery',
       tenantId:       ctx.tenantId,
       idempotencyKey: `monitor:discovery:${payload.monitorId}:${payload.monitorRunId}`,
       priority:       QueuePriority.NORMAL,
+      originHash,
+      weight:         'medium',
       payload: {
         monitorId:    payload.monitorId,
         monitorRunId: payload.monitorRunId,
@@ -72,12 +87,16 @@ export const monitorRunHandler: QueueJobHandler<MonitorRunPayload> = async (ctx,
   } else {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? '';
     for (const page of pages) {
+      const origin = deriveNormalizedOrigin(page.url);
+      const originHash = origin ? await hashOrigin(origin) : undefined;
+
       await enqueueJob({
         jobType:        'monitor.page_check',
         tenantId:       ctx.tenantId,
         idempotencyKey: `monitor:page:${payload.monitorId}:${payload.monitorRunId}:${page.url}`,
         priority:       QueuePriority.NORMAL,
-        originHash:     undefined, // dispatcher handles per-origin staggering
+        originHash,
+        weight:         'heavy',
         payload: {
           monitorId:    payload.monitorId,
           monitorRunId: payload.monitorRunId,
@@ -138,7 +157,7 @@ export const monitorPageCheckHandler: QueueJobHandler<MonitorPageCheckPayload> =
     } satisfies QueueJobResult;
   }
 
-  // Dispatch to Cloudflare Worker
+  // Dispatch to Cloudflare Worker (fire-and-forget async dispatch)
   const workerUrl   = process.env.CLOUDFLARE_WORKER_URL;
   const authToken   = process.env.CLOUDFLARE_WORKER_AUTH_TOKEN;
   const callbackSecret = process.env.WORKER_CALLBACK_SECRET;
@@ -151,8 +170,9 @@ export const monitorPageCheckHandler: QueueJobHandler<MonitorPageCheckPayload> =
     } satisfies QueueJobResult;
   }
 
+  let res: Response;
   try {
-    const res = await fetch(`${workerUrl}/analyze`, {
+    res = await fetch(`${workerUrl}/analyze`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -167,24 +187,6 @@ export const monitorPageCheckHandler: QueueJobHandler<MonitorPageCheckPayload> =
         monitorRunId: payload.monitorRunId,
       }),
     });
-
-    if (res.ok || res.status === 202) {
-      return { status: 'completed' } satisfies QueueJobResult;
-    }
-
-    if (res.status >= 500) {
-      return {
-        status: 'retry',
-        errorCode: `WORKER_HTTP_${res.status}`,
-        failureType: 'transient',
-      } satisfies QueueJobResult;
-    }
-
-    return {
-      status: 'failed',
-      errorCode: `WORKER_HTTP_${res.status}`,
-      failureType: 'permanent',
-    } satisfies QueueJobResult;
   } catch {
     return {
       status: 'retry',
@@ -192,6 +194,41 @@ export const monitorPageCheckHandler: QueueJobHandler<MonitorPageCheckPayload> =
       failureType: 'transient',
     } satisfies QueueJobResult;
   }
+
+  if (res.ok || res.status === 202) {
+    return { status: 'completed' } satisfies QueueJobResult;
+  }
+
+  if (res.status === 429) {
+    // The Cloudflare Worker itself is rate-limiting us (not the target site).
+    // Set a short cooldown for this origin so the next attempt backs off.
+    const retryAfter = res.headers.get('Retry-After');
+    const origin = deriveNormalizedOrigin(payload.url);
+    if (origin) {
+      const originHash = await hashOrigin(origin);
+      await setOriginCooldown({ originHash, retryAfterHeader: retryAfter }).catch(() => {});
+    }
+    return {
+      status: 'retry',
+      errorCode: 'WORKER_RATE_LIMITED',
+      failureType: 'rate_limited',
+      retryAfterMs: retryAfter ? parseInt(retryAfter, 10) * 1000 : undefined,
+    } satisfies QueueJobResult;
+  }
+
+  if (res.status >= 500) {
+    return {
+      status: 'retry',
+      errorCode: `WORKER_HTTP_${res.status}`,
+      failureType: 'transient',
+    } satisfies QueueJobResult;
+  }
+
+  return {
+    status: 'failed',
+    errorCode: `WORKER_HTTP_${res.status}`,
+    failureType: 'permanent',
+  } satisfies QueueJobResult;
 };
 
 // ─── monitor.discovery ────────────────────────────────────────────────────────

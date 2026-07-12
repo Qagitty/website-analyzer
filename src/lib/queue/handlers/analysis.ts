@@ -8,6 +8,8 @@
  */
 
 import type { QueueJobHandler, QueueJobResult } from '../types';
+import { deriveNormalizedOrigin, hashOrigin } from '../origin-policy';
+import { setOriginCooldown } from '../origin-throttle';
 
 export interface AnalysisRunPayload {
   analysisId: string;
@@ -59,6 +61,12 @@ export const analysisRunHandler: QueueJobHandler<AnalysisRunPayload> = async (ct
 
   if (response.status === 429) {
     const retryAfter = response.headers.get('Retry-After');
+    // Set origin cooldown so subsequent jobs for this site back off.
+    const origin = deriveNormalizedOrigin(payload.url);
+    if (origin) {
+      const originHash = await hashOrigin(origin);
+      await setOriginCooldown({ originHash, retryAfterHeader: retryAfter }).catch(() => {});
+    }
     return {
       status: 'retry',
       errorCode: 'WORKER_RATE_LIMITED',

@@ -9,8 +9,9 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import {
   Globe, Clock, Play, Pause, RotateCw, ArrowLeft, CheckCircle2,
-  AlertTriangle, XCircle, ExternalLink, ChevronRight, Activity,
+  AlertTriangle, XCircle, ExternalLink, ChevronRight, Activity, Settings,
 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import type { Monitor } from '@/types/analysis';
 import { TrendChart } from './TrendChart';
 import { MonitorPages } from './MonitorPages';
@@ -77,6 +78,103 @@ function incidentSeverityBadge(severity: string) {
   return map[severity] ?? 'bg-secondary text-muted-foreground border-border';
 }
 
+// ── Settings form ─────────────────────────────────────────────────────────────
+
+function MonitorSettingsForm({ monitor, onUpdate }: { monitor: Monitor; onUpdate: (m: Monitor) => void }) {
+  const [frequency, setFrequency] = useState<'daily' | 'weekly'>(monitor.frequency as 'daily' | 'weekly');
+  const [notify, setNotify] = useState(monitor.notify_on_score_drop ?? false);
+  const [threshold, setThreshold] = useState(monitor.score_drop_threshold ?? 10);
+  const [saving, setSaving] = useState(false);
+
+  const save = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/monitors/${monitor.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ frequency, notify_on_score_drop: notify, score_drop_threshold: threshold }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      onUpdate(data);
+      toast.success('Settings saved');
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          <Settings className="h-4 w-4" /> Monitor Settings
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={save} className="space-y-5">
+          {/* Schedule */}
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Schedule</p>
+            <div className="flex gap-2">
+              {(['daily', 'weekly'] as const).map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => setFrequency(f)}
+                  className={`px-3 py-1.5 rounded-md border text-sm transition-colors capitalize ${
+                    frequency === f
+                      ? 'border-orange-500 bg-orange-500/10 text-orange-400'
+                      : 'border-border text-muted-foreground hover:bg-accent'
+                  }`}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Alerts */}
+          <div className="space-y-3">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Alerts</p>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setNotify((v) => !v)}
+                className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-colors ${
+                  notify ? 'border-orange-500/50 text-orange-400' : 'border-border text-muted-foreground/60'
+                }`}
+              >
+                {notify ? 'Alerts enabled' : 'Alerts disabled'}
+              </button>
+            </div>
+            {notify && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span>Alert when any score drops by</span>
+                <Input
+                  type="number"
+                  min={1}
+                  max={50}
+                  value={threshold}
+                  onChange={(e) => setThreshold(Math.max(1, Math.min(50, Number(e.target.value))))}
+                  className="w-16 h-8 text-center"
+                />
+                <span>or more points</span>
+              </div>
+            )}
+          </div>
+
+          <Button type="submit" disabled={saving} size="sm" className="bg-orange-600 text-white border-0">
+            {saving ? 'Saving…' : 'Save settings'}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function MonitorDetail({ monitor: initialMonitor }: { monitor: Monitor }) {
@@ -84,7 +182,7 @@ export function MonitorDetail({ monitor: initialMonitor }: { monitor: Monitor })
   const [monitor, setMonitor] = useState(initialMonitor);
   const [runs, setRuns] = useState<MonitorRun[] | null>(null);
   const [incidents, setIncidents] = useState<Incident[] | null>(null);
-  const [tab, setTab] = useState<'runs' | 'incidents' | 'chart' | 'pages'>('runs');
+  const [tab, setTab] = useState<'runs' | 'incidents' | 'chart' | 'pages' | 'settings'>('runs');
   const [busy, setBusy] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -216,7 +314,7 @@ export function MonitorDetail({ monitor: initialMonitor }: { monitor: Monitor })
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-border">
-        {(['runs', 'pages', 'chart', 'incidents'] as const).map((t) => (
+        {(['runs', 'pages', 'chart', 'incidents', 'settings'] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -226,7 +324,7 @@ export function MonitorDetail({ monitor: initialMonitor }: { monitor: Monitor })
                 : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
           >
-            {t === 'runs' ? 'Run History' : t === 'chart' ? 'Score Trend' : t === 'pages' ? 'Pages' : 'Incidents'}
+            {t === 'runs' ? 'Run History' : t === 'chart' ? 'Score Trend' : t === 'pages' ? 'Pages' : t === 'incidents' ? 'Incidents' : 'Settings'}
           </button>
         ))}
       </div>
@@ -270,6 +368,12 @@ export function MonitorDetail({ monitor: initialMonitor }: { monitor: Monitor })
                           {Math.round((new Date(run.completed_at).getTime() - new Date(run.started_at).getTime()) / 1000)}s
                         </span>
                       )}
+                      <a
+                        href={`/monitors/${monitor.id}/runs/${run.id}`}
+                        className="text-xs text-muted-foreground/60 hover:text-foreground flex items-center gap-0.5"
+                      >
+                        Details <ChevronRight className="h-3 w-3" />
+                      </a>
                       {run.analysis_id && (
                         <a
                           href={`/reports/${run.analysis_id}`}
@@ -309,6 +413,11 @@ export function MonitorDetail({ monitor: initialMonitor }: { monitor: Monitor })
             <TrendChart url={monitor.url} monitorId={monitor.id} />
           </CardContent>
         </Card>
+      )}
+
+      {/* Settings */}
+      {tab === 'settings' && (
+        <MonitorSettingsForm monitor={monitor} onUpdate={setMonitor} />
       )}
 
       {/* Incidents */}

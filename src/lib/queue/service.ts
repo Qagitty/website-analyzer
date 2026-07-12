@@ -61,7 +61,10 @@ const CFG = {
   dedupeTtlSeconds:    () => envInt('QUEUE_DEDUPE_TTL_SECONDS', 86_400),
   schedulerBatch:      () => envInt('QUEUE_SCHEDULER_BATCH_SIZE', 100),
   consumerBatch:       () => envInt('QUEUE_CONSUMER_BATCH_SIZE', 10),
-  originHeavyDelayMs:  () => envInt('QUEUE_ORIGIN_HEAVY_DELAY_MS', 30_000),
+  // MONITOR_ORIGIN_DELAY_MS is the legacy env name; QUEUE_ORIGIN_HEAVY_DELAY_MS
+  // is the canonical name. The consumer-time limit in origin-policy.ts reads
+  // QUEUE_ORIGIN_HEAVY_DELAY_MS. This value is kept here only for queue stats.
+  originHeavyDelayMs:  () => envInt('QUEUE_ORIGIN_HEAVY_DELAY_MS', envInt('MONITOR_ORIGIN_DELAY_MS', 30_000)),
   jobRetentionSeconds: () => envInt('QUEUE_JOB_RETENTION_DAYS', 7) * 86_400,
   dlqRetentionSeconds: () => envInt('QUEUE_DLQ_RETENTION_DAYS', 30) * 86_400,
 } as const;
@@ -150,7 +153,7 @@ async function checkAndIncrementConcurrency(jobType: QueueJobType): Promise<bool
   return true;
 }
 
-async function decrementConcurrency(jobType: QueueJobType): Promise<void> {
+export async function decrementConcurrency(jobType: QueueJobType): Promise<void> {
   await Promise.all([
     redis.decr(Q.concurrencyGlobal()),
     redis.decr(Q.concurrencyType(jobType)),
@@ -563,6 +566,76 @@ export async function cancelJob(jobId: string, reason = 'cancelled'): Promise<Ca
 
   log.info('job_cancelled', { jobId, previousStatus: status, reason });
   return { cancelled: true, previousStatus: status };
+}
+
+// ─── Origin-delay reschedule ──────────────────────────────────────────────────
+
+export interface RescheduleForOriginDelayInput {
+  jobId:         string;
+  workerId:      string;
+  envelope:      QueueJobEnvelope;
+  /** Unix-ms when the origin will next be eligible. */
+  eligibleAt:    number;
+  /** Safe reason code for observability (never contains URLs). */
+  delayReason:   string;
+  /** Optional jitter range [minMs, maxMs]. Default: [250, 1500]. */
+  jitterRangeMs?: [number, number];
+}
+
+/**
+ * Reschedule a job that was blocked by per-origin throttling.
+ *
+ * Critically different from failJob():
+ *   - Does NOT increment attempt.
+ *   - Does NOT move to dead_letter.
+ *   - Does NOT consume another credit.
+ *   - Does NOT emit a failure notification.
+ *   - The job returns to 'scheduled' state and will be promoted when eligible.
+ *
+ * The queue lease and concurrency counters are released here.
+ * The caller is responsible for releasing the origin lease separately.
+ *
+ * Jitter is added to avoid a thundering herd when multiple jobs become
+ * eligible at the same millisecond.
+ */
+export async function rescheduleForOriginDelay(
+  input: RescheduleForOriginDelayInput,
+): Promise<void> {
+  const { jobId, workerId, envelope, eligibleAt, delayReason, jitterRangeMs = [250, 1500] } = input;
+
+  // Verify lease ownership
+  const leaseOwner = await redis.get<string>(Q.lease(jobId));
+  if (leaseOwner !== workerId) {
+    log.warn('origin_delayed_reschedule_lease_mismatch', { jobId, workerId });
+    return;
+  }
+
+  const [jitterMin, jitterMax] = jitterRangeMs;
+  const jitter = Math.round(jitterMin + Math.random() * (jitterMax - jitterMin));
+  const scheduledForMs = Math.max(eligibleAt, Date.now()) + jitter;
+  const scheduledFor   = new Date(scheduledForMs).toISOString();
+
+  // Update envelope with new scheduledFor — attempt stays the same
+  const updatedEnvelope: QueueJobEnvelope = { ...envelope, scheduledFor };
+  await redis.set(Q.job(jobId), encodeJob(updatedEnvelope), { ex: CFG.jobRetentionSeconds() });
+
+  // Return job to scheduled state
+  await redis.zadd(Q.scheduled(), { score: scheduledForMs, member: jobId });
+  await setJobStatus(jobId, 'scheduled', CFG.jobRetentionSeconds());
+
+  // Release queue lease and concurrency
+  await redis.del(Q.lease(jobId));
+  await decrementConcurrency(envelope.jobType);
+
+  log.info('origin_delayed', {
+    jobId,
+    jobType:     envelope.jobType,
+    tenantId:    envelope.tenantId,
+    attempt:     envelope.attempt,
+    delayReason,
+    eligibleAt:  new Date(eligibleAt).toISOString(),
+    scheduledFor,
+  });
 }
 
 /**

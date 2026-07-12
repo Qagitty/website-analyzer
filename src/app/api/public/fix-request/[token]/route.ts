@@ -22,7 +22,8 @@ const RESPONSE_HEADERS = {
   'Cache-Control': 'no-store, no-cache',
 };
 
-export async function GET(req: NextRequest, { params }: { params: { token: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ token: string }> }) {
+  const params = await props.params;
   const supabase = createServiceRoleClient();
   const { token } = params;
 

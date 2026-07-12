@@ -11,7 +11,8 @@ const createSchema = z.object({
   canSubmitResponse:   z.boolean().default(false),
 });
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const supabase = createServerClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -29,7 +30,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   return NextResponse.json({ data });
 }
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const supabase = createServerClient();
   const serviceClient = createServiceRoleClient();
 
@@ -85,7 +87,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }, { status: 201 });
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const supabase = createServerClient();
   const serviceClient = createServiceRoleClient();
 
