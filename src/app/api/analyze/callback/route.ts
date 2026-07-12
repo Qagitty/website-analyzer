@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { analyzeWithAI, compareWithDesign } from '@/lib/ai/claude';
 import { uploadScreenshot, getSignedUrlOrNull } from '@/lib/supabase/storage';
-import { sendScoreDropAlert, sendMonitorSummary, sendAnalysisComplete, sendAnalysisFailed } from '@/lib/email/resend';
+import { sendAnalysisComplete, sendAnalysisFailed } from '@/lib/email/resend';
+import { shouldEvaluateMonitorAlerts } from '@/lib/monitoring/alert-eligibility';
+import { runAlertPipeline } from '@/lib/monitoring/alert-pipeline';
 import { fireWebhooksForAnalysis } from '@/lib/webhooks/deliver';
 import * as Sentry from '@sentry/nextjs';
 import { LegacyWorkerCallbackSchema, type LegacyWorkerCallback } from '@/lib/contracts/schemas';
@@ -395,41 +397,25 @@ export async function POST(req: NextRequest) {
           .eq('url', analysedUrl);
       }
 
-      // Check for score drops and send alert.
-      // Resolve email from DB here — it is intentionally not passed through
-      // the Worker body to avoid sending PII over Cloudflare infrastructure.
-      if (monitorNotify && monitorLastScores && monitorUserId) {
-        const { data: userData } = await supabase.auth.admin.getUserById(monitorUserId);
-        const resolvedEmail = userData?.user?.email;
-
-        if (resolvedEmail) {
-          const SCORE_KEYS = ['performance', 'accessibility', 'seo', 'bestPractices'] as const;
-          const drops = SCORE_KEYS
-            .map((key) => {
-              const prev = (monitorLastScores[key] as number | null | undefined) ?? 0;
-              const curr = (newScores[key] as number | null | undefined) ?? 0;
-              const delta = prev - curr;
-              return { metric: key, previous: prev, current: curr, delta };
-            })
-            .filter((d) => d.delta >= (monitorThreshold ?? 10));
-
-          if (drops.length > 0) {
-            sendScoreDropAlert({
-              to: resolvedEmail,
-              url: results.url ?? analysisId,
-              analysisId,
-              drops,
-            }).catch((e) => console.error('[callback] score drop email failed:', e));
-          } else {
-            // Send regular completion summary
-            sendMonitorSummary({
-              to: resolvedEmail,
-              url: results.url ?? analysisId,
-              analysisId,
-              scores: newScores as Record<string, number>,
-            }).catch((e) => console.error('[callback] summary email failed:', e));
-          }
-        }
+      // Full alert evaluation pipeline — replaces the simplified score-drop check.
+      // Resolves email internally (PII must not travel via Worker payload).
+      // Fire-and-forget: analysis record is already saved; email failure is non-fatal.
+      if (shouldEvaluateMonitorAlerts({
+        monitorId,
+        monitorNotify,
+        monitorUserId,
+        newScores,
+      })) {
+        runAlertPipeline({
+          supabase,
+          monitorId:         monitorId!,
+          analysisId,
+          monitorRunId,
+          monitorUserId:     monitorUserId!,
+          monitorLastScores,
+          newScores,
+          url:               results.url ?? analysisId,
+        }).catch((e) => console.error('[callback] alert pipeline failed:', e));
       }
     }
     // ─────────────────────────────────────────────────────────────────────
