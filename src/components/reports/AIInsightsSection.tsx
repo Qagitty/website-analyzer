@@ -259,20 +259,38 @@ export function AIInsightsSection({ insights }: { insights: AIInsights | undefin
 
   const priorityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
 
-  const sortedInsights = [...(insights.insights ?? [])].sort((a, b) => {
+  // Normalise insight list — newer format: insights.insights; older format: insights may be the array
+  const insightItems: AIInsight[] = Array.isArray((insights as any).insights)
+    ? (insights as any).insights
+    : Array.isArray(insights)
+    ? (insights as any)
+    : [];
+
+  const sortedInsights = [...insightItems].sort((a, b) => {
     const byImpact = (b.impactScore ?? 5) - (a.impactScore ?? 5);
     if (byImpact !== 0) return byImpact;
     return (priorityOrder[a.priority] ?? 3) - (priorityOrder[b.priority] ?? 3);
   });
 
+  // Normalise summary — may be a string or a legacy number (overallUXScore)
+  const summaryText = typeof insights.summary === 'string' && insights.summary.trim().length > 5
+    ? insights.summary
+    : typeof insights.summary === 'number'
+    ? `Overall UX score: ${insights.summary}/100`
+    : null;
+
+  const hasContent = summaryText || (insights.quickWins?.length ?? 0) > 0 || sortedInsights.length > 0;
+
+  if (!hasContent) return null;
+
   return (
     <section className="space-y-6">
       <h2 className="text-2xl font-bold">AI Insights</h2>
 
-      {typeof insights.summary === 'string' && insights.summary.trim().length > 5 && (
+      {summaryText && (
         <Card className="bg-orange-600/5 border border-orange-200 dark:border-orange-900/40">
           <CardContent className="pt-6">
-            <p className="text-sm leading-relaxed text-muted-foreground">{insights.summary}</p>
+            <p className="text-sm leading-relaxed text-muted-foreground">{summaryText}</p>
           </CardContent>
         </Card>
       )}
