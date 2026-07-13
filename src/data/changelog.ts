@@ -11,6 +11,27 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    version: '1.17.0',
+    date: '2026-07-13',
+    tag: 'Feature',
+    title: 'Accessibility End-to-End Workflow',
+    summary: 'Complete accessibility risk assessment workflow: 9-step profile wizard, automated findings pipeline, manual check catalog, statement generator with mandatory DRAFT disclaimer, and plan-gated entitlements.',
+    items: [
+      'Accessibility profiles with 9-step wizard (site URL, standards, jurisdictions, sector, scope, schedule, critical journeys)',
+      'Automated assessment pipeline with SHA-256 finding fingerprinting for cross-assessment deduplication',
+      'Finding state machine: open → in_progress → resolved → verification_required → verified (plus accepted_risk / not_applicable)',
+      '22-check manual evaluation catalog seeded in DB — UI reads from source of truth, no hardcoded checks',
+      'Page coverage, journey coverage, and manual coverage metrics with insufficiency detection',
+      'Accessibility statement generator with mandatory DRAFT disclaimer — never claims certification or legal compliance',
+      '5 jurisdiction templates: EU EAA, EU Public Sector, UK Public Sector, US Section 508, US ADA Title II',
+      'Plan-gated features: profiles (Pro+), statementBuilder/evidenceAttachments/scheduledAssessments/regionalPdf (Agency+), extendedAuditTrail (Compliance)',
+      'Sidebar navigation item added (Accessibility icon)',
+      '12 new API routes under /api/accessibility/',
+      'DB migration 033 extends accessibility tables + adds manual check catalog, activities, statement versions',
+      '6 new queue job types with handlers: assessment.start/page/finalize, regression.check, alert.evaluate, statement.generate',
+    ],
+  },
+  {
     version: '1.16.0',
     date: '2026-07-12',
     tag: 'Feature',

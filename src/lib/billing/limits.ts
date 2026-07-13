@@ -276,6 +276,106 @@ export function getErrorMonitoringLimits(plan: string): ErrorMonitoringLimits {
 }
 
 // ─────────────────────────────────────────────────────────────────
+// Accessibility workflow entitlements
+// ─────────────────────────────────────────────────────────────────
+
+export interface AccessibilityEntitlement {
+  enabled:                  boolean;
+  /** Max accessibility profiles */
+  profiles:                 number;
+  /** Max jurisdictions tracked per profile */
+  jurisdictionsPerProfile:  number;
+  /** Max pages per assessment run */
+  pagesPerAssessment:       number;
+  /** Max assessment runs per calendar month */
+  assessmentsPerMonth:      number;
+  /** Manual check recording enabled */
+  manualChecks:             boolean;
+  /** Critical journey tracking */
+  criticalJourneys:         boolean;
+  /** Accessibility statement builder */
+  statementBuilder:         boolean;
+  /** Evidence file attachments */
+  evidenceAttachments:      boolean;
+  /** Scheduled / recurring assessments */
+  scheduledAssessments:     boolean;
+  /** Regional compliance PDF export */
+  regionalPdf:              boolean;
+  /** Extended audit trail retention */
+  extendedAuditTrail:       boolean;
+  /** Finding and activity retention days */
+  retentionDays:            number;
+}
+
+export const ACCESSIBILITY_ENTITLEMENTS: Record<PlanId, AccessibilityEntitlement> = {
+  free: {
+    enabled:                 false,
+    profiles:                0,
+    jurisdictionsPerProfile: 0,
+    pagesPerAssessment:      0,
+    assessmentsPerMonth:     0,
+    manualChecks:            false,
+    criticalJourneys:        false,
+    statementBuilder:        false,
+    evidenceAttachments:     false,
+    scheduledAssessments:    false,
+    regionalPdf:             false,
+    extendedAuditTrail:      false,
+    retentionDays:           0,
+  },
+  pro: {
+    enabled:                 true,
+    profiles:                1,
+    jurisdictionsPerProfile: 2,
+    pagesPerAssessment:      20,
+    assessmentsPerMonth:     2,
+    manualChecks:            true,
+    criticalJourneys:        true,
+    statementBuilder:        false,
+    evidenceAttachments:     false,
+    scheduledAssessments:    false,
+    regionalPdf:             false,
+    extendedAuditTrail:      false,
+    retentionDays:           30,
+  },
+  agency: {
+    enabled:                 true,
+    profiles:                5,
+    jurisdictionsPerProfile: 5,
+    pagesPerAssessment:      100,
+    assessmentsPerMonth:     10,
+    manualChecks:            true,
+    criticalJourneys:        true,
+    statementBuilder:        true,
+    evidenceAttachments:     true,
+    scheduledAssessments:    true,
+    regionalPdf:             true,
+    extendedAuditTrail:      false,
+    retentionDays:           90,
+  },
+  compliance: {
+    enabled:                 true,
+    profiles:                20,
+    jurisdictionsPerProfile: 10,
+    pagesPerAssessment:      500,
+    assessmentsPerMonth:     50,
+    manualChecks:            true,
+    criticalJourneys:        true,
+    statementBuilder:        true,
+    evidenceAttachments:     true,
+    scheduledAssessments:    true,
+    regionalPdf:             true,
+    extendedAuditTrail:      true,
+    retentionDays:           365,
+  },
+};
+
+/** Get accessibility entitlements for a plan (falls back to free if unknown). */
+export function getAccessibilityEntitlement(plan: string): AccessibilityEntitlement {
+  return ACCESSIBILITY_ENTITLEMENTS[plan as PlanId] ?? ACCESSIBILITY_ENTITLEMENTS.free;
+}
+
+// ─────────────────────────────────────────────────────────────────
 // Helper functions
 // ─────────────────────────────────────────────────────────────────
 

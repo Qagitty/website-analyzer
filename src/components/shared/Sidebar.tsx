@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { UserMenu } from '@/components/shared/UserMenu';
-import { Code2, ShieldCheck, BarChart2, Users, Globe, Wrench, Bug } from 'lucide-react';
+import { Code2, ShieldCheck, BarChart2, Users, Globe, Wrench, Bug, Accessibility } from 'lucide-react';
 import { WebScoreLogo } from '@/components/shared/WebScoreLogo';
 
 const NAV_ITEMS = [
@@ -17,7 +17,8 @@ const NAV_ITEMS = [
   { href: '/fix-requests',    label: 'Fix Requests', icon: Wrench },
   { href: '/errors',          label: 'Errors',       icon: Bug },
   { href: '/leads',           label: 'Leads',      icon: Users },
-  { href: '/compliance',      label: 'Compliance', icon: ShieldCheck },
+  { href: '/compliance',      label: 'Compliance',    icon: ShieldCheck },
+  { href: '/accessibility',   label: 'Accessibility', icon: Accessibility },
 ];
 
 export function Sidebar() {

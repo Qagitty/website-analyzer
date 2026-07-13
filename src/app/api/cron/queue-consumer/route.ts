@@ -16,6 +16,14 @@ import { emailSendHandler }          from '@/lib/queue/handlers/email';
 import { monitorRunHandler, monitorPageCheckHandler, monitorDiscoveryHandler } from '@/lib/queue/handlers/monitor';
 import { retentionCleanupHandler }   from '@/lib/queue/handlers/maintenance';
 import { errorEventProcessHandler }  from '@/lib/queue/handlers/error';
+import {
+  handleAccessibilityAssessmentStart,
+  handleAccessibilityAssessmentPage,
+  handleAccessibilityAssessmentFinalize,
+  handleAccessibilityRegressionCheck,
+  handleAccessibilityAlertEvaluate,
+  handleAccessibilityStatementGenerate,
+} from '@/lib/queue/handlers/accessibility';
 import { createLogger } from '@/lib/logger';
 import type { QueueJobType } from '@/lib/queue/types';
 
@@ -36,6 +44,12 @@ function registerAll() {
     ['monitor.discovery',     monitorDiscoveryHandler as QueueJobHandler],
     ['retention.cleanup',     retentionCleanupHandler as QueueJobHandler],
     ['error_event.process',  errorEventProcessHandler as QueueJobHandler],
+    ['accessibility.assessment.start',    handleAccessibilityAssessmentStart as QueueJobHandler],
+    ['accessibility.assessment.page',     handleAccessibilityAssessmentPage as QueueJobHandler],
+    ['accessibility.assessment.finalize', handleAccessibilityAssessmentFinalize as QueueJobHandler],
+    ['accessibility.regression.check',    handleAccessibilityRegressionCheck as QueueJobHandler],
+    ['accessibility.alert.evaluate',      handleAccessibilityAlertEvaluate as QueueJobHandler],
+    ['accessibility.statement.generate',  handleAccessibilityStatementGenerate as QueueJobHandler],
   ];
   for (const [jobType, handler] of pairs) {
     if (!already.has(jobType)) {
@@ -67,6 +81,12 @@ export async function GET(req: Request) {
       'email.send',
       'retention.cleanup',
       'error_event.process',
+      'accessibility.assessment.start',
+      'accessibility.assessment.page',
+      'accessibility.assessment.finalize',
+      'accessibility.regression.check',
+      'accessibility.alert.evaluate',
+      'accessibility.statement.generate',
     ] satisfies QueueJobType[],
     maxJobs,
   });

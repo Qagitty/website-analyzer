@@ -31,6 +31,13 @@ export const QueueJobTypes = [
   'error_issue.aggregate',
   'error_alert.evaluate',
   'error_retention.cleanup',
+  // ── Accessibility workflow ─────────────────────────────────────────────────
+  'accessibility.assessment.start',
+  'accessibility.assessment.page',
+  'accessibility.assessment.finalize',
+  'accessibility.regression.check',
+  'accessibility.alert.evaluate',
+  'accessibility.statement.generate',
 ] as const;
 
 export type QueueJobType = (typeof QueueJobTypes)[number];

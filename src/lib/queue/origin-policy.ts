@@ -156,6 +156,31 @@ export const EXECUTION_POLICIES: Record<QueueJobType, QueueJobExecutionPolicy> =
     requiresOriginThrottle: false,
     weight: 'none',
   },
+  // ── Accessibility workflow — internal processing, no outbound website requests ─
+  'accessibility.assessment.start': {
+    requiresOriginThrottle: false,
+    weight: 'none',
+  },
+  'accessibility.assessment.page': {
+    requiresOriginThrottle: false,
+    weight: 'light',
+  },
+  'accessibility.assessment.finalize': {
+    requiresOriginThrottle: false,
+    weight: 'none',
+  },
+  'accessibility.regression.check': {
+    requiresOriginThrottle: false,
+    weight: 'none',
+  },
+  'accessibility.alert.evaluate': {
+    requiresOriginThrottle: false,
+    weight: 'none',
+  },
+  'accessibility.statement.generate': {
+    requiresOriginThrottle: false,
+    weight: 'none',
+  },
 };
 
 /**
