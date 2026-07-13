@@ -186,8 +186,8 @@ export function ReportHeader({ analysis }: { analysis: Analysis }) {
       </div>
 
       {/* Action buttons: desktop only (mobile shows them in sticky nav) */}
-      <div className="hidden lg:block overflow-x-auto -mx-1 px-1">
-        <div className="flex items-center gap-2 w-max">
+      <div className="hidden lg:block">
+        <div className="flex items-center gap-2 flex-wrap">
           <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">Completed</Badge>
 
           {/* Share toggle */}

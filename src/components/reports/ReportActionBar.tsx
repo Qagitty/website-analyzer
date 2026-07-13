@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import {
   Link2, Link2Off, Check, Activity, Download,
-  Bell, BellOff, Loader2, ChevronDown,
+  Bell, BellOff, Loader2,
   FileText, FileSpreadsheet, FileJson,
 } from 'lucide-react';
 import type { Analysis } from '@/types/analysis';
@@ -28,9 +28,6 @@ export function ReportActionBar({ analysis }: { analysis: Analysis }) {
   const [monitoring, setMonitoring] = useState(false);
   const [monitoringActive, setMonitoringActive] = useState(false);
   const [downloading, setDownloading] = useState<ExportFormat | null>(null);
-  const [showExport, setShowExport] = useState(false);
-  const exportRef = useRef<HTMLDivElement>(null);
-
   const [showMonitorForm, setShowMonitorForm] = useState(false);
   const [frequency, setFrequency] = useState<'daily' | 'weekly'>('weekly');
   const [notify, setNotify] = useState(true);
@@ -59,17 +56,6 @@ export function ReportActionBar({ analysis }: { analysis: Analysis }) {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [showMonitorForm]);
-
-  useEffect(() => {
-    if (!showExport) return;
-    const handler = (e: MouseEvent) => {
-      if (exportRef.current && !exportRef.current.contains(e.target as Node)) {
-        setShowExport(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [showExport]);
 
   const shareUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/share/${analysis.id}`;
 
@@ -108,7 +94,6 @@ export function ReportActionBar({ analysis }: { analysis: Analysis }) {
 
   const downloadExport = async (format: ExportFormat) => {
     setDownloading(format);
-    setShowExport(false);
     try {
       const res = await fetch(`/api/reports/${analysis.id}/${format}`);
       if (!res.ok) {
@@ -215,40 +200,22 @@ export function ReportActionBar({ analysis }: { analysis: Analysis }) {
         Compliance PDF
       </Button>
 
-      {/* Export dropdown */}
-      <div ref={exportRef} className="relative">
+      {/* Export format buttons (flat — avoids overflow clipping in mobile nav) */}
+      {EXPORT_OPTIONS.map(({ format, label, Icon }) => (
         <Button
+          key={format}
           variant="outline"
           size="sm"
-          onClick={() => setShowExport(v => !v)}
+          onClick={() => downloadExport(format)}
           disabled={downloading !== null}
           className="gap-1.5 border-border text-muted-foreground hover:bg-accent hover:text-foreground"
         >
-          {downloading !== null && !['pdf', 'compliance-pdf'].includes(downloading)
+          {downloading === format
             ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            : <Download className="h-3.5 w-3.5" />}
-          Export
-          <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-150 ${showExport ? 'rotate-180' : ''}`} />
+            : <Icon className="h-3.5 w-3.5" />}
+          {label}
         </Button>
-        {showExport && (
-          <div className="absolute left-0 top-full mt-1.5 z-50 w-52 rounded-xl border border-border bg-card shadow-xl py-1.5 overflow-hidden">
-            {EXPORT_OPTIONS.map(({ format, label, desc, Icon }) => (
-              <button
-                key={format}
-                type="button"
-                onClick={() => downloadExport(format)}
-                className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-secondary/60 transition-colors"
-              >
-                <Icon className="h-4 w-4 text-orange-500 shrink-0" />
-                <div>
-                  <p className="text-sm font-medium text-foreground leading-none">{label}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+      ))}
 
       {/* Monitor */}
       {monitoringActive ? (
