@@ -644,7 +644,7 @@ export function buildNavSections(
     ? countScore(actionPlanCount, actionPlanCount > 5 ? 'text-red-400' : 'text-amber-400')
     : null;
 
-  const crawledPagesScore: CategoryScore | null = crawlPageCount > 0
+  const crawledPagesScore: CategoryScore | null = crawlPageCount > 1
     ? countScore(crawlPageCount, 'text-emerald-400')
     : null;
 
@@ -659,7 +659,7 @@ export function buildNavSections(
     { id: 'llm-readiness', label: 'AI Readiness',  icon: '🤖', score: categoryMap['llm-readiness']?.score ?? null,  available: !!categoryMap['llm-readiness'] },
     { id: 'console-errors',label: 'Console',        icon: '🐛', score: null,                                          available: hasConsoleErrors },
     { id: 'design',        label: 'Design',         icon: '🎨', score: null,                                          available: hasDesignComparison },
-    { id: 'crawled-pages', label: 'Crawled Pages',  icon: '🕷️', score: crawledPagesScore,                            available: crawlPageCount > 0 },
+    { id: 'crawled-pages', label: 'Crawled Pages',  icon: '🕷️', score: crawledPagesScore,                            available: crawlPageCount > 1 },
   ];
 
   return sections.filter(s => s.available);

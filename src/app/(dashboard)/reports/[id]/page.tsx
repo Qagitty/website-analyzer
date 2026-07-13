@@ -183,7 +183,9 @@ export default async function ReportPage(props: { params: Promise<{ id: string }
 
         {/* AI insights */}
         {analysis.ai_insights && (
-          <AIInsightsSection insights={analysis.ai_insights as any} />
+          <section id="ai-insights" aria-labelledby="ai-insights-heading" className="scroll-mt-20">
+            <AIInsightsSection insights={analysis.ai_insights as any} />
+          </section>
         )}
 
         {/* Design comparison */}
@@ -197,8 +199,8 @@ export default async function ReportPage(props: { params: Promise<{ id: string }
           </section>
         )}
 
-        {/* Crawled pages */}
-        {crawlPageCount > 0 && (
+        {/* Crawled pages — only shown when multi-page crawl occurred (component hides for ≤1 page) */}
+        {crawlPageCount > 1 && (
           <section id="crawled-pages" aria-labelledby="crawled-pages-heading" className="scroll-mt-20">
             <CrawledPagesSection
               crawledPages={analysis.crawl_pages as any}
