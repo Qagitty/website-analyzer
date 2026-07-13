@@ -1,7 +1,7 @@
 # WebScore — Architecture Overview
 
 **Last updated:** 2026-07-12  
-**Sprints complete:** 1–16
+**Sprints complete:** 1–17
 
 ---
 
@@ -18,6 +18,9 @@
 - `/sites`, `/sites/new`, `/sites/[id]` — Connected Sites (6-tab dashboard)
 - `/fix-requests`, `/fix-requests/new`, `/fix-requests/[id]` — Fix Request workflow (Pro+)
 - `/errors`, `/errors/new`, `/errors/[id]`, `/errors/[id]/issues/[issueId]` — Error Monitoring (Pro+)
+- `/accessibility`, `/accessibility/new`, `/accessibility/[id]` — Accessibility profiles (Pro+)
+- `/accessibility/assessments/[id]` — Assessment detail
+- `/accessibility/statements/[id]` — Statement editor (Agency+)
 - `/compliance`, `/compliance/remediation` — accessibility compliance and remediation board
 - `/leads` — Agency Lead Widget captured leads (Agency+)
 - `/docs` — developer documentation
@@ -34,7 +37,7 @@
 
 ### Database (Supabase / PostgreSQL)
 
-32 migrations applied. All tables have Row-Level Security. Service-role client used only for Worker callbacks, cron jobs, and ingestion routes.
+33 migrations applied. All tables have Row-Level Security. Service-role client used only for Worker callbacks, cron jobs, and ingestion routes.
 
 **Migration groups:**
 
@@ -47,12 +50,13 @@
 | 030 | Fix Requests (fix_requests, fix_request_recipients, fix_request_deliveries, fix_request_messages, fix_request_activities, fix_request_public_links) |
 | 031 | fix_request_read_states |
 | 032 | Error Monitoring (error_projects, error_events, error_issues, error_issue_activities, error_alert_policies, error_project_quotas) |
+| 033 | Accessibility E2E — 8 tables: accessibility_critical_journeys, accessibility_assessment_pages, accessibility_manual_check_catalog (22 checks seeded), accessibility_manual_check_results, accessibility_statements, accessibility_statement_versions, accessibility_activities; all RLS-gated |
 
 ---
 
 ### Queue (Upstash Redis)
 
-Job types (18 total):
+Job types (24 total):
 
 | Category | Jobs |
 |----------|------|
@@ -64,6 +68,7 @@ Job types (18 total):
 | Maintenance | `retention.cleanup` |
 | Connected Sites | `site_verification.check`, `site_connect.event_process`, `site_connect.verify`, `site_connect.route_candidate` |
 | Error Monitoring | `error_event.process`, `error_issue.aggregate`, `error_alert.evaluate`, `error_retention.cleanup` |
+| Accessibility | `accessibility.assessment.start`, `accessibility.assessment.page`, `accessibility.assessment.finalize`, `accessibility.regression.check`, `accessibility.alert.evaluate`, `accessibility.statement.generate` |
 
 Cron endpoints:
 - `GET /api/cron/queue-scheduler` — promotes scheduled jobs → ready (every minute via Vercel Cron)

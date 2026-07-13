@@ -448,6 +448,73 @@ export default function DocsPage() {
           </Card>
         </section>
 
+        {/* Accessibility API */}
+        <section className="space-y-4">
+          <h2 className="text-2xl font-semibold text-foreground">Accessibility API</h2>
+          <p className="text-muted-foreground text-sm">
+            Regional accessibility risk assessment workflow — profiles, assessments, findings, manual checks, and statement generation. Available on Pro and above plans. All responses use "Regional accessibility risk assessment" framing — not legal advice, not certification.
+          </p>
+          <div className="rounded-lg border border-border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50">
+                <tr>
+                  <th className="text-left px-4 py-3 font-medium text-foreground">Method</th>
+                  <th className="text-left px-4 py-3 font-medium text-foreground">Endpoint</th>
+                  <th className="text-left px-4 py-3 font-medium text-foreground">Description</th>
+                  <th className="text-left px-4 py-3 font-medium text-foreground">Plan</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border text-muted-foreground">
+                <tr>
+                  <td className="px-4 py-2"><MethodBadge method="POST" /></td>
+                  <td className="px-4 py-2 font-mono text-xs">/api/accessibility/profiles</td>
+                  <td className="px-4 py-2">Create an accessibility profile (site URL, jurisdictions, standards, scope, schedule)</td>
+                  <td className="px-4 py-2">Pro+</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-2"><MethodBadge method="GET" /></td>
+                  <td className="px-4 py-2 font-mono text-xs">/api/accessibility/profiles</td>
+                  <td className="px-4 py-2">List all profiles for the authenticated user</td>
+                  <td className="px-4 py-2">Pro+</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-2"><MethodBadge method="POST" /></td>
+                  <td className="px-4 py-2 font-mono text-xs">/api/accessibility/profiles/[id]/assess</td>
+                  <td className="px-4 py-2">Start a baseline or scheduled assessment; pages are queued immediately</td>
+                  <td className="px-4 py-2">Pro+</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-2"><MethodBadge method="GET" /></td>
+                  <td className="px-4 py-2 font-mono text-xs">/api/accessibility/assessments/[id]</td>
+                  <td className="px-4 py-2">Get assessment status, page coverage %, journey coverage %, manual coverage %, and risk level</td>
+                  <td className="px-4 py-2">Pro+</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-2"><MethodBadge method="GET" /></td>
+                  <td className="px-4 py-2 font-mono text-xs">/api/accessibility/assessments/[id]/findings</td>
+                  <td className="px-4 py-2">List normalized findings. Filterable by <code className="rounded bg-accent px-1 text-xs font-mono">status</code>, <code className="rounded bg-accent px-1 text-xs font-mono">impact</code>, <code className="rounded bg-accent px-1 text-xs font-mono">wcag_level</code></td>
+                  <td className="px-4 py-2">Pro+</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-2"><MethodBadge method="GET" /></td>
+                  <td className="px-4 py-2 font-mono text-xs">/api/accessibility/assessments/[id]/manual-checks</td>
+                  <td className="px-4 py-2">List all 22 manual check catalog items with current result for this assessment</td>
+                  <td className="px-4 py-2">Pro+</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-2"><MethodBadge method="POST" /></td>
+                  <td className="px-4 py-2 font-mono text-xs">/api/accessibility/profiles/[id]/statements</td>
+                  <td className="px-4 py-2">Generate a draft Accessibility Statement. Always includes DRAFT disclaimer. No certification language.</td>
+                  <td className="px-4 py-2">Agency+</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Finding status lifecycle: <code className="rounded bg-accent px-1 font-mono">open → in_progress → resolved → verification_required → verified</code>. Use <code className="rounded bg-accent px-1 font-mono">PATCH /api/accessibility/findings/[id]</code> to advance status. Transitions are validated server-side — invalid transitions return 422.
+          </p>
+        </section>
+
         {/* CTA */}
         <div className="rounded-xl border border-orange-200 dark:border-orange-900/40 bg-orange-600/5 p-8 text-center space-y-4">
           <h3 className="text-xl font-semibold text-foreground">Ready to get started?</h3>

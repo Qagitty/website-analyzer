@@ -1366,4 +1366,139 @@ Detailed feature specifications from the perspective of each user type.
 
 ---
 
-*Last updated: 2026-07-12 | Covers Sprints 1–16 (2,323 tests passing)*
+---
+
+## US-32: Accessibility End-to-End Workflow
+
+> **Language constraint for all acceptance criteria:** NEVER assert "guaranteed legal compliance", "immunity from lawsuits", "certification by a government authority", or "100% compliant". ALWAYS use "Regional accessibility risk assessment", "Accessibility readiness", "Technical conformance evidence", "Potential compliance gaps", "Risk-reduction workflow".
+
+### US-ACC-01: Create an accessibility profile
+**As a** developer,  
+**I want to** create an accessibility profile for my site,  
+**so that** I can track regional accessibility risk assessment for that site over time.
+
+**Acceptance Criteria:**
+- `/accessibility/new` presents a 9-step wizard (site URL, jurisdictions, org type, standards, pages, journeys, schedule, contacts, confirm)
+- Free plan users see a plan gate with an upgrade prompt
+- Supported jurisdictions are selectable; planned jurisdictions are displayed but disabled with an explanatory tooltip
+- On completion, profile is saved and user is redirected to `/accessibility/[id]`
+- Profile detail shows 8 tabs: Overview, Assessments, Findings, Manual Checks, Journeys, Statement, Reports, Settings
+
+---
+
+### US-ACC-02: Select target jurisdictions and standards
+**As a** compliance manager,  
+**I want to** select target jurisdictions and applicable standards,  
+**so that** assessments reflect the requirements relevant to my site and organization.
+
+**Acceptance Criteria:**
+- Available jurisdictions include: EU EAA, EU Public Sector Directive, UK PSBAR, US Section 508, US ADA Title II
+- Each jurisdiction shows its enforcement standard (e.g. EN 301 549, WCAG 2.1 AA) as a default recommendation
+- User can override the default standard selection
+- Standards stored per profile; used in all assessment reports and statement drafts for that profile
+
+---
+
+### US-ACC-03: Run a baseline assessment
+**As a** QA engineer,  
+**I want to** run a baseline assessment on my accessibility profile,  
+**so that** I have technical conformance evidence for the tested scope.
+
+**Acceptance Criteria:**
+- "Start Assessment" button on profile page triggers `POST /api/accessibility/profiles/[id]/assess`
+- Response 202 Accepted; assessment record created immediately
+- In-scope pages queued as jobs; each page processed by the analysis engine
+- Assessment status transitions: `draft → queued → running → completed`
+- Attempting to start a second assessment while one is running returns 409 Conflict
+- On completion, page coverage %, journey coverage %, and manual coverage % are displayed
+- Risk level shown with scope note (e.g. "Based on 14 of 20 tested pages")
+
+---
+
+### US-ACC-04: View normalised findings grouped by rule and page
+**As a** developer,  
+**I want to** see normalised findings grouped by rule and page,  
+**so that** I can prioritise remediation based on what has the most impact.
+
+**Acceptance Criteria:**
+- Findings tab on assessment detail lists all findings from `GET /api/accessibility/assessments/[id]/findings`
+- Filterable by `status`, `impact`, `wcag_level`
+- Each finding shows: rule ID, plain-English description, WCAG criteria, POUR principle, impact level, affected selector, html_excerpt (tags stripped, max 500 chars)
+- Regional relevance badge shows which jurisdictions are affected
+- Findings with same fingerprint from prior assessments are linked (not duplicated)
+
+---
+
+### US-ACC-05: Complete manual accessibility checks
+**As a** reviewer,  
+**I want to** complete manual accessibility checks and record evidence,  
+**so that** my assessment covers what automated tools cannot detect.
+
+**Acceptance Criteria:**
+- Manual Checks tab shows all 22 catalog items loaded from the database (not hardcoded)
+- Each item shows: check title, category, WCAG criteria, current status, guidance note
+- Reviewer can set status to: `pass`, `fail`, `not_applicable`, `needs_expert_review`
+- Evidence notes can be attached (Agency+ plans)
+- No endpoint exists for bulk setting all checks to `pass` (by design)
+- Manual coverage % updates as checks are completed
+
+---
+
+### US-ACC-06: Mark a finding resolved and trigger verification
+**As a** developer,  
+**I want to** mark a finding as resolved and trigger a verification step,  
+**so that** the fix is confirmed before the finding is closed.
+
+**Acceptance Criteria:**
+- Finding status can be advanced: `open → in_progress → resolved → verification_required → verified`
+- Each transition validated server-side; invalid transitions return 422 with `{ "error": "invalid_transition" }`
+- `accepted_risk` and `not_applicable` require a `reason` field (400 if absent)
+- Status history recorded in activity log with timestamp and actor
+
+---
+
+### US-ACC-07: Generate a draft Accessibility Statement
+**As a** compliance manager,  
+**I want to** generate a draft Accessibility Statement,  
+**so that** I have a starting point for publication that reflects my site's actual test results.
+
+**Acceptance Criteria:**
+- "Generate Statement" available for Agency+ plans
+- `POST /api/accessibility/profiles/[id]/statements` creates a statement draft
+- Statement editor at `/accessibility/statements/[id]` shows a persistent DRAFT banner ("DRAFT — Review before publication")
+- Statement content is jurisdiction-appropriate (EU EAA, UK PSBAR, US Section 508)
+- Statement never contains the words "guaranteed", "immune", "certified by government", or "100% compliant"
+- Each save creates a new version; prior versions accessible via version history
+- Statement does not constitute legal advice; a disclaimer to this effect is always present
+
+---
+
+### US-ACC-08: Schedule monthly accessibility assessments
+**As a** team lead,  
+**I want to** schedule monthly accessibility assessments,  
+**so that** regressions are detected automatically without manual intervention.
+
+**Acceptance Criteria:**
+- Profile can have a weekly or monthly schedule (Agency+ plans)
+- On the due date, the queue scheduler creates an assessment automatically
+- Duplicate assessments for the same profile+window are not created
+- Paused profiles are skipped
+- If a finding that was previously `verified` appears again, it is reopened with a "regressed" label
+- Email alert sent when: new critical finding detected, coverage drops, statement review date approaching
+
+---
+
+### US-ACC-09: Create a Fix Request from an accessibility finding
+**As a** developer,  
+**I want to** create a Fix Request from an accessibility finding,  
+**so that** the remediation is tracked in the Fix Request workflow and can be sent to the responsible developer.
+
+**Acceptance Criteria:**
+- "Create Fix Request" available on any finding in `open` or `in_progress` status
+- Fix Request draft pre-populated from the finding: title from rule description, severity from impact, WCAG criteria, affected URL
+- Fix Request appears in `/fix-requests` linked back to the accessibility finding
+- Delivered via any available Fix Request channel (email, external link, webhook, etc.)
+
+---
+
+*Last updated: 2026-07-12 | Covers Sprints 1–17 (2,453 tests passing)*

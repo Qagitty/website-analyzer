@@ -1,7 +1,7 @@
 # Comprehensive Product Audit Report
-**Date:** 2026-07-11 (updated 2026-07-12 to reflect Sprints 13–16)  
+**Date:** 2026-07-11 (updated 2026-07-12 to reflect Sprints 13–17)  
 **Commit at audit:** `64795b5`  
-**Verification:** typecheck PASS · 2,323/2,323 tests PASS · 0 HIGH/CRITICAL vulnerabilities
+**Verification:** typecheck PASS · 2,453/2,453 tests PASS · 0 HIGH/CRITICAL vulnerabilities
 
 ---
 
@@ -139,18 +139,18 @@
 |-----|--------|----------|----------------|------|
 | E1 Technical/legal separation | **COMPLETE** | `standards.ts`, `risk-model.ts`, `applicability.ts` are separate modules; risk model output explicitly disclaimed as not a legal determination | None | None |
 | E2 Safe terminology | **COMPLETE** | Grep verified: no "guaranteed legal compliance", "lawsuit proof", "government certified", "100% compliant" in any file | "compliant" appears in applicability question text (user's self-reported status), not as a platform claim — acceptable | None |
-| E3 Accessibility profile | **PARTIAL** | `accessibility_profiles` table exists; types defined in `accessibility-profile.ts` | No UI — users cannot create or edit profiles | High |
+| E3 Accessibility profile | **COMPLETE** | Full 9-step wizard at `/accessibility/new`; profile detail at `/accessibility/[id]` with 8 tabs; API routes for CRUD, assess, assessments, findings, manual checks, statements | Sprint 17 | None |
 | E4 Jurisdiction registry | **COMPLETE** | 7 profiles (versioned `2026-07-11.1`), `UNIVERSAL_DISCLAIMER` in every profile, `nextReviewAt` set, support levels documented | 3 profiles at `guidance_only` (Canada Ontario, Australia, International) | Low |
 | E5 Standards registry | **COMPLETE** | 8 standards (WCAG 2.1/2.2 A/AA/AAA, EN 301 549, Section 508); regional law not treated as identical to WCAG | None | None |
 | E6 Assessment engine evidence | **PARTIAL** | `accessibility_assessments` table with engine version, ruleset, WCAG tags, scan date, pages | No code path populates `accessibility_assessments` from analysis results | Medium |
-| E7 Manual checks | **PARTIAL** | Types defined (`manual_check_completed` assessment type) | No manual check catalog, no UI for pass/fail/N.A./expert-review | High |
+| E7 Manual checks | **COMPLETE** | 22-item catalog seeded in `accessibility_manual_check_catalog` table; `GET /api/accessibility/assessments/[id]/manual-checks`; `PATCH /api/accessibility/manual-check-results/[id]` for per-check status; no bulk-pass endpoint by design | Sprint 17 | None |
 | E8 Risk model | **COMPLETE** | 7-dimension weighted model, weights validated to sum=1.0, `scopeNote` always included, deterministic | None | None |
 | E9 Coverage | **PARTIAL** | Coverage fields exist in risk model types | No implementation populates actual coverage metrics | Medium |
 | E10 Findings lifecycle | **PARTIAL** | `accessibility_findings` table with status field | Status transitions not enforced server-side | Low |
-| E11 Accessibility statement | **MISSING** | No statement template, no draft editor, no versioning | Types exist in `accessibility-profile.ts` as planning artifact | Medium |
+| E11 Accessibility statement | **COMPLETE** | `statement-generator.ts` produces versioned drafts with mandatory DRAFT disclaimer; `POST /api/accessibility/profiles/[id]/statements`; `GET/PATCH /api/accessibility/statements/[id]`; `POST/GET /api/accessibility/statements/[id]/versions`; editor UI at `/accessibility/statements/[id]` | Sprint 17 | None |
 | E12 Evidence + audit trail | **PARTIAL** | `fix_request_activities` table covers fix workflow; `accessibility_assessments` table exists | No append-only trigger for findings changes | Low |
 | E13 Regional PDF | **PARTIAL** | `compliance-pdf` route exists (`/api/reports/[id]/compliance-pdf`) | PDF covers analysis results; does not incorporate profile-specific jurisdiction data or manual checks | Medium |
-| E14 Continuous monitoring | **MISSING** | No scheduled regional assessments, no accessibility regression alerts | Would require connecting monitoring pipeline to accessibility profile | High |
+| E14 Continuous monitoring | **COMPLETE** | Scheduled assessments (weekly/monthly per profile); regression detection reopens verified findings when same fingerprint reappears; coverage-decrease alerts; new critical finding alerts; statement-review-due alerts | Sprint 17 | None |
 | E15 Plan gating | **PARTIAL** | `compliance` plan exists in `limits.ts` but no specific accessibility feature flags differentiate it from Agency | No `STRIPE_COMPLIANCE_PRICE_ID` documented | Low |
 
 ---

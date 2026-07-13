@@ -357,7 +357,125 @@ curl https://webanalyzer.app/api/v1/reports/ANALYSIS_ID \
 
 ---
 
-## Understanding your scores
+---
+
+## Accessibility End-to-End Workflow (Sprint 17)
+
+> **Language policy:** WebScore provides *regional accessibility risk assessment* — not legal compliance certification. All outputs use "Technical conformance evidence", "Potential compliance gaps", and "Risk-reduction workflow" framing. Statements are always marked "DRAFT — Review before publication". The platform never claims to provide legal advice or government-issued certification.
+
+### Accessibility Profiles
+
+An **Accessibility Profile** connects a site to a structured assessment context. It stores the target jurisdictions, applicable standards, organization context, and page scope — so every assessment for that site uses consistent settings.
+
+**Creating a profile (9-step wizard at `/accessibility/new`):**
+1. Site URL
+2. Target jurisdictions (select supported regions — planned regions shown but disabled)
+3. Organization type and sector (public/private; service categories such as Government, Education, Healthcare, Transport)
+4. Standards selection (WCAG 2.1/2.2 A/AA/AAA, EN 301 549, Section 508)
+5. Page scope (homepage only / important pages / all pages / custom list)
+6. Critical user journeys (Registration, Login, Checkout, Payment — each with an ordered list of pages)
+7. Schedule (weekly / monthly / manual only)
+8. Contacts for statement and alerts
+9. Review and confirm
+
+**Plan limits:**
+
+| Feature | Free | Pro | Agency | Compliance |
+|---------|------|-----|--------|------------|
+| Enabled | — | Yes | Yes | Yes |
+| Profiles | 0 | 1 | 5 | 20 |
+| Jurisdictions per profile | 0 | 2 | 5 | 10 |
+| Pages per assessment | 0 | 20 | 100 | 500 |
+| Assessments per month | 0 | 2 | 10 | 50 |
+| Manual checks | — | Yes | Yes | Yes |
+| Critical journeys | — | Yes | Yes | Yes |
+| Statement builder | — | — | Yes | Yes |
+| Evidence attachments | — | — | Yes | Yes |
+| Scheduled assessments | — | — | Yes | Yes |
+| Regional PDF | — | — | Yes | Yes |
+| Extended audit trail | — | — | — | Yes |
+| Retention days | 0 | 30 | 90 | 365 |
+
+### Baseline Assessments
+
+Starting an assessment (`POST /api/accessibility/profiles/[id]/assess`) queues each in-scope page as a job. The system then:
+
+1. Fetches and analyses each page via the existing analysis engine
+2. Normalises axe-core findings into deduplicated, fingerprinted records
+3. Calculates page coverage %, journey coverage %, and manual coverage %
+4. Computes a risk level using the 7-dimension weighted risk model
+
+**Assessment states:** `draft → queued → running → partially_completed → completed → failed`
+
+**Assessment types:** baseline, scheduled, manual, verification
+
+**Coverage and risk:**
+- Risk levels: Low / Moderate / High / Critical / Insufficient evidence
+- Risk level always scoped to tested pages only — no claims about untested pages
+- Zero completed pages → "Insufficient test coverage" (not a risk score)
+
+### Findings
+
+When analysis results arrive, accessibility violations are normalised into finding records with:
+- `rule_id` — axe rule identifier
+- `wcag_criteria` — mapped WCAG success criteria
+- `wcag_level` — A, AA, or AAA
+- `pour_principle` — Perceivable, Operable, Understandable, Robust
+- `impact` — critical, serious, moderate, minor
+- `selector` and `html_excerpt` — where the issue occurs
+- `fingerprint` — SHA-256 hash of rule + page + selector (stable across assessments; used for deduplication and regression detection)
+- `regional_relevance` — which of the profile's jurisdictions this finding affects
+
+**Finding lifecycle:**
+
+`open → in_progress → resolved → verification_required → verified`
+
+Additional terminal states: `accepted_risk` (requires reason), `not_applicable` (requires reason). Invalid transitions are rejected server-side (422).
+
+**Remediation:** any finding can generate a Fix Request for developer tracking.
+
+### Manual Checks
+
+Automated tools cannot detect all accessibility issues. The 22-item manual check catalog covers:
+keyboard navigation, focus order and visibility, screen reader labels, image alt text quality, captions and audio descriptions, heading structure, form error identification, colour contrast (complex cases), motion and animation controls, timeout warnings, session management, PDF accessibility, and more.
+
+Each check has a status: `not_started / pass / fail / not_applicable / needs_expert_review`
+
+**Design constraint:** no bulk auto-pass is possible — each check must be reviewed individually. Evidence notes can be attached per check (Agency+ plans).
+
+### Accessibility Statement Generator
+
+The statement generator (`POST /api/accessibility/profiles/[id]/statements`) produces a jurisdiction-appropriate draft covering:
+- Organisation and site details
+- Referenced standards (WCAG 2.1/2.2, EN 301 549, Section 508, or combination)
+- Known technical issues with planned resolution dates
+- Manual review limitations and scope note
+- Contact information for accessibility feedback
+- Review date
+
+**Every statement output:**
+- Is marked "DRAFT — Review before publication" in a persistent banner
+- Does not claim legal compliance, certification, or immunity from enforcement
+- Does not claim 100% conformance
+- Is versioned (each save creates a new version; history preserved)
+
+### Scheduled Assessments and Regression Detection
+
+When a profile has a weekly or monthly schedule:
+- The queue scheduler creates an assessment automatically on the due date
+- Duplicate assessments for the same profile+window are not created (idempotency enforced)
+- Paused profiles are skipped
+
+**Regression detection:** when a finding with a `verified` status appears with the same fingerprint in a subsequent assessment, it is reopened with a "regressed" label and an activity log entry is created.
+
+**Alerts triggered:**
+- New critical finding detected
+- Coverage percentage drops compared to prior assessment
+- Accessibility Statement review date approaching
+
+---
+
+
 
 All scores are on a **0–100 scale**:
 

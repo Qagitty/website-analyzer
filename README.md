@@ -20,6 +20,7 @@ Automated website quality analysis with AI-powered recommendations — performan
 | **Multi-format Export** | PDF, DOCX, XLSX, JSON, Markdown — plus compliance-framed PDF (Pro+) |
 | **Remediation Tracking** | Track individual issues through open → in_progress → resolved → verified lifecycle (Pro+) |
 | **Regional Accessibility Risk** | Versioned jurisdiction profiles (WCAG 2.1/2.2, EN 301 549, Section 508), 7-dimension risk model, conservative applicability assessment |
+| **Accessibility End-to-End Workflow** | Profile setup wizard, automated assessments with SHA-256 finding fingerprints, 22-item manual check catalog, statement generator (DRAFT disclaimer, no certification claims), scheduled assessments, regression detection |
 | **Connected Sites** | Link verified websites via JS snippet (`ws_site_` keys), continuous telemetry: web vitals, route discovery, indexing checks |
 | **Fix Requests** | Structured workflow to send findings to developers — 6 request types, 17-status state machine, 6 delivery channels, external scoped-token links |
 | **Runtime Error Monitoring** | Capture real browser errors via JS SDK (`ws_err_` keys), deterministic issue grouping, regression detection, Fix Request integration |
@@ -49,8 +50,8 @@ Security audit completed 2026-06-29. 0 open findings.
 |-------|-----------|
 | Frontend | Next.js 15, React 18, Tailwind CSS, shadcn/ui, Recharts |
 | Backend | Next.js API Routes + Cloudflare Workers (fetch-only, HTML analysis + Claude Vision) |
-| Database | Supabase (PostgreSQL + Auth + Storage) — 32 migrations |
-| Queue | Upstash Redis (18 job types) |
+| Database | Supabase (PostgreSQL + Auth + Storage) — 33 migrations |
+| Queue | Upstash Redis (24 job types) |
 | AI | Claude API (Anthropic) — `claude-sonnet-4-6` (vision + text) |
 | Email | Resend |
 | Payments | Stripe |
@@ -75,6 +76,7 @@ Security audit completed 2026-06-29. 0 open findings.
 | Sprint 14 | Connected Sites UI (6-tab dashboard) | Complete |
 | Sprint 15 | Fix Requests UI (create, send, track, close) | Complete |
 | Sprint 16 | Runtime Error Monitoring (SDK, ingestion, issue grouping, dashboard) | Complete |
+| Sprint 17 | Accessibility End-to-End Workflow (profiles, assessments, findings, manual checks, statement generator, scheduled assessments, regression detection) | Complete |
 
 ## Quick Start
 
@@ -181,7 +183,7 @@ wrangler secret put WORKER_CALLBACK_SECRET
 # Apply all migrations to remote Supabase project
 npx supabase db push
 
-# 32 migrations total:
+# 33 migrations total:
 # 001–018  Core schema (analyses, auth, monitors, API keys, webhooks, team, widget)
 # 019–028  Connected Sites, queue system, multi-page monitoring
 # 029      Accessibility profiles (10 tables)
@@ -189,6 +191,10 @@ npx supabase db push
 # 031      fix_request_read_states
 # 032      Error Monitoring (6 tables: error_projects, error_events, error_issues,
 #          error_issue_activities, error_alert_policies, error_project_quotas)
+# 033      Accessibility E2E (8 tables: accessibility_critical_journeys,
+#          accessibility_assessment_pages, accessibility_manual_check_catalog (22 checks seeded),
+#          accessibility_manual_check_results, accessibility_statements,
+#          accessibility_statement_versions, accessibility_activities; all RLS-gated)
 ```
 
 ## Pages
@@ -218,6 +224,11 @@ npx supabase db push
 | Leads | `/leads` | Required (Agency+) |
 | Developer Docs | `/docs` | Required |
 | Settings | `/settings` | Required |
+| Accessibility Profiles | `/accessibility` | Required (Pro+) |
+| New Accessibility Profile | `/accessibility/new` | Required (Pro+) |
+| Accessibility Profile Detail | `/accessibility/[id]` | Required (Pro+) |
+| Assessment Detail | `/accessibility/assessments/[id]` | Required (Pro+) |
+| Statement Editor | `/accessibility/statements/[id]` | Required (Agency+) |
 | Public Report | `/share/[id]` | None |
 | Public Fix Request | `/fix-request/[token]` | None (token-gated) |
 | Widget Embed | `/widget/[key]` | None |
@@ -230,7 +241,7 @@ npm run test:watch    # Watch mode
 npm run verify        # typecheck + lint + tests + npm audit
 ```
 
-**2,323 tests passing** across 90 files (Vitest 4.x, jsdom, @testing-library/react 16.x, all passing as of 2026-07-12)
+**2,453 tests passing** across 95 files (Vitest 4.x, jsdom, @testing-library/react 16.x, all passing as of 2026-07-12)
 
 | Category | Files | Key coverage |
 |----------|-------|-------------|

@@ -1,10 +1,10 @@
 # Website Analyzer — QA Specification
 
-**Version:** 7.0  
+**Version:** 8.0  
 **Last updated:** 2026-07-12  
-**Coverage:** Sprints 1–16 + Trail of Bits security audit cycle  
+**Coverage:** Sprints 1–17 + Trail of Bits security audit cycle  
 **Test runner:** Vitest v4 + @testing-library/react 16.x + jsdom  
-**Total automated tests: 2,323 across 90 files (all passing)**
+**Total automated tests: 2,453 across 95 files (all passing)**
 
 ---
 
@@ -1389,4 +1389,259 @@ These are manual or Playwright-based full-flow tests run before each release.
 | Nonce-based CSP deferred | `'strict-dynamic'` + nonce CSP blocked Next.js hydration scripts in production. Reverted to `'unsafe-inline'` without nonce. Full nonce support requires Next.js 15+ first-class integration. |
 | GPT-4o text analysis | Deferred to post-MVP; Claude handles all AI |
 | Webhook retries | Single delivery only; no retry queue |
-| Accessibility Profile UI | Domain logic complete (Sprint 9); profile setup page not yet built |
+| Accessibility Profile UI | Domain logic complete (Sprint 9); full UI delivered in Sprint 17 |
+
+---
+
+## 40. Sprint 17: Accessibility End-to-End Workflow
+
+> **Critical language constraint:** statements and risk labels must NEVER contain "guaranteed legal compliance", "immunity from lawsuits", "certification by government authority", "100% compliant", or "guaranteed protection from fines". ALWAYS use "Regional accessibility risk assessment", "Accessibility readiness", "Technical conformance evidence", "Potential compliance gaps", "Risk-reduction workflow", "DRAFT — Review before publication", "Manual review required".
+
+### TC-ACC-001 — Create accessibility profile (plan: compliance)
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Navigate to `/accessibility/new` on Compliance plan | 9-step wizard renders |
+| 2 | Complete all steps and submit | Profile created; redirect to `/accessibility/[id]` |
+| 3 | Profile detail shows 8 tabs | Overview, Assessments, Findings, Manual Checks, Journeys, Statement, Reports, Settings |
+
+### TC-ACC-002 — Profile creation blocked for free plan
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Navigate to `/accessibility/new` on Free plan | Plan gate shown; upgrade prompt |
+| 2 | POST `/api/accessibility/profiles` with free-plan API key | 403 Forbidden |
+
+### TC-ACC-003 — Jurisdiction selection
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | In wizard jurisdiction step, select EU EAA | Marked as full-support; selected |
+| 2 | View a planned jurisdiction (e.g. Canada Ontario) | Shown but disabled; tooltip explains planned status |
+| 3 | Save profile | Only supported jurisdictions stored |
+
+### TC-ACC-004 — Organization context saved
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Set organization type to Public Sector | Saved to profile |
+| 2 | Select service categories (e.g. Government, Education) | Stored in profile |
+| 3 | Reload profile | Context persists |
+
+### TC-ACC-005 — Standards selection
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Select EU EAA jurisdiction | EN 301 549 pre-recommended |
+| 2 | Override to WCAG 2.2 AA | Accepted and saved |
+| 3 | View profile | Selected standards shown |
+
+### TC-ACC-006 — Critical journeys configured
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Add "Registration" journey with 3 ordered pages | Saved |
+| 2 | Reorder pages via drag or index | Order persisted |
+| 3 | Start assessment | Journey coverage tracked in results |
+
+### TC-ACC-007 — Page scope modes
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Set scope to homepage | Only `/` queued |
+| 2 | Set scope to all | All discovered pages queued (up to plan limit) |
+| 3 | Set scope to custom | Only listed URLs queued |
+
+### TC-ACC-008 — Start baseline assessment; pages queued
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | POST `/api/accessibility/profiles/[id]/assess` | 202 Accepted; assessment record created; pages queued as jobs |
+| 2 | Poll `GET /api/accessibility/assessments/[id]` | Status transitions: draft → queued → running → completed |
+
+### TC-ACC-009 — Assessment blocked if one already running
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Trigger assessment while one is `running` | 409 Conflict |
+| 2 | Response body | `{ "error": "assessment_already_running" }` |
+
+### TC-ACC-010 — Analysis results populate assessment pages
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Analysis job completes for a page | `accessibility_assessment_pages` row updated with status=completed |
+| 2 | Accessibility issues from analysis | Normalized findings written to findings table |
+
+### TC-ACC-011 — Findings normalized from analysis accessibility_issues
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | axe violation `color-contrast` on two elements | Two finding records created |
+| 2 | Each finding has | rule_id, wcag_criteria, impact, selector, html_excerpt, fingerprint |
+
+### TC-ACC-012 — Finding fingerprint stable across assessments
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Same rule + same page + same selector in two assessments | Fingerprints are identical |
+| 2 | Different selector | Different fingerprint |
+
+### TC-ACC-013 — Finding deduplication by fingerprint
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Finding with fingerprint X already exists as `open` | No duplicate created; existing record linked |
+| 2 | Finding with fingerprint X is `resolved` in prior assessment | New record created (regression) |
+
+### TC-ACC-014 — Coverage: 0 pages → Insufficient test coverage
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Assessment finalized with 0 completed pages | Coverage shows "Insufficient test coverage" |
+| 2 | Risk level | "Insufficient evidence" — not Low/Moderate/High |
+
+### TC-ACC-015 — Coverage: all pages completed
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | All queued pages complete successfully | Page coverage = 100% |
+| 2 | Risk score calculated | Non-zero, based on findings |
+
+### TC-ACC-016 — Risk level calculation deterministic
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Run same assessment twice with identical findings | Risk level identical both times |
+| 2 | RISK_WEIGHTS | Sum validated to 1.0 at import |
+
+### TC-ACC-017 — Risk label always includes scope note
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Any risk label rendered in UI or API | Includes `scopeNote` field |
+| 2 | Scope note text | References tested pages only; no claim about untested pages |
+
+### TC-ACC-018 — Manual check catalog loads 22 checks
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | GET `/api/accessibility/assessments/[id]/manual-checks` | Returns 22 items |
+| 2 | Each item has | check_id, title, category, wcag_criteria, guidance |
+
+### TC-ACC-019 — Manual check status update
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | PATCH `/api/accessibility/manual-check-results/[id]` with `status: "pass"` | Updated; `reviewed_at` set |
+| 2 | PATCH with `status: "fail"` | Updated; evidence_notes required if notes field present |
+| 3 | PATCH with `status: "not_applicable"` | Accepted |
+
+### TC-ACC-020 — Bulk auto-pass not allowed
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Attempt batch PATCH setting all checks to `status: "pass"` | No such endpoint exists; 404 |
+| 2 | Each check must be updated individually | Enforced by design |
+
+### TC-ACC-021 — Finding status transitions
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | `open` → `in_progress` | Accepted |
+| 2 | `in_progress` → `resolved` | Accepted |
+| 3 | `resolved` → `verification_required` | Accepted |
+| 4 | `verification_required` → `verified` | Accepted |
+
+### TC-ACC-022 — Invalid transition rejected
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | `open` → `verified` (skipping steps) | 422 Unprocessable Entity |
+| 2 | Response body | `{ "error": "invalid_transition" }` |
+
+### TC-ACC-023 — accepted_risk requires reason
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | PATCH finding to `accepted_risk` without `reason` | 400 Bad Request |
+| 2 | With `reason` field | Accepted |
+
+### TC-ACC-024 — not_applicable requires reason
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | PATCH finding to `not_applicable` without `reason` | 400 Bad Request |
+| 2 | With `reason` field | Accepted |
+
+### TC-ACC-025 — Generate Accessibility Statement draft
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | POST `/api/accessibility/profiles/[id]/statements` | Statement draft created |
+| 2 | Response | Statement ID, jurisdiction, generated content |
+
+### TC-ACC-026 — Statement always includes DRAFT disclaimer
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | GET generated statement | Body contains "DRAFT — Review before publication" |
+| 2 | Statement editor UI | DRAFT banner always visible |
+
+### TC-ACC-027 — Statement prohibited language check
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Grep statement output for "guaranteed" | Zero occurrences |
+| 2 | Grep for "certified by government" | Zero occurrences |
+| 3 | Grep for "100% compliant" | Zero occurrences |
+
+### TC-ACC-028 — Statement versioning
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Save statement draft | Version 1 created |
+| 2 | Edit and save again | Version 2 created; version 1 preserved in history |
+| 3 | GET `/api/accessibility/statements/[id]/versions` | Both versions listed |
+
+### TC-ACC-029 — Export regional PDF with scope evidence
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Agency/Compliance plan, completed assessment | "Download Regional PDF" available |
+| 2 | PDF content | Includes jurisdiction, standards, scope, page coverage, finding summary |
+| 3 | Free/Pro plan | Feature gated; upgrade prompt shown |
+
+### TC-ACC-030 — Scheduled assessment created on due date
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Profile has monthly schedule; due date reached | Queue consumer creates assessment automatically |
+| 2 | Assessment type | `scheduled` |
+
+### TC-ACC-031 — Duplicate assessment not created for same profile+window
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Scheduler runs twice in same monthly window | Second run skipped; idempotency enforced |
+
+### TC-ACC-032 — Paused profile not scheduled
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Profile `status = paused` | No assessment scheduled |
+| 2 | Resume profile | Next run scheduled normally |
+
+### TC-ACC-033 — Regression detected
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Finding fingerprint X verified in assessment N | Status = `verified` |
+| 2 | Same fingerprint appears in assessment N+1 | Finding reopened with status = `open`; label "regressed" |
+| 3 | Activity log | Event recorded |
+
+### TC-ACC-034 — RLS: user cannot access another user's profile
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | GET `/api/accessibility/profiles/[other_user_id]` | 404 Not Found |
+
+### TC-ACC-035 — RLS: user cannot access another user's findings
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | GET `/api/accessibility/findings/[other_user_finding_id]` | 404 Not Found |
+
+### TC-ACC-036 — Safe HTML: html_excerpt stripped
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Finding html_excerpt stored | All HTML tags stripped; max 500 chars |
+| 2 | Rendered in UI | Plain text only; no XSS risk |
+
+### TC-ACC-037 — Stored XSS: malicious selector
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Finding selector contains `<script>alert(1)</script>` | Stored safely; rendered as escaped text |
+
+### TC-ACC-038 — Accessibility wizard keyboard navigable
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Tab through wizard steps | All interactive elements reachable via keyboard |
+| 2 | Next/Back buttons | Activated via Enter/Space |
+
+### TC-ACC-039 — Risk badge not color-only
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Risk badge rendered at any level | Includes text label (e.g. "High") not just color |
+| 2 | Screen reader | Reads the text label |
+
+### TC-ACC-040 — DRAFT banner always visible on statement editor
+| # | Step | Expected Result |
+|---|------|----------------|
+| 1 | Open `/accessibility/statements/[id]` | Banner "DRAFT — Review before publication" visible at all times |
+| 2 | Scroll past banner | Banner remains sticky or repeated in document |

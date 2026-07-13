@@ -2,9 +2,37 @@
 
 **Document created:** 2026-05-14  
 **Last updated:** 2026-07-12  
-**Covers:** All changes made across Sprints 1–16, Trail of Bits security audit cycle, Sprint 9 (Accessibility), Sprint 10 (Fix Requests), Sprint 13 (Monitor UI), Sprint 14 (Connected Sites UI), Sprint 15 (Fix Requests UI), Sprint 16 (Runtime Error Monitoring).
+**Covers:** All changes made across Sprints 1–17, Trail of Bits security audit cycle, Sprint 9 (Accessibility), Sprint 10 (Fix Requests), Sprint 13 (Monitor UI), Sprint 14 (Connected Sites UI), Sprint 15 (Fix Requests UI), Sprint 16 (Runtime Error Monitoring), Sprint 17 (Accessibility End-to-End Workflow).
 
 ---
+
+## 2026-07-12 — Sprint 17: Accessibility End-to-End Workflow
+
+### New Product: Complete Accessibility Assessment Workflow
+- DB migration 033: 8 new tables (critical journeys, assessment pages,
+  manual check catalog, manual check results, statements, statement versions,
+  activities); all RLS-gated; 22 manual checks seeded in catalog
+- lib/accessibility/fingerprint.ts — SHA-256 deterministic finding fingerprints
+- lib/accessibility/coverage.ts — page/journey/manual coverage calculator
+- lib/accessibility/finding-normalizer.ts — axe results → normalized findings
+- lib/accessibility/statement-generator.ts — versioned draft with DRAFT disclaimer;
+  zero certification language
+- lib/billing/limits.ts — getAccessibilityEntitlement() for all 4 plans
+- lib/queue/handlers/accessibility.ts — page processing + finalize handlers
+- Queue: 6 new job types (assessment.start/page/finalize, regression.check,
+  alert.evaluate, statement.generate)
+- 12 new API routes: profiles CRUD, /assess, /assessments, /findings,
+  /manual-checks, /manual-check-results, /statements, /statement-versions
+- Pages: /accessibility, /accessibility/new (9-step wizard), /accessibility/[id]
+  (8-tab profile detail), /accessibility/assessments/[id], /accessibility/statements/[id]
+- 9 new components in src/components/accessibility/
+- Sidebar: Accessibility nav item (ShieldCheck icon) added
+- Plan entitlements: Pro (1 profile, 20 pages, manual checks),
+  Agency (5 profiles, 100 pages, statement builder, scheduled, PDF),
+  Compliance (20 profiles, 500 pages, extended audit trail, 365-day retention)
+- Tests: ~130 new tests across fingerprint, coverage, statement safety,
+  finding state machine, manual checks, profile API
+- Total: 2,453 tests, 95 files
 
 ## 2026-07-12 — Sprint 16: Runtime Error Monitoring
 
