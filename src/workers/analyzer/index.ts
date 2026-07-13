@@ -7,7 +7,7 @@ import { checkBestPractices } from './best-practices';
 import { checkCommonErrors } from './errors';
 import { checkLLMReadiness } from './llm-readiness';
 import { analyzeSecurityHeadersAsync } from './security-headers';
-import { crawlInternalLinks, crawlPage } from './crawl';
+import { crawlInternalLinks, crawlPage, discoverFromSitemap } from './crawl';
 import { analyzeResources, analyzeSecurityHeaders } from './resources';
 import { generateOpportunities } from './opportunities';
 import { workerLog } from './log';
@@ -268,7 +268,28 @@ async function runAnalysis(req: AnalysisRequest, callbackSecret: string): Promis
     ];
 
     const crawlStart = Date.now();
-    const discoveredLinks = crawlInternalLinks(html, req.url);
+    const htmlLinks = crawlInternalLinks(html, req.url);
+
+    // Merge HTML-discovered links with sitemap-discovered links.
+    // Sitemap is the primary source for JS-heavy sites where static HTML has few links.
+    const sitemapLinks = htmlLinks.length < 4
+      ? await discoverFromSitemap(req.url, crawlHeaders)
+      : [];
+
+    // Deduplicate across both sources by origin+pathname; HTML links take priority.
+    const seenKeys = new Set(htmlLinks.map(l => {
+      try { const u = new URL(l.url); return u.origin + u.pathname; } catch { return l.url; }
+    }));
+    const mergedLinks = [
+      ...htmlLinks,
+      ...sitemapLinks.filter(l => {
+        try { const u = new URL(l.url); const k = u.origin + u.pathname; return !seenKeys.has(k); }
+        catch { return false; }
+      }),
+    ];
+
+    const discoveredLinks = mergedLinks;
+    const discoveredFromSitemap = sitemapLinks.length > 0;
     const linksToAnalyze = discoveredLinks.slice(0, 4);
     let crawlFailed = 0;
     let crawlSkipped = 0;
@@ -292,9 +313,12 @@ async function runAnalysis(req: AnalysisRequest, callbackSecret: string): Promis
       analyzedPages: crawledPages.length - 1,             // exclude root
       failedPages: crawlFailed,
       skippedPages: crawlSkipped,
-      deduplicatedUrls: 0,                                 // dedup is done inside crawlInternalLinks
+      deduplicatedUrls: 0,
       auditLevel: 'fetch-only',
       limitations: [
+        discoveredFromSitemap
+          ? 'Page URLs discovered via sitemap.xml — static HTML contained too few internal links.'
+          : '',
         'Scores reflect static HTML analysis — JavaScript-rendered content is not measured.',
         'Template-heavy sites may show similar scores across pages if HTML structure is shared.',
         linksToAnalyze.length < discoveredLinks.length

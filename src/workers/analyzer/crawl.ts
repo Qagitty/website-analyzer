@@ -163,6 +163,102 @@ async function fetchSameOriginOnly(
   return null; // exceeded max hops
 }
 
+// ─── Sitemap discovery ────────────────────────────────────────────────────────
+
+/**
+ * Extract <loc> URLs from a sitemap or sitemap-index XML string.
+ * Returns at most `limit` same-origin non-skipped URLs.
+ */
+function parseSitemapXml(xml: string, baseHostname: string, limit = 20): string[] {
+  const results: string[] = [];
+  const seen = new Set<string>();
+  // Matches both <loc>…</loc> in regular sitemaps and sitemap-index files
+  const locRegex = /<loc>\s*([^<]+)\s*<\/loc>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = locRegex.exec(xml)) !== null && results.length < limit) {
+    const raw = m[1].trim();
+    let parsed: URL;
+    try { parsed = new URL(raw); } catch { continue; }
+    if (parsed.hostname !== baseHostname) continue;
+    if (shouldSkipPath(parsed.pathname)) continue;
+    if (parsed.pathname === '/' && parsed.search === '') continue;
+    const key = parsed.origin + parsed.pathname;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    results.push(parsed.href);
+  }
+  return results;
+}
+
+/**
+ * Discover internal URLs via sitemap.xml (and sitemap index files).
+ *
+ * Strategy:
+ *  1. Fetch /robots.txt and look for Sitemap: directives.
+ *  2. Fall back to /sitemap.xml.
+ *  3. If the document is a <sitemapindex>, fetch the first child sitemap.
+ *  4. Return up to 20 candidate URLs (caller limits to 4 for actual crawl).
+ */
+export async function discoverFromSitemap(
+  baseUrl: string,
+  fetchHeaders: Record<string, string>,
+): Promise<DiscoveredLink[]> {
+  const base = new URL(baseUrl);
+  const hostname = base.hostname;
+  const origin = base.origin;
+  const signal = AbortSignal.timeout(8_000);
+
+  const tryFetch = async (url: string): Promise<string | null> => {
+    try {
+      const r = await fetch(url, { headers: fetchHeaders, signal, redirect: 'follow' });
+      if (!r.ok) return null;
+      return await r.text();
+    } catch {
+      return null;
+    }
+  };
+
+  // 1 — robots.txt → Sitemap: directives
+  const sitemapUrls: string[] = [];
+  const robots = await tryFetch(`${origin}/robots.txt`);
+  if (robots) {
+    const sitemapRegex = /^Sitemap:\s*(.+)$/gim;
+    let m: RegExpExecArray | null;
+    while ((m = sitemapRegex.exec(robots)) !== null) {
+      const candidate = m[1].trim();
+      try {
+        const u = new URL(candidate);
+        if (u.hostname === hostname) sitemapUrls.push(u.href);
+      } catch { /* skip */ }
+    }
+  }
+  // 2 — fallback: /sitemap.xml
+  if (sitemapUrls.length === 0) sitemapUrls.push(`${origin}/sitemap.xml`);
+
+  const pageUrls: string[] = [];
+
+  for (const sitemapUrl of sitemapUrls.slice(0, 3)) {
+    if (pageUrls.length >= 20) break;
+    const xml = await tryFetch(sitemapUrl);
+    if (!xml) continue;
+
+    // 3 — sitemap index: recurse one level into child sitemaps
+    if (xml.includes('<sitemapindex')) {
+      const childUrls = parseSitemapXml(xml, hostname, 5);
+      for (const childUrl of childUrls) {
+        if (pageUrls.length >= 20) break;
+        const childXml = await tryFetch(childUrl);
+        if (!childXml) continue;
+        pageUrls.push(...parseSitemapXml(childXml, hostname, 20 - pageUrls.length));
+      }
+    } else {
+      pageUrls.push(...parseSitemapXml(xml, hostname, 20 - pageUrls.length));
+    }
+  }
+
+  return pageUrls.map(url => ({ url, depth: 1, discoveredFrom: 'sitemap' }));
+}
+
 export async function crawlPage(link: DiscoveredLink, fetchHeaders: Record<string, string>): Promise<CrawledPage | null> {
   const { url, depth, discoveredFrom } = link;
   const t0 = Date.now();
