@@ -354,7 +354,7 @@ export function LLMReadinessSection({ scores }: Props) {
               { label: 'Meta description', value: detectedSignals.hasMetaDescription ? `${detectedSignals.metaDescriptionLength} chars` : 'Missing', good: detectedSignals.hasMetaDescription },
               { label: 'Open Graph',       value: detectedSignals.hasOpenGraph ? 'Present' : 'Missing', good: detectedSignals.hasOpenGraph },
               { label: 'H1 headings',      value: String(detectedSignals.h1Count), good: detectedSignals.h1Count === 1 },
-              { label: 'Raw text length',  value: `${detectedSignals.rawTextLength.toLocaleString()} chars`, good: detectedSignals.rawTextLength >= 300 },
+              { label: 'Raw text length',  value: `${detectedSignals.rawTextLength.toLocaleString('en-US')} chars`, good: detectedSignals.rawTextLength >= 300 },
               { label: 'Author signal',    value: detectedSignals.hasAuthorSignal ? 'Detected' : 'None', good: detectedSignals.hasAuthorSignal },
               { label: 'Date signal',      value: detectedSignals.hasDateSignal ? 'Detected' : 'None', good: detectedSignals.hasDateSignal },
               { label: 'Main landmark',    value: detectedSignals.hasMainLandmark ? 'Present' : 'Missing', good: detectedSignals.hasMainLandmark },

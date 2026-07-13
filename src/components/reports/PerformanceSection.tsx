@@ -225,7 +225,7 @@ function PerformanceOverview({
               <MetaRow label="Tested URL" value={truncateUrl(analysisUrl)} title={analysisUrl} valueClass="font-mono text-xs" />
             )}
             {completedAt && (
-              <MetaRow label="Measured" value={new Date(completedAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })} icon={<Clock className="h-3 w-3" />} />
+              <MetaRow label="Measured" value={new Date(completedAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' })} icon={<Clock className="h-3 w-3" />} />
             )}
             <MetaRow label="Overall confidence" value={overallConfidence} valueClass={isFetchOnly ? 'text-amber-500 dark:text-amber-400' : 'text-emerald-500'} />
             {scores.ttfbSamples && scores.ttfbSamples.length === 3 && (
