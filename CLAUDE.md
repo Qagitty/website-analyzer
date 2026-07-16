@@ -35,7 +35,10 @@
 #### Infrastructure
 - All environment variables configured (Supabase, Redis, Anthropic, OpenAI, Stripe, Cloudflare)
 - Next.js 14 project with App Router, TypeScript, TailwindCSS, shadcn/ui
-- Database migrations: `001` through `030` applied (up to fix_requests — 2026-07-11)
+- Database migrations: `001` through `035` applied to remote (verified via `supabase migration list --linked` — 2026-07-16)
+  - Verify with `npx supabase migration list --linked` before assuming a table exists; a populated Local column does NOT mean the migration ran remotely
+  - Use `gen_random_uuid()` (Postgres core), never `uuid_generate_v4()` — `uuid-ossp` lives in the `extensions` schema and is not on the migration `search_path`
+  - Migration version numbers must be unique; `schema_migrations` keys on version
 - Row-Level Security policies in place
 - Auth middleware at `src/middleware.ts` — protects all dashboard routes + enforces CSRF centrally
 - **Dark Observatory design system** applied site-wide: `#0A0A0F` base, indigo-500→violet-500 primary, score-aware emerald/amber/red palette, `.text-gradient`, `.glow-indigo`, `.bg-grid` utilities
