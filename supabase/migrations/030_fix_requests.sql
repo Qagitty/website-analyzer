@@ -13,7 +13,7 @@
 -- ── Fix requests (core) ───────────────────────────────────────────────────────
 
 CREATE TABLE fix_requests (
-  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id         UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   team_id         UUID,
 
@@ -109,7 +109,7 @@ CREATE INDEX idx_fix_requests_severity     ON fix_requests(user_id, severity, st
 -- ── Recipients (one row per intended recipient) ───────────────────────────────
 
 CREATE TABLE fix_request_recipients (
-  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   fix_request_id  UUID NOT NULL REFERENCES fix_requests(id) ON DELETE CASCADE,
   user_id         UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
 
@@ -156,7 +156,7 @@ CREATE INDEX idx_fix_req_recipients_user    ON fix_request_recipients(user_id);
 -- ── Delivery log (immutable audit of all delivery attempts) ───────────────────
 
 CREATE TABLE fix_request_deliveries (
-  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   fix_request_id  UUID NOT NULL REFERENCES fix_requests(id) ON DELETE CASCADE,
   recipient_id    UUID REFERENCES fix_request_recipients(id) ON DELETE SET NULL,
   user_id         UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -187,7 +187,7 @@ CREATE INDEX idx_fix_req_deliveries_created ON fix_request_deliveries(attempted_
 -- ── Messages (conversation thread per request) ────────────────────────────────
 
 CREATE TABLE fix_request_messages (
-  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   fix_request_id  UUID NOT NULL REFERENCES fix_requests(id) ON DELETE CASCADE,
   user_id         UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
 
@@ -219,7 +219,7 @@ CREATE INDEX idx_fix_req_messages_created ON fix_request_messages(created_at DES
 -- ── Activity log (immutable lifecycle events) ─────────────────────────────────
 
 CREATE TABLE fix_request_activities (
-  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   fix_request_id  UUID NOT NULL REFERENCES fix_requests(id) ON DELETE CASCADE,
   user_id         UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
 
@@ -250,7 +250,7 @@ CREATE INDEX idx_fix_req_activities_created ON fix_request_activities(created_at
 -- Access is read-only for specific request fields only.
 
 CREATE TABLE fix_request_public_links (
-  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   fix_request_id  UUID NOT NULL REFERENCES fix_requests(id) ON DELETE CASCADE,
   user_id         UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
 

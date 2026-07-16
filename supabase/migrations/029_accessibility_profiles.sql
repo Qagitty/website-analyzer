@@ -13,7 +13,7 @@
 -- ── Accessibility profiles ────────────────────────────────────────────────────
 
 CREATE TABLE accessibility_profiles (
-  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id         UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   team_id         UUID,
   name            TEXT NOT NULL,
@@ -50,7 +50,7 @@ CREATE INDEX idx_acc_profiles_active  ON accessibility_profiles(user_id, is_acti
 -- ── Profile regions (one row per jurisdiction tracked) ────────────────────────
 
 CREATE TABLE accessibility_profile_regions (
-  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   profile_id      UUID NOT NULL REFERENCES accessibility_profiles(id) ON DELETE CASCADE,
   jurisdiction_id TEXT NOT NULL,
   profile_version TEXT NOT NULL,  -- jurisdiction profile version at time of selection
@@ -72,7 +72,7 @@ CREATE INDEX idx_acc_profile_regions_profile ON accessibility_profile_regions(pr
 -- ── Assessments ───────────────────────────────────────────────────────────────
 
 CREATE TABLE accessibility_assessments (
-  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   profile_id      UUID NOT NULL REFERENCES accessibility_profiles(id) ON DELETE CASCADE,
   user_id         UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
 
@@ -122,7 +122,7 @@ CREATE INDEX idx_acc_assessments_created   ON accessibility_assessments(created_
 -- ── Assessment pages (per-page results for multi-page assessments) ─────────────
 
 CREATE TABLE accessibility_assessment_pages (
-  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   assessment_id   UUID NOT NULL REFERENCES accessibility_assessments(id) ON DELETE CASCADE,
   page_url        TEXT NOT NULL,
   is_critical_journey BOOLEAN NOT NULL DEFAULT FALSE,
@@ -143,7 +143,7 @@ CREATE INDEX idx_acc_pages_assessment ON accessibility_assessment_pages(assessme
 -- ── Findings ──────────────────────────────────────────────────────────────────
 
 CREATE TABLE accessibility_findings (
-  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   profile_id      UUID NOT NULL REFERENCES accessibility_profiles(id) ON DELETE CASCADE,
   assessment_id   UUID NOT NULL REFERENCES accessibility_assessments(id) ON DELETE CASCADE,
   user_id         UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -199,7 +199,7 @@ CREATE INDEX idx_acc_findings_created    ON accessibility_findings(created_at DE
 -- ── Manual check templates ────────────────────────────────────────────────────
 
 CREATE TABLE accessibility_manual_checks (
-  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   profile_id      UUID NOT NULL REFERENCES accessibility_profiles(id) ON DELETE CASCADE,
   jurisdiction_id TEXT NOT NULL,
   check_id        TEXT NOT NULL,  -- from the jurisdiction's manualReviewRequirements
@@ -219,7 +219,7 @@ CREATE INDEX idx_acc_manual_checks_profile ON accessibility_manual_checks(profil
 -- ── Manual check results ──────────────────────────────────────────────────────
 
 CREATE TABLE accessibility_manual_check_results (
-  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   check_id        UUID NOT NULL REFERENCES accessibility_manual_checks(id) ON DELETE CASCADE,
   assessment_id   UUID NOT NULL REFERENCES accessibility_assessments(id) ON DELETE CASCADE,
   user_id         UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -248,7 +248,7 @@ CREATE INDEX idx_acc_manual_results_assessment ON accessibility_manual_check_res
 -- ── Accessibility statements ──────────────────────────────────────────────────
 
 CREATE TABLE accessibility_statements (
-  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   profile_id      UUID NOT NULL REFERENCES accessibility_profiles(id) ON DELETE CASCADE,
   user_id         UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   jurisdiction_id TEXT NOT NULL,
@@ -282,7 +282,7 @@ CREATE INDEX idx_acc_statements_status  ON accessibility_statements(profile_id, 
 -- ── Statement versions (append-only audit log of statement changes) ───────────
 
 CREATE TABLE accessibility_statement_versions (
-  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   statement_id    UUID NOT NULL REFERENCES accessibility_statements(id) ON DELETE CASCADE,
   version         INTEGER NOT NULL,
   content         JSONB NOT NULL,
@@ -296,7 +296,7 @@ CREATE INDEX idx_acc_stmt_versions_statement ON accessibility_statement_versions
 -- ── Audit events ──────────────────────────────────────────────────────────────
 
 CREATE TABLE accessibility_audit_events (
-  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   profile_id      UUID NOT NULL REFERENCES accessibility_profiles(id) ON DELETE CASCADE,
   user_id         UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
 

@@ -1,5 +1,5 @@
 -- ============================================================
--- 031_monitor_alert_evaluations.sql
+-- 034_monitor_alert_evaluations.sql
 -- Evaluation idempotency table for the alert pipeline.
 --
 -- One row per (monitor_id, analysis_id) pair.

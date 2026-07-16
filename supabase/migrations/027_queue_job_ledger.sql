@@ -7,7 +7,7 @@
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS queue_job_ledger (
-  id              UUID    PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id              UUID    PRIMARY KEY DEFAULT gen_random_uuid(),
 
   -- Envelope fields (denormalized for fast query)
   job_id          TEXT    NOT NULL UNIQUE,

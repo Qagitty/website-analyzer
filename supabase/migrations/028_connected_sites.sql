@@ -13,7 +13,7 @@
 -- 1. connected_sites
 -- ────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS connected_sites (
-  id                         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id                         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id                    UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   team_id                    UUID REFERENCES team_members(id) ON DELETE SET NULL,
   monitor_id                 UUID REFERENCES monitors(id) ON DELETE SET NULL,
@@ -59,7 +59,7 @@ CREATE TRIGGER connected_sites_updated_at
 -- 2. connected_site_keys
 -- ────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS connected_site_keys (
-  id                UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   connected_site_id UUID NOT NULL REFERENCES connected_sites(id) ON DELETE CASCADE,
   user_id           UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   key_prefix        TEXT NOT NULL,            -- "ws_site_xxx" first ~16 chars for display
@@ -82,7 +82,7 @@ CREATE INDEX IF NOT EXISTS idx_csk_status  ON connected_site_keys(status);
 -- 3. site_verification_challenges
 -- ────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS site_verification_challenges (
-  id                UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   connected_site_id UUID NOT NULL REFERENCES connected_sites(id) ON DELETE CASCADE,
   method            TEXT NOT NULL
                       CHECK (method IN ('script','meta_tag','html_file','dns_txt')),
@@ -129,7 +129,7 @@ CREATE TRIGGER site_connection_status_updated_at
 -- 5. site_telemetry_events  (bounded; pruned by retention job)
 -- ────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS site_telemetry_events (
-  id                UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   connected_site_id UUID NOT NULL REFERENCES connected_sites(id) ON DELETE CASCADE,
   event_type        TEXT NOT NULL,
   page_url_sanitized TEXT,
